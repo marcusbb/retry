@@ -3,11 +3,13 @@
 package ies.retry.spi.hazelcast.util;
 
 import static org.junit.Assert.assertEquals;
-import org.junit.Test;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+
+import org.junit.Test;
 
 public class IOUtilTest {
 

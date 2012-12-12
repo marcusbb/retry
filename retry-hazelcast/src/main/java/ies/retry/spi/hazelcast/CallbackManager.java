@@ -6,15 +6,11 @@ import ies.retry.RetryConfigManager;
 import ies.retry.RetryConfiguration;
 import ies.retry.RetryHolder;
 import ies.retry.RetryState;
-import ies.retry.RetryTransitionEvent;
-import ies.retry.RetryTransitionListener;
 import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
 import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
 import ies.retry.spi.hazelcast.disttasks.CallbackRegistration;
 import ies.retry.spi.hazelcast.disttasks.CallbackSelectionTask;
 import ies.retry.spi.hazelcast.disttasks.DistCallBackTask;
-import ies.retry.spi.hazelcast.disttasks.TryDequeueEvent;
-import ies.retry.spi.hazelcast.persistence.ops.ArchiveOp;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -24,7 +20,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.FutureTask;
@@ -37,8 +32,6 @@ import provision.services.logging.Logger;
 import com.hazelcast.core.DistributedTask;
 import com.hazelcast.core.IMap;
 import com.hazelcast.core.Member;
-import com.hazelcast.core.Message;
-import com.hazelcast.core.MessageListener;
 import com.hazelcast.core.MultiTask;
 
 /**
@@ -46,11 +39,13 @@ import com.hazelcast.core.MultiTask;
  * 
  * call back logic in {@link #tryDequeue(String)} method
  * 
+ * Moving to independent scheduler from state manager {@link StateManager}
+ * transitions 
  * 
  * @author msimonsen
  *
  */
-public class CallbackManager implements RetryTransitionListener {
+public class CallbackManager  {
 
 	//static Logger logger = Logger.getLogger(CallbackManager.class.getName());
 	static String CALLER = CallbackManager.class.getName();
@@ -103,6 +98,14 @@ public class CallbackManager implements RetryTransitionListener {
 		
 	}
 	
+	public void init() {
+		for (String retryType: configMgr.getConfigMap().keySet()) {
+			scheduleNextRun(retryType);
+		}
+	}
+	public void init(String retryType) {
+		scheduleNextRun(retryType);
+	}
 	/**
 	 * shutdown 
 	 */
@@ -117,12 +120,12 @@ public class CallbackManager implements RetryTransitionListener {
 	 */
 	public void addCallback(RetryCallback callback,String retryType) {
 		Logger.info(CALLER, "Add_Callback", "putting call back availability to: " + HazelcastRetryImpl.getHzInst().getCluster().getLocalMember(), "Type", retryType);
+		
 		callbackMap.put(retryType, callback);
 		
-		
+				
 	}
-	
-	
+		
 	
 	/**
 	 * 
@@ -133,26 +136,7 @@ public class CallbackManager implements RetryTransitionListener {
 	}
 	
 	
-
-	/**
-	 * Get callbacks from the state manager:
-	 * 
-	 * 
-	 */
-	public void onEvent(RetryTransitionEvent event) {
-		String retryType = event.getRetryType();
-		Logger.info(CALLER, "On_Event_RetryTransition", "On Event: " + event.getRetryState());
-		
-		//some checking here:
-		
-		if (event.getRetryState() == RetryState.QUEUED) {
-			scheduleNextRun(retryType);			
-			
-		} else if (event.getRetryState() == RetryState.SUSPENDED) {
-			
-		}
-				
-	}
+	
 	
 	
 	
@@ -163,7 +147,7 @@ public class CallbackManager implements RetryTransitionListener {
 				batchConfig.getBatchHeartBeat(), 
 				TimeUnit.MILLISECONDS);
 		//Include interval multiplier here as well.
-		Logger.info(CALLER, "Schedule_Next_Run", "Scheduled Next Run " + retryType + " in " + batchConfig.getBatchHeartBeat() + " ms");
+		Logger.debug(CALLER, "Schedule_Next_Run", "Scheduled Next Run " + retryType + " in " + batchConfig.getBatchHeartBeat() + " ms");
 	}
 	/**
 	 * Try to dequeue for all - it's called from {@link CallbackManager}
@@ -244,21 +228,21 @@ public class CallbackManager implements RetryTransitionListener {
 			}
 			
 			
-			Logger.debug(CALLER, "Try_Dequeue", "DEQUEUEING.", "Type", type);
 			IMap<String,List<RetryHolder>>  retryMap = HazelcastRetryImpl.getHzInst().getMap(type);
 			RetryStat stat = stats.getAllStats().get(type);
 			
-			Member execMember = pickMember(type);
+						
 			
-			
-			
-			
-			//This makes it a completely no-network op.
-			Logger.info(CALLER, "Try_Dequeue", "Dequeueing local set size: " + retryMap.localKeySet().size() + ". BLOCK size: " + getBatchSize(type), "Type", type);
-
+			if (retryMap.localKeySet().size() <1) {
+				Logger.debug(CALLER, "Try_Dequeue_zero_size");
+				return false;
+			}
 			Iterator<String> keyIter = retryMap.localKeySet().iterator();
 			
+			Member execMember = pickMember(type);
 			
+
+			Logger.info(CALLER, "Try_Dequeue", "Dequeueing local set size: " + retryMap.localKeySet().size() + ". BLOCK size: " + getBatchSize(type), "Type", type);
 			long successCount = 0;
 			long failCount = 0;
 			while(keyIter.hasNext()) {
@@ -324,31 +308,33 @@ public class CallbackManager implements RetryTransitionListener {
 			}
 			Logger.info(CALLER, "Try_Dequeue_Iteration_Completed", "Completed iteration.", "Type", type, "SUCCESS", successCount, "FAILED", failCount,"CUR_BATCH_SIZE",getBatchSize(type));			
 			
-			//TODO:  resort to DB fetches
+			
 			if (isDrained(type)) {
 				Logger.info(CALLER, "Try_Dequeue_Queue_Drained", "Retry is drained from memory", "Type", type);
-				boolean allDrained = stateMgr.isStorageDrained(type);
+				
+				/*boolean allDrained = stateMgr.isStorageDrained(type);
 				if (allDrained)
 					Logger.info(CALLER, "Try_Dequeue_Queue_Drained", "Retry is completely drained", "Type", type);
-				
+				*/
 				//Reset the stats
 				stat.resetFailed();
-			} else {
-				scheduleNextRun(type);
-			}
+			} 
 		
 		}catch (NoCallbackMember e) {
 			Logger.warn(CALLER, "Try_Dequeue_NoCallbackMember", "No member to call back registered anywhere in the grid", "Type", type);
-			scheduleNextRun(type);
+			
 			return false;
 		}
 		catch (Throwable t) {
 			
 			Logger.error(CALLER, "Try_Dequeue_Throwable", "Exception Message: " + t.getMessage(), "Type", type, t);
-			scheduleNextRun(type);
+			
 		} finally {
 			if (locked) 
 				releaseLock(type);
+			
+			scheduleNextRun(type);
+			
 		}
 		return dequeued;
 		

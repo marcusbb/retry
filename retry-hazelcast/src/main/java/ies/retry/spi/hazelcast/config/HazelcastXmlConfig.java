@@ -1,9 +1,9 @@
 package ies.retry.spi.hazelcast.config;
 
-import javax.xml.bind.annotation.XmlRootElement;
-
 import ies.retry.spi.hazelcast.CallbackManager;
 import ies.retry.xml.XmlRetryConfig;
+
+import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name="retry")
 public class HazelcastXmlConfig extends XmlRetryConfig {
@@ -27,6 +27,8 @@ public class HazelcastXmlConfig extends XmlRetryConfig {
 	private boolean pickLocalCallback = true;
 	
 	private PubConfig pubConfig = new PubConfig();
+	
+	private long queueCheckPeriod = 10 * 1000;
 	
 	public PersistenceConfig getPersistenceConfig() {
 		return persistenceConfig;
@@ -75,6 +77,16 @@ public class HazelcastXmlConfig extends XmlRetryConfig {
 
 	public void setPubConfig(PubConfig pubConfig) {
 		this.pubConfig = pubConfig;
+	}
+
+
+	public long getQueueCheckPeriod() {
+		return queueCheckPeriod;
+	}
+
+
+	public void setQueueCheckPeriod(long queueCheckPeriod) {
+		this.queueCheckPeriod = queueCheckPeriod;
 	}
 	
 	

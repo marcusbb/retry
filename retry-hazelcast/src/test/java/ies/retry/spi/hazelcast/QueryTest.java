@@ -1,6 +1,5 @@
 package ies.retry.spi.hazelcast;
 
-import ies.retry.Retry;
 import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.query.BeanShellQuery;
 import ies.retry.spi.hazelcast.query.PropertyQuery;

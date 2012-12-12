@@ -1,6 +1,5 @@
 package ies.retry.spi.hazelcast;
 
-import hazelcast.SuccessCallback;
 import ies.retry.Retry;
 import ies.retry.RetryHolder;
 import ies.retry.xml.XMLRetryConfigMgr;

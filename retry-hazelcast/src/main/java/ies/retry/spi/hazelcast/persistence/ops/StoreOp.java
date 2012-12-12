@@ -6,7 +6,6 @@ import ies.retry.spi.hazelcast.persistence.RetryEntity;
 import ies.retry.spi.hazelcast.persistence.RetryId;
 import ies.retry.spi.hazelcast.util.TSHolderComparator;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;

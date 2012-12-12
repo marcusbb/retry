@@ -9,20 +9,22 @@ import ies.retry.RetryTransitionListener;
 import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
 import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
 import ies.retry.spi.hazelcast.disttasks.AddRetryCallable;
-import ies.retry.spi.hazelcast.disttasks.SyncConfigTask;
-import ies.retry.spi.hazelcast.disttasks.SyncToMasterTask;
+import ies.retry.spi.hazelcast.disttasks.KeySetSizeTask;
 import ies.retry.spi.hazelcast.persistence.RetryMapStore;
 import ies.retry.spi.hazelcast.persistence.RetryMapStoreFactory;
 import ies.retry.xml.XMLRetryConfigMgr;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -36,7 +38,7 @@ import com.hazelcast.core.IMap;
 import com.hazelcast.core.Member;
 import com.hazelcast.core.MembershipEvent;
 import com.hazelcast.core.MembershipListener;
-import com.hazelcast.core.Message;
+import com.hazelcast.core.MultiTask;
 
 
 /**
@@ -67,13 +69,15 @@ public class StateManager implements  MembershipListener{
 	private Member masterMember = null;
 	private boolean master =false;
 	
-	public static final String DB_LOADING_STATE ="RETRY_DB_LOADING_STATE";
+	public static final String DB_LOADING_STATE ="NEAR--RETRY_DB_LOADING_STATE";
 	private IMap<String, LoadingState> loadingStateMap = null;
 	
 	//stats
 	private RetryStats stats;
 	
 	ExecutorService publishExec;	
+	
+	private ScheduledThreadPoolExecutor stpe = null;
 	
 	StateMapEntryListener stateMapListener;
 	
@@ -96,11 +100,15 @@ public class StateManager implements  MembershipListener{
 		
 		stateMapListener = new StateMapEntryListener(this);
 		globalStateMap.addEntryListener(stateMapListener, true);
+		stpe = new ScheduledThreadPoolExecutor(1);
+		
 	}
 	
 	public void shutdown() {
 		if (publishExec != null)
 			publishExec.shutdown();
+		if (stpe != null)
+			stpe.shutdown();
 	}
 	public void init() {
 		//initialize state null -> drained
@@ -117,12 +125,6 @@ public class StateManager implements  MembershipListener{
 			//even if we have slaves coming on line, we should get informed of
 			//state changes via loading
 		}
-		
-			//publish current state to listener (callback manager)
-			//this is to make sure that QUEUED states are picked up by callback manager
-			for (RetryConfiguration config:configMgr.getConfigMap().values()) {
-				notifyStateListeners(new RetryTransitionEvent(globalStateMap.get(config.getType()), config.getType()));
-			}
 		
 		
 	}
@@ -187,20 +189,16 @@ public class StateManager implements  MembershipListener{
 					RetryConfiguration config = configMgr.getConfiguration(type);
 					if(config == null)
 						continue;
-					
-					if(loadingStateMap.tryLock(config.getType())) {
-						if(loadingStateMap.get(config.getType()) == null) {
-							// initialize loading state null -> loading
-							loadingStateMap.put(config.getType(), LoadingState.LOADING);
-							Logger.info(CALLER, "Load_Data_Async", "Update loading State -> LOADING", "Type", config.getType());
-							loadData(config.getType(),config,true);
-							
-							loadingStateMap.put(config.getType(), LoadingState.READY);
-							Logger.info(CALLER, "Load_Data_Async", "Update loading State -> READY", "Type", config.getType());
-						}
+										
 						
-						loadingStateMap.unlock(config.getType());
-					}		
+					// initialize loading state null -> loading
+					loadingStateMap.put(config.getType(), LoadingState.LOADING);
+					Logger.info(CALLER, "Load_Data_Async", "Update loading State -> LOADING", "Type", config.getType());
+					loadData(config.getType(),config,true);
+					
+					loadingStateMap.put(config.getType(), LoadingState.READY);
+					Logger.info(CALLER, "Load_Data_Async", "Update loading State -> READY", "Type", config.getType());
+						
 				}
 			}
 		});
@@ -232,18 +230,23 @@ public class StateManager implements  MembershipListener{
 				retryAddedEvent(type,false);
 			}
 
-			List<Future<Void>> futures = new ArrayList<Future<Void>>(map.size());
+			List<FutureTask<Void>> futures = new ArrayList<FutureTask<Void>>(map.size());
 			for (List<RetryHolder> listHolder:map.values()) {
-				futures.add(h1.getExecutorService().submit(new AddRetryCallable(listHolder,config,false)));
+				DistributedTask<Void> distTask = new DistributedTask<Void>(
+						new AddRetryCallable(
+								listHolder,config,false),
+								listHolder.get(0).getId()
+								);
+				h1.getExecutorService().submit( distTask ) ;
+				futures.add(distTask);
 			}
 			
 			if(isWait) {
 				for(Future<Void> future:futures) {
 					try {
 						future.get(300, TimeUnit.SECONDS);
-					} catch (InterruptedException e) {
-					} catch (ExecutionException e) {
-					} catch (TimeoutException e) {
+					} catch (Exception e) {
+						Logger.error(CALLER, "Loading_Exception","","msg",e.getMessage(),e);
 					}
 				}
 			}
@@ -261,6 +264,11 @@ public class StateManager implements  MembershipListener{
 		if (h1.getCluster().getLocalMember().equals(masterMember)) {			
 			Logger.debug(CALLER, "I_Am_Master", "I am the master: "+ masterMember);
 			master = true;
+			//
+			long queueCheckPeriod = configMgr.getHzConfig().getQueueCheckPeriod();
+			stpe.scheduleAtFixedRate(
+					new PeriodicQueuedStateTask(this), 
+					queueCheckPeriod, queueCheckPeriod, TimeUnit.MILLISECONDS);
 		} else {
 			Logger.debug(CALLER, "I_Am_Slave", "I am a slave: master=["+ masterMember + "] slave=" + h1.getCluster().getLocalMember());			
 		}		
@@ -310,8 +318,7 @@ public class StateManager implements  MembershipListener{
 		
 		RetryState t = globalStateMap.get(type);
 		if ( t == null) {
-			t= RetryState.DRAINED;
-			globalStateMap.put(type, t);
+			publish(new RetryTransitionEvent(RetryState.DRAINED,type));
 		}
 		if (t== RetryState.DRAINED) {
 			//Logger.info(CALLER, "Retry_Added_Event", "Publishing message: type=[" + type + "]" + ", state=" + RetryState.QUEUED);
@@ -335,8 +342,9 @@ public class StateManager implements  MembershipListener{
 	 * Will also inform transition listeners of this  
 	 * 
 	 * @param type
+	 * @return if storage had items that grid did not
 	 */
-	public boolean isStorageDrained(String type) {
+	public boolean syncGridAndStorage(String type) {
 		
 		RetryState t = globalStateMap.get(type);
 		if ( t == null) {
@@ -346,22 +354,52 @@ public class StateManager implements  MembershipListener{
 		//that the cluster + storage is drained - let's make sure
 		boolean storedRetry = false;
 		
+		//first check we're QUEUED
+		//then that the grid is empty
+		//finally synchronize with DB
 		if (t == RetryState.QUEUED) {
-			HazelcastInstance h1 = HazelcastRetryImpl.getHzInst();
-			
-			storedRetry =storedRetry(type);
-			if ( !storedRetry ) {
-				publish(new RetryTransitionEvent(RetryState.DRAINED,type));
-				//finally flip the member lost event off,
-				//as we're  synchronized persistence
-				memberLostEvent = false;
-			} else if(master) {
-				//actively load
-				Logger.warn(CALLER, "Queue_Drained", "Found retries in store, loading...", "Type", type);
-				loadData(type, configMgr.getConfiguration(type),false);
+			Logger.debug(CALLER, "SYNC_GRID_QUEUED","","TYPE",type);
+			if (gridEmpty(type)) {
+				
+				storedRetry =storedRetry(type);
+				if ( !storedRetry ) {
+					publish(new RetryTransitionEvent(RetryState.DRAINED,type));
+					Logger.info(CALLER, "SYNC_GRID_DB_SYNCED","","TYPE",type);
+					//finally flip the member lost event off,
+					//as we're  synchronized persistence
+					memberLostEvent = false;
+				} else  {
+					//actively load
+					//as for some reason the 
+					//DB has records that the grid does not
+					Logger.warn(CALLER, "SYNC_GRID_DB_ERROR", "Found retries in store, loading...", "Type", type);
+					loadData(type, configMgr.getConfiguration(type),false);
+				}
 			}
 		} 
 		return storedRetry;
+	}
+	
+	public boolean gridEmpty(String type) {
+		for (Integer size:getLocalKeySetSizes(type) ) {
+			if (size > 0) return false;
+		}
+		return true;
+	}
+	
+	private Collection<Integer> getLocalKeySetSizes(String type) {
+		HazelcastInstance h1 = HazelcastRetryImpl.getHzInst();
+		
+		MultiTask<Integer> sizeTask = new MultiTask<Integer>(new KeySetSizeTask(type),h1.getCluster().getMembers());
+		
+		h1.getExecutorService().execute(sizeTask);
+		try {
+			return sizeTask.get();
+		}catch (Exception  e) {
+			Logger.error(CALLER, "Multitask_execution_failure","","msg",e.getMessage(),e);
+			throw new RuntimeException(e);
+		}
+		
 	}
 	
 	private boolean storedRetry(String type) {
@@ -524,4 +562,30 @@ class StateMapEntryListener implements EntryListener<String,RetryState> {
 	
 }
 
+class PeriodicQueuedStateTask implements Runnable {
+
+	private StateManager stateMgr;
+	private static String CALLER = PeriodicQueuedStateTask.class.getName();
+	
+	public PeriodicQueuedStateTask(StateManager stateMgr) {
+		this.stateMgr = stateMgr;
+	}
+	
+	@Override
+	public void run() {
+		Logger.debug(CALLER,"Check_state_start");
+		Map<String,RetryState> stateMap = stateMgr.getAllStates();
+		try {
+			for (String type:stateMap.keySet()) {
+						
+				stateMgr.syncGridAndStorage(type);
+				
+			}
+		}catch (Throwable e) {
+			Logger.error(CALLER,"Check_period_fail","","msg",e.getMessage(),e);
+		}
+		
+	}
+	
+}
 

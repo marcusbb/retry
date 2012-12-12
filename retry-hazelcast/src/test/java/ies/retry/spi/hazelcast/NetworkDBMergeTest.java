@@ -2,7 +2,6 @@ package ies.retry.spi.hazelcast;
 
 import ies.retry.Retry;
 import ies.retry.RetryHolder;
-import ies.retry.RetryManager;
 import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
 import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
 import ies.retry.spi.hazelcast.persistence.DBMergePolicy;
@@ -25,7 +24,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import test.util.PersistenceUtil;
-
 
 import com.hazelcast.impl.base.DataRecordEntry;
 import com.hazelcast.nio.Data;

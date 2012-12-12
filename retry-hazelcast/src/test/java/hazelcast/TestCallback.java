@@ -1,11 +1,9 @@
 package hazelcast;
 
-import java.util.Random;
-
-import provision.services.logging.Logger;
-
 import ies.retry.RetryCallback;
 import ies.retry.RetryHolder;
+
+import java.util.Random;
 
 public class TestCallback implements RetryCallback {
 

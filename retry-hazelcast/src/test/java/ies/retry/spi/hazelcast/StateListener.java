@@ -1,9 +1,9 @@
 package ies.retry.spi.hazelcast;
 
-import java.util.concurrent.CountDownLatch;
-
 import ies.retry.RetryTransitionEvent;
 import ies.retry.RetryTransitionListener;
+
+import java.util.concurrent.CountDownLatch;
 
 public class StateListener implements RetryTransitionListener {
 

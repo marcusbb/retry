@@ -1,11 +1,11 @@
 package ies.retry.spi.hazelcast.config;
 
-import java.util.Map;
-
 import ies.retry.RetryConfiguration;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 import ies.retry.xml.XMLRetryConfigMgr;
 import ies.retry.xml.XmlRetryConfig;
+
+import java.util.Map;
 
 public class HazelcastConfigManager extends XMLRetryConfigMgr {
 
@@ -38,6 +38,7 @@ public class HazelcastConfigManager extends XMLRetryConfigMgr {
 		//this is the hazelcast operation specific
 		retryImpl.initStat(newConfig);
 		retryImpl.getStateMgr().init(newConfig);
+		retryImpl.getCallbackManager().init(newConfig.getType());
 	}	
 	
 	public HazelcastXmlConfig getHzConfig() {

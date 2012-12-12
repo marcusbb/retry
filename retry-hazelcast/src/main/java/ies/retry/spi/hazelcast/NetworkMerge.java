@@ -1,27 +1,35 @@
 package ies.retry.spi.hazelcast;
 
-import java.util.ArrayList;
+import ies.retry.Retry;
+import ies.retry.RetryConfiguration;
+import ies.retry.RetryHolder;
+import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
+import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
+import ies.retry.spi.hazelcast.config.NetworkMergePolicy;
+import ies.retry.spi.hazelcast.persistence.RetryMapStoreFactory;
+import ies.retry.spi.hazelcast.util.TSHolderComparator;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
 
 import provision.services.logging.Logger;
-
-import ies.retry.Retry;
-import ies.retry.RetryConfiguration;
-import ies.retry.RetryHolder;
-import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
-import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
-import ies.retry.spi.hazelcast.config.NetworkMergePolicy;
-import ies.retry.spi.hazelcast.persistence.RetryMapStoreFactory;
-
-import ies.retry.spi.hazelcast.util.TSHolderComparator;
 
 import com.hazelcast.core.MapEntry;
 import com.hazelcast.impl.base.DataRecordEntry;
 import com.hazelcast.merge.MergePolicy;
 import com.hazelcast.nio.Data;
 import com.hazelcast.nio.IOUtil;
+
+/**
+ * Configuring hazelcast with this policy leads to dead/unstartable slave
+ * nodes. Do not use now.
+ * 
+ * TODO: confirm in later releases.
+ *  
+ * @author msimonsen
+ *
+ */
 
 public class NetworkMerge implements MergePolicy {
 

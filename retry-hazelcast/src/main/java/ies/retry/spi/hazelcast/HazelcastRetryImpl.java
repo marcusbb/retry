@@ -108,14 +108,12 @@ public class HazelcastRetryImpl implements RetryManager {
 		initIndexes();
 		stateMgr = new StateManager(configMgr,stats);
 		callbackManager = new CallbackManager(configMgr,stateMgr,stats);
-		stateMgr.addTransitionListener(callbackManager);
+		callbackManager.init();
+		//stateMgr.addTransitionListener(callbackManager);
 		//possibly load data from DB
 		stateMgr.init();
 		
-		//Grid Health check
-		gridCheck = new GridHealthCheck(stateMgr);
-		gridCheck.init();
-		
+				
 				
 	}
 	public static HazelcastInstance getHzInst() {
@@ -207,10 +205,10 @@ public class HazelcastRetryImpl implements RetryManager {
 		stateMgr.retryAddedEvent(retry.getType(),true);
 				
 		try {
-			//TODO: first determine the partition key and optimize add
+			// first determine the partition key, add to owning member
 			DistributedTask<Void> distTask = new DistributedTask<Void>(new AddRetryCallable(retry, config), retry.getId());
-			//use this distributed task
-			 h1.getExecutorService(EXEC_SRV_NAME).submit(distTask);
+			
+			h1.getExecutorService(EXEC_SRV_NAME).submit(distTask);
 			if (config.isSyncRetryAdd())
 				distTask.get();
 		}catch (Exception e) {
@@ -303,7 +301,7 @@ public class HazelcastRetryImpl implements RetryManager {
 	}
 	/**
 	 * This could indicate we're in DEQUEUE mode
-	 * or that we've lost some data
+	 * or that we've lost some data (members lost)
 	 * 
 	 * @param type
 	 * @return

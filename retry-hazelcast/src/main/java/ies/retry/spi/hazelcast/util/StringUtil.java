@@ -1,7 +1,5 @@
 package ies.retry.spi.hazelcast.util;
 
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;

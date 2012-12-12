@@ -7,11 +7,11 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IMap;
-
 import bsh.EvalError;
 import bsh.Interpreter;
+
+import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.IMap;
 
 public class BeanShellQuery implements BaseQuery {
 	

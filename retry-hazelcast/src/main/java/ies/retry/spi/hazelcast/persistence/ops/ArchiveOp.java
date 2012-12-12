@@ -1,11 +1,11 @@
 package ies.retry.spi.hazelcast.persistence.ops;
 
-import java.util.List;
-
 import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.persistence.ArchivedRetryEntity;
 import ies.retry.spi.hazelcast.persistence.RetryEntity;
 import ies.retry.spi.hazelcast.persistence.RetryId;
+
+import java.util.List;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;

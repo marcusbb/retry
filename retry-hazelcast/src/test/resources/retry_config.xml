@@ -3,7 +3,7 @@
 	<provider>ies.retry.spi.hazelcast.HazelcastRetryImpl</provider>
 	<!-- persistence config -->
 	<persistenceConfig>
-		<ON>false</ON>
+		<ON>true</ON>
 		<jpaPU>retryPool</jpaPU>
 	</persistenceConfig>
 	
@@ -32,38 +32,7 @@
 		</batchConfig>
 		
 	</typeConfig>
-	<typeConfig>
-		<type>POKE_BY_PIN</type>
-		<listBacked>true</listBacked>
-		<queueStrategy>UNORDERED</queueStrategy>
-		<backOff>
-			<interval>5000</interval>
-			<intervalMultiplier>1.0</intervalMultiplier>
-			<maxAttempts>1000</maxAttempts>
-		</backOff>
-		<batchConfig>
-			<batchHeartBeat>5050</batchHeartBeat>
-			<batchSize>1000</batchSize>
-			<intervalMultiplier>1</intervalMultiplier>
-		</batchConfig>
-		
-	</typeConfig>
-	<typeConfig>
-		<type>POKE_SLOW</type>
-		<listBacked>true</listBacked>
-		<queueStrategy>UNORDERED</queueStrategy>
-		<backOff>
-			<interval>60000</interval>
-			<intervalMultiplier>1.0</intervalMultiplier>
-			<maxAttempts>1000</maxAttempts>
-		</backOff>
-		<batchConfig>
-			<batchHeartBeat>60100</batchHeartBeat>
-			<batchSize>1000</batchSize>
-			<intervalMultiplier>1</intervalMultiplier>
-		</batchConfig>
-		
-	</typeConfig>
+	
 	
 	
 </retry>

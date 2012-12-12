@@ -1,8 +1,8 @@
 package ies.retry.spi.hazelcast.jmx;
 
-import java.io.Serializable;
-
 import ies.retry.xml.XmlRetryConfig;
+
+import java.io.Serializable;
 
 public class ConfigBroadcast implements Serializable {
 

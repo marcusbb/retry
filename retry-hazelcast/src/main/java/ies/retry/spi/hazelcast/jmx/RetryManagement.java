@@ -2,7 +2,6 @@ package ies.retry.spi.hazelcast.jmx;
 
 import ies.retry.ConfigException;
 import ies.retry.RetryState;
-
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 import ies.retry.spi.hazelcast.RetryStat;
 import ies.retry.spi.hazelcast.StateManager;
