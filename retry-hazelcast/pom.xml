@@ -1,0 +1,225 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                      http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>ies</groupId>
+	<artifactId>hazelcast-retry</artifactId>
+	<packaging>jar</packaging>
+	<version>1.0.9-SNAPSHOT</version>
+	<name>HAZELCAST RETRY</name>
+	<description>
+		Hazelcast grid implementation of retry framework
+	</description>
+	
+	<!-- for some reason rim maven mirror hasn't mirrored hazelcast latest jars. -->
+	<repositories>
+		 <repository>
+     	 	<id>main</id>
+		<url>http://repo1.maven.org/maven2/</url>
+		</repository>
+	</repositories>
+	<dependencies>
+		
+		<dependency>
+			<groupId>ies</groupId>
+			<artifactId>retry-api</artifactId>
+			<version>1.0.5-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>ies.common.util</groupId>
+			<artifactId>ies-common</artifactId>
+			<version>1.5.1-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.15</version>
+		</dependency>
+		<dependency>
+			<groupId>com.hazelcast</groupId>
+			<artifactId>hazelcast</artifactId>
+			<version>2.1.2</version>
+			<type>jar</type>
+			<scope>compile</scope>
+		</dependency>
+		
+		<dependency>
+			<groupId>javax.persistence</groupId>
+			<artifactId>persistence-api</artifactId>
+			<version>1.0</version>
+			<type>jar</type>
+			<scope>provided</scope>
+		</dependency>
+		
+		 <dependency>
+	      <groupId>javax.xml.bind</groupId>
+	      <artifactId>jaxb-api</artifactId>
+	      <version>2.1</version>
+	      <scope>provided</scope>
+	    </dependency>
+	    <dependency>
+		    <groupId>javax.xml</groupId>
+		    <artifactId>jaxb-impl</artifactId>
+		    <version>2.1</version>
+		    <scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.beanshell</groupId>
+			<artifactId>bsh</artifactId>
+			
+			<version>2.0b5</version>
+		</dependency>
+	      <dependency>
+		      <groupId>junit</groupId>
+		      <artifactId>junit</artifactId>
+		      <version>4.8</version>
+		      <scope>test</scope>
+		   </dependency>
+		  
+	  
+	  <!-- Hibernate related 
+	  	<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-core</artifactId>
+			<version>3.6.9.Final</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+		  <groupId>org.hibernate</groupId>
+		  <artifactId>hibernate-entitymanager</artifactId>
+		  <version>3.6.1.Final</version>
+		  <scope>test</scope>
+		</dependency>-->
+		
+		
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-core</artifactId>
+			<version>3.3.2.GA</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-entitymanager</artifactId>
+			<version>3.4.0.GA</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+			<version>1.5.8</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+			<version>1.5.8</version>
+			<scope>test</scope>
+		</dependency>
+		<!-- <dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			<version>1.5.8</version>
+			<scope>test</scope>
+		</dependency> -->
+			<dependency>
+		  <groupId>com.oracle</groupId>
+		  <artifactId>ojdbc14</artifactId>
+		  <version>10.2.0.4.0</version>
+		  <scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>ies.common.testutil</groupId>
+			<artifactId>ies-testutil</artifactId>
+			<version>1.0.3-SNAPSHOT</version>
+			<scope>test</scope>
+		</dependency>
+
+	
+	</dependencies>
+	
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>2.3.2</version>				
+				<configuration>
+					<source>1.6</source>
+					<target>1.6</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>cobertura-maven-plugin</artifactId>
+				<version>2.5.1</version>
+				<configuration>
+				  <instrumentation>
+				    <excludes>
+						<exclude>ies/retry/spi/hazelcast/disttasks/BroadcastState.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/disttasks/CallbackRegistration.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/disttasks/TryDequeueEvent.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/query/QueryException.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/query/ClusterQueryResults.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/persistence/RetryMapNoStore.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/jmx/ConfigBroadcast.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/config/PubConfig.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/config/PersistenceConfig.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/config/HealthCheckConfig.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/config/HazelcastXmlConfig.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/config/HazelcastXmlConfFactory.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/VersionedRetryHolder.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/StateTransitionException.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/util/TSHolderComparator.*</exclude>
+				    </excludes>
+				  </instrumentation>
+				</configuration>
+				<executions>
+				  <execution>
+				    <goals>
+				      <goal>cobertura</goal>
+				    </goals>
+				  </execution>
+				</executions>
+			</plugin>		
+		</plugins>
+	</build>
+	
+	<reporting>
+	    <plugins>
+	    	<plugin>
+	      		<groupId>org.codehaus.mojo</groupId>
+	      		<artifactId>cobertura-maven-plugin</artifactId>
+	      		<version>2.5.1</version>
+	    	</plugin>
+	  	</plugins>
+	</reporting>
+	
+	<distributionManagement>
+	    <repository>
+	      <id>staging</id>
+	      <name>Rim Internal Releases</name>
+	      <url>http://upload-maven.rim.net/nexus/service/local/staging/deploy/maven2</url>
+	    </repository>
+	    <snapshotRepository>
+	      <id>ies-snapshots</id>
+	      <name>Rim Internal Snapshots</name>
+	      <url>http://upload-maven.rim.net/nexus/content/repositories/ies-snapshots</url>
+	    </snapshotRepository>
+	    <site>
+	      <id>site</id>
+	      <name>Rim Internal Site</name>
+	      <url>dav:http://upload-maven.rim.net/nexus/content/sites/rim-dev-site/ies</url>
+	    </site>
+	 </distributionManagement> 
+	
+	<scm>
+	    <connection>scm:perforce:${env.P4_USERNAME}@perforce02:1668://depot/dev/cardhu/IES/retry/retry-hazelcast/</connection>
+	    <developerConnection>scm:perforce:${env.P4_USERNAME}@perforce02:1668://depot/dev/cardhu/IES/retry/retry-hazelcast/</developerConnection>
+	     <url>//depot/dev/cardhu/${env.P4_USERNAME}/IES/retry/retry-hazelcast/</url>
+	</scm>
+	
+</project>
+
+

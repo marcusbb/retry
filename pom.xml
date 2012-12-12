@@ -1,0 +1,49 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                      http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>ies</groupId>
+	<artifactId>retry</artifactId>
+	<packaging>pom</packaging>
+	<version>1.0.1-SNAPSHOT</version>
+	<name>RETRY ALL</name>
+	<description>
+		Retry specification + implementation.
+	</description>
+		
+	
+	<modules>
+		<module>retry-api</module>
+		<!-- <module>retry-infinispan</module> -->
+		<module>retry-hazelcast</module>
+		<!-- <module>retry-war</module> -->
+	</modules>
+	
+	
+	<distributionManagement>
+	    <repository>
+	      <id>staging</id>
+	      <name>Rim Internal Releases</name>
+	      <url>http://upload-maven.rim.net/nexus/service/local/staging/deploy/maven2</url>
+	    </repository>
+	    <snapshotRepository>
+	      <id>ies-snapshots</id>
+	      <name>Rim Internal Snapshots</name>
+	      <url>http://upload-maven.rim.net/nexus/content/repositories/ies-snapshots</url>
+	    </snapshotRepository>
+	    <site>
+	      <id>site</id>
+	      <name>Rim Internal Site</name>
+	      <url>dav:http://upload-maven.rim.net/nexus/content/sites/rim-dev-site/ies</url>
+	    </site>
+	 </distributionManagement> 
+	
+	<scm>
+	    <connection>scm:perforce:${env.P4_USERNAME}@perforce02:1668://depot/dev/cardhu/IES/retry/</connection>
+	    <developerConnection>scm:perforce:${env.P4_USERNAME}@perforce02:1668://depot/dev/cardhu/IES/retry/</developerConnection>
+	     <url>//depot/dev/cardhu/${env.P4_USERNAME}/IES/retry/</url>
+	</scm>
+	
+</project>
+
+

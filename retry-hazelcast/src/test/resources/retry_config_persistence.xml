@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<retry>
+	<provider>ies.retry.spi.hazelcast.HazelcastRetryImpl</provider>
+	<typeConfig>
+		<type>POKE</type>
+		<listBacked>true</listBacked>
+		<queueStrategy>UNORDERED</queueStrategy>
+		<backOff>
+			<interval>5000</interval>
+			<intervalMultiplier>1.0</intervalMultiplier>
+			<maxAttempts>10</maxAttempts>
+		</backOff>
+		<batchConfig>
+			<batchHeartBeat>5050</batchHeartBeat>
+			<batchSize>1000</batchSize>
+			<intervalMultiplier>1</intervalMultiplier>
+		</batchConfig>
+		
+	</typeConfig>
+	<typeConfig>
+		<type>POKE_BY_PIN</type>
+		<listBacked>true</listBacked>
+		<queueStrategy>UNORDERED</queueStrategy>
+		<backOff>
+			<interval>5000</interval>
+			<intervalMultiplier>1.0</intervalMultiplier>
+			<maxAttempts>10</maxAttempts>
+		</backOff>
+		<batchConfig>
+			<batchHeartBeat>5050</batchHeartBeat>
+			<batchSize>1000</batchSize>
+			<intervalMultiplier>1</intervalMultiplier>
+		</batchConfig>
+		
+	</typeConfig>
+	<typeConfig>
+		<type>POKE_SLOW</type>
+		<listBacked>true</listBacked>
+		<queueStrategy>UNORDERED</queueStrategy>
+		<syncRetryAdd>true</syncRetryAdd>
+		<backOff>
+			<interval>10000</interval>
+			<intervalMultiplier>1.0</intervalMultiplier>
+			<maxAttempts>1000</maxAttempts>
+		</backOff>
+		<batchConfig>
+			<batchHeartBeat>10100</batchHeartBeat>
+			<batchSize>1000</batchSize>
+			<intervalMultiplier>1</intervalMultiplier>
+		</batchConfig>
+		
+	</typeConfig>
+	<!-- persistence config -->
+	<persistenceConfig>
+		<!-- true implies that DB storage is turned on  -->
+		<ON>true</ON>
+		<jpaPU>retryPool</jpaPU>
+		<writeSync>true</writeSync>
+		<!-- During initial start up this is the number of rows fetched per iteration -->
+		<loadFetchSize>5000</loadFetchSize>
+		<!-- Options are LINKED,SYNC,ARRAY -->
+		<queuePolicy>LINKED</queuePolicy>
+		<!-- Pool sizing -->
+		<corePoolSize>50</corePoolSize>
+		<maxPoolSize>50</maxPoolSize>
+		<!-- Used for bounded queues (ARRAY,LINKED), otherwise ignored  -->
+		<boundedQueueSize>0x7fffffff</boundedQueueSize>
+		
+		
+	</persistenceConfig>
+</retry>
