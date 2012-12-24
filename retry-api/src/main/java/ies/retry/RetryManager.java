@@ -95,9 +95,8 @@ public interface RetryManager {
 	 * 
 	 * If you don't register one, a {@link NoCallbackException} will be raised.
 	 * 
-	 * Retry call back generally does not need to be thread safe as it will
-	 * be called synchronously from each node.
-	 * However it is a good practise that the instance is thread safe. 
+	 * It is a good practise that the instance is thread safe. 
+	 * Implementations may require it.
 	 * 
 	 * @param callback
 	 * @param type
@@ -116,13 +115,6 @@ public interface RetryManager {
 	
 	public Map<String,RetryState> getAllStates();
 	
-	/*
-	 * Instantiates and calls back.  Instances must have a default constructor.
-	 * 
-	 * Still thinking about this one - NOT YET IMPLEMENTED.
-	 * @param callbackClass
-	 */
-	//public void registerCallback(Class<? extends RetryCallback> callbackClass);
 	
 	/**
 	 * Clients may be want to be aware of changes to the 

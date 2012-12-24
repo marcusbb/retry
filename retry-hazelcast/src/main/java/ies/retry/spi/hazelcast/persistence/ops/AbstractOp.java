@@ -69,8 +69,9 @@ public abstract class AbstractOp<T> implements Callable<T>{
 	
 	@Override
 	public T call() throws Exception {
+		EntityManager em = emf.createEntityManager();
 		try {
-			EntityManager em = emf.createEntityManager();
+			
 			em.getTransaction().begin();
 			
 			T ret = exec(em);
@@ -85,9 +86,13 @@ public abstract class AbstractOp<T> implements Callable<T>{
 			em.getTransaction().commit();
 			return ret;
 		} catch (PersistenceException e) {
+			em.getTransaction().rollback();
 			throw e;
 		}catch (Exception e) {
 			Logger.error(getClass().getName(), "Persistence_Op_Exception", "Exception Message: " + e.getMessage(), e);
+		}finally {
+			if (em != null)
+				em.close();
 		}
 		return null;
 	}

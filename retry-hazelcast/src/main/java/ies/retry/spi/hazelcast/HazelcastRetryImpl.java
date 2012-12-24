@@ -268,13 +268,16 @@ public class HazelcastRetryImpl implements RetryManager {
 		
 		IMap<String,List<RetryHolder>> distMap = h1.getMap(type);
 		
-		//TODO: make sure to remove from DB
-		//could be one network op
-		distMap.lock(retryId);
-		distMap.remove(retryId);
-		RetryMapStore store = (RetryMapStore)RetryMapStoreFactory.getInstance().newMapStore(type);
-		store.delete(retryId);
-		distMap.unlock(retryId);
+		try {
+			distMap.lock(retryId);
+			distMap.remove(retryId);
+			RetryMapStore store = (RetryMapStore)RetryMapStoreFactory.getInstance().newMapStore(type);
+			store.delete(retryId);
+			distMap.unlock(retryId);
+		}finally {
+			if (distMap != null && retryId != null)
+				distMap.unlock(retryId);
+		}
 		
 	}
 	public List<RetryHolder> getRetry(String retryId, String type) {
