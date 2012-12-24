@@ -21,8 +21,7 @@ public class RetryMapStoreFactory {//implements MapStoreFactory<String, List<Ret
 	private String pu = "retry";
 	private EntityManagerFactory emf = null;
 	private PersistenceConfig persistConfig;
-	//private Map<String, ScrollableResults> retryCursorMap = new ConcurrentHashMap<String, ScrollableResults>();
-	
+
 	private static RetryMapStoreFactory instance = null;
 	
 	ExecutorService execService = null;
@@ -80,23 +79,16 @@ public class RetryMapStoreFactory {//implements MapStoreFactory<String, List<Ret
 					0L, TimeUnit.MILLISECONDS, new SynchronousQueue<Runnable>() );
 		}
 		
-		Logger.info(CALLER, "Retry_Map_Store_Init", "created exec service");
-
+		long start = System.currentTimeMillis();
 		if (persistConfig.isON()) {
 			emf = Persistence.createEntityManagerFactory(pu);
 		}
-		
+
+		Logger.info(CALLER, "Retry_Map_Store_Init", "created exec service, EMF creation time:" + (System.currentTimeMillis()-start));
 	}
 	
 	private EntityManagerFactory getEMF() {
-/*		if (emf == null) {
-			synchronized(RetryMapStoreFactory.class) {
-				if (emf != null) {
-					return emf;
-				}
-				emf = Persistence.createEntityManagerFactory(pu);
-			}
-		}*/
+
 		return emf;
 	}
 	
