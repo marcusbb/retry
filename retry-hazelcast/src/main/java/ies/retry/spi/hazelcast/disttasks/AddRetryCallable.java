@@ -57,11 +57,12 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 	}
 	
 	public Void call() throws Exception {
+		IMap<String,List<RetryHolder>> distMap = null;
 		try {
 			if (retryList != null)
 				return callListPut();
 			
-			IMap<String,List<RetryHolder>> distMap = HazelcastRetryImpl.getHzInst().getMap(retry.getType());
+			distMap = HazelcastRetryImpl.getHzInst().getMap(retry.getType());
 			distMap.lock(retry.getId());
 			
 			long curTs = System.currentTimeMillis();
@@ -97,12 +98,15 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 			if (persist)
 				RetryMapStoreFactory.getInstance().newMapStore(retry.getType()).store(listHolder, mergePolicy);
 			
-			distMap.unlock(retry.getId());
+			//distMap.unlock(retry.getId());
 			/*for (RetryHolder rh:listHolder) {
 				Logger.debug(CALLER, "Add_Task: " + rh);
 			}*/
 		}catch (Exception e) {
 			Logger.error(CALLER, "Add_Retry_Task_Call_Exception", "Exception Message: " + e.getMessage(), e);
+		}finally {
+			if (distMap != null && retry != null)
+				distMap.unlock(retry.getId());
 		}
 		return null;
 	}
@@ -111,20 +115,25 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 		
 		RetryHolder retry = retryList.get(0);
 		IMap<String,List<RetryHolder>> distMap = HazelcastRetryImpl.getHzInst().getMap(retry.getType());
-		distMap.lock(retry.getId());
-		long curTs = System.currentTimeMillis();
-		long nextTs = curTs + backOffInterval;
-		//sync all counts and nextTs date
-				for (RetryHolder holder:retryList) {
-					holder.setSystemTs(curTs);
-					holder.setCount(0);
-					holder.setNextAttempt(nextTs);
-				}
-		distMap.put(retry.getId(),retryList);
+		try {
+			distMap.lock(retry.getId());
+			long curTs = System.currentTimeMillis();
+			long nextTs = curTs + backOffInterval;
+			//sync all counts and nextTs date
+					for (RetryHolder holder:retryList) {
+						holder.setSystemTs(curTs);
+						holder.setCount(0);
+						holder.setNextAttempt(nextTs);
+					}
+			distMap.put(retry.getId(),retryList);
+			
+			if (persist)
+				RetryMapStoreFactory.getInstance().newMapStore(retry.getType()).store(retryList, DBMergePolicy.OVERWRITE);
+		}finally {
+			if (distMap != null && retry != null)
+				distMap.unlock(retry.getId());
+		}
 		
-		if (persist)
-			RetryMapStoreFactory.getInstance().newMapStore(retry.getType()).store(retryList, DBMergePolicy.OVERWRITE);
-		distMap.unlock(retry.getId());
 		
 		return null;
 	}
