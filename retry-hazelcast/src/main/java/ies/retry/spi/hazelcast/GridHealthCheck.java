@@ -139,7 +139,8 @@ class GridSizeCheck implements Runnable {
 						if (retryManager.getStateMgr().getState(retryConfig.getType()) != RetryState.SUSPENDED) {
 							Logger.info(GridHealthCheck.CALLER, "Health_check_state", "", "Type", retryConfig.getType());
 							
-							retryManager.getStateMgr().publish(new RetryTransitionEvent(RetryState.QUEUED, retryConfig.getType()));
+							//retryManager.getStateMgr().publish(new RetryTransitionEvent(RetryState.QUEUED, retryConfig.getType()));
+							retryManager.getCallbackManager().tryDequeue(retryConfig.getType());
 						} else {
 							Logger.info(GridHealthCheck.CALLER, "Health_check_state_suspended", "IS suspended", "Type", retryConfig.getType());
 						}

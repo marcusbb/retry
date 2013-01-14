@@ -67,6 +67,7 @@ public class StateManager implements  MembershipListener{
 	private Member masterMember = null;
 	private boolean master =false;
 	
+	public static final String EXEC_SRV_NAME = "RETRY_INIT";
 	public static final String DB_LOADING_STATE ="RETRY_DB_LOADING_STATE";
 	private IMap<String, LoadingState> loadingStateMap = null;
 	
@@ -113,6 +114,7 @@ public class StateManager implements  MembershipListener{
 		//set master and load retry data
 		setMaster();
 		if (master) {
+			
 			loadDataAsync(types);
 			//even if we have slaves coming on line, we should get informed of
 			//state changes via loading
@@ -147,36 +149,43 @@ public class StateManager implements  MembershipListener{
 	
 	
 	
-//	protected void loadAllData() {
-//		publishExec.submit(new Runnable() {
-//			
-//			@Override
-//			public void run() {
-//				for (RetryConfiguration config: configMgr.getConfigMap().values()) {
-//					if(loadingStateMap.tryLock(config.getType())) {
-//						if(loadingStateMap.get(config.getType()) == null) {
-//							// initialize loading state null -> loading
-//							loadingStateMap.put(config.getType(), LoadingState.LOADING);
-//							Logger.info(CALLER, "Load_All_Data", "Update loading State -> LOADING", "Type", config.getType());
-//							loadData(config.getType(),config,true);
-//							
-//							try {
-//								Thread.sleep((int)(Math.random()*120000));
-//							} catch (InterruptedException e) {
-//							}
-//							
-//							loadingStateMap.put(config.getType(), LoadingState.READY);
-//							Logger.info(CALLER, "Load_All_Data", "Update loading State -> READY", "Type", config.getType());
-//						}
-//						
-//						loadingStateMap.unlock(config.getType());
-//					}
-//				}
-//			}
-//		});
-//		
-//	}
+
 	
+	/**
+	 * The old loading mechanism - using paging, non-scroll mechanism
+	 * @param type
+	 * @param config
+	 */
+	protected void loadData(String type,RetryConfiguration config) {
+		HazelcastInstance h1 = HazelcastRetryImpl.getHzInst();
+		RetryMapStore store = (RetryMapStore)RetryMapStoreFactory.getInstance().newMapStore(config.getType());
+		boolean hasMore = true;
+		int retSize = globalConfig.getPersistenceConfig().getLoadFetchSize();
+		int index = 0;
+		ExecutorService exec = h1.getExecutorService(EXEC_SRV_NAME);
+		
+		while (hasMore) {
+			long start = System.currentTimeMillis();
+			Map<String,List<RetryHolder>> map = store.load(index, retSize);
+			boolean nonZeroMap = map.size() >0;
+			if (nonZeroMap) {
+				Logger.info(CALLER, "Load_Data", "Loading Retry from Store.", "Type", type, "Index", index, "Map_Size", map.size());
+				retryAddedEvent(type,false);
+			}
+			
+			for (List<RetryHolder> retry:map.values()) {
+				String retryId = retry.get(0).getId();
+				DistributedTask<Void> distTask = new DistributedTask<Void>(new AddRetryCallable(retry, config,false), retryId);
+				
+				exec.submit(distTask);
+				
+			}
+			index += retSize;
+			//System.out.println(type + " map size: " + map.size());
+			hasMore = nonZeroMap && map.size()== retSize;
+			Logger.info(CALLER,"Loaded : " + map.size() + "in " + ( System.currentTimeMillis() - start));
+		}
+	}
 	
 	protected void loadDataAsync(final List<String> types) {
 		publishExec.submit(new Runnable() {
@@ -193,7 +202,12 @@ public class StateManager implements  MembershipListener{
 							// initialize loading state null -> loading
 							loadingStateMap.put(config.getType(), LoadingState.LOADING);
 							Logger.info(CALLER, "Load_Data_Async", "Update loading State -> LOADING", "Type", config.getType());
-							loadData(config.getType(),config,true);
+							
+							//scrolling or paging loading?
+							if (configMgr.getHzConfig().getPersistenceConfig().isPagedLoading())
+								loadData(config.getType(), config);
+							else
+								loadData(config.getType(),config,true);
 							
 							loadingStateMap.put(config.getType(), LoadingState.READY);
 							Logger.info(CALLER, "Load_Data_Async", "Update loading State -> READY", "Type", config.getType());
@@ -223,7 +237,9 @@ public class StateManager implements  MembershipListener{
 		boolean hasMore = true;
 		int retSize = globalConfig.getPersistenceConfig().getLoadFetchSize();
 		int index = 0;
+		ExecutorService exec = h1.getExecutorService(EXEC_SRV_NAME);
 		while (hasMore) {
+			long start = System.currentTimeMillis();
 			Map<String,List<RetryHolder>> map = store.load(retSize);
 			index = map.size();
 			boolean nonZeroMap = map.size() >0;
@@ -232,13 +248,18 @@ public class StateManager implements  MembershipListener{
 				retryAddedEvent(type,false);
 			}
 
-			List<Future<Void>> futures = new ArrayList<Future<Void>>(map.size());
-			for (List<RetryHolder> listHolder:map.values()) {
-				futures.add(h1.getExecutorService().submit(new AddRetryCallable(listHolder,config,false)));
+			//List<Future<Void>> futures = new ArrayList<Future<Void>>(map.size());
+			List<DistributedTask<Void>> tasks = new ArrayList<DistributedTask<Void>>();
+			for (List<RetryHolder> retry:map.values()) {
+				String retryId = retry.get(0).getId();
+				DistributedTask<Void> distTask = new DistributedTask<Void>(new AddRetryCallable(retry, config,false), retryId);
+				
+				tasks.add(distTask);
+				exec.submit(distTask);
 			}
 			
 			if(isWait) {
-				for(Future<Void> future:futures) {
+				for(Future<Void> future:tasks) {
 					try {
 						future.get(300, TimeUnit.SECONDS);
 					} catch (InterruptedException e) {
@@ -250,7 +271,7 @@ public class StateManager implements  MembershipListener{
 			
 			index += retSize;
 			hasMore = nonZeroMap;
-				 
+			Logger.info(CALLER,"Loaded : " + map.size() + "in " + ( System.currentTimeMillis() - start));
 		}
 	}
 	
@@ -358,7 +379,10 @@ public class StateManager implements  MembershipListener{
 			} else if(master) {
 				//actively load
 				Logger.warn(CALLER, "Queue_Drained", "Found retries in store, loading...", "Type", type);
-				loadData(type, configMgr.getConfiguration(type),false);
+				if (configMgr.getHzConfig().getPersistenceConfig().isPagedLoading())
+					loadData(type, configMgr.getConfiguration(type));
+				else 
+					loadData(type, configMgr.getConfiguration(type),false);
 			}
 		} 
 		return storedRetry;

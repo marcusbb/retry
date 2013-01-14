@@ -1,5 +1,6 @@
 package ies.retry.spi.hazelcast.disttasks;
 
+import ies.retry.Retry;
 import ies.retry.RetryConfiguration;
 import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
@@ -15,6 +16,7 @@ import java.util.concurrent.Callable;
 
 import provision.services.logging.Logger;
 
+import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 
 /**
@@ -61,8 +63,8 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 		try {
 			if (retryList != null)
 				return callListPut();
-			
-			distMap = HazelcastRetryImpl.getHzInst().getMap(retry.getType());
+			HazelcastInstance h1 = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1();
+			distMap = h1.getMap(retry.getType());
 			distMap.lock(retry.getId());
 			
 			long curTs = System.currentTimeMillis();
@@ -73,7 +75,7 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 			if (listHolder == null) {
 				listHolder = new ArrayList<RetryHolder>();
 			}
-			if (appendList)
+			if (appendList || listHolder.size()==0)
 				listHolder.add(retry);
 			else {
 				listHolder.set(0, retry);
@@ -114,7 +116,8 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 	public Void callListPut() throws Exception {
 		
 		RetryHolder retry = retryList.get(0);
-		IMap<String,List<RetryHolder>> distMap = HazelcastRetryImpl.getHzInst().getMap(retry.getType());
+		HazelcastInstance h1 = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1();
+		IMap<String,List<RetryHolder>> distMap = h1.getMap(retry.getType());
 		try {
 			distMap.lock(retry.getId());
 			long curTs = System.currentTimeMillis();

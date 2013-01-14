@@ -23,6 +23,12 @@ import com.hazelcast.merge.MergePolicy;
 import com.hazelcast.nio.Data;
 import com.hazelcast.nio.IOUtil;
 
+/**
+ * Not used at all.
+ * 
+ * Should be removed.
+ *
+ */
 public class NetworkMerge implements MergePolicy {
 
 	private static final String CALLER = NetworkMerge.class.getName();
