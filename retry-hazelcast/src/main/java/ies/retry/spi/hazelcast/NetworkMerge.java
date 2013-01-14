@@ -15,22 +15,18 @@ import java.util.TreeSet;
 
 import provision.services.logging.Logger;
 
+
 import com.hazelcast.core.MapEntry;
 import com.hazelcast.impl.base.DataRecordEntry;
 import com.hazelcast.merge.MergePolicy;
 import com.hazelcast.nio.Data;
 import com.hazelcast.nio.IOUtil;
-
 /**
- * Configuring hazelcast with this policy leads to dead/unstartable slave
- * nodes. Do not use now.
+ * Not used at all.
  * 
- * TODO: confirm in later releases.
- *  
- * @author msimonsen
+ * Should be removed.
  *
  */
-
 public class NetworkMerge implements MergePolicy {
 
 	private static final String CALLER = NetworkMerge.class.getName();

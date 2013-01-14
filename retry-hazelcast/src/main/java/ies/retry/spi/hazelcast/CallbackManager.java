@@ -223,7 +223,7 @@ public class CallbackManager  {
 			locked = tryLock(type);
 			Logger.debug(CALLER, "Try_Dequeue_Try_Locked","Type",type,"Locked",locked);
 			if (!locked) {
-				Logger.warn(CALLER, "Try_Dequeue_Lock_Unavailable","Type",type);
+				Logger.warn(CALLER, "Try_Dequeue_Lock_Unavailable","","Type",type);
 				return false;
 			}
 			

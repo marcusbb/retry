@@ -85,6 +85,19 @@ public class RetryConfiguration implements Serializable{
 	 */
 	private boolean archiveExpired;
 	
+
+	/**
+	 *  Inidicates number of stack trace line that will be serilalized for exception
+	 */
+	private int stackTraceLinesCount;
+	
+	public int getStackTraceLinesCount() {
+		return stackTraceLinesCount;
+	}
+
+	public void setStackTraceLinesCount(int stackTraceLinesCount) {
+		this.stackTraceLinesCount = stackTraceLinesCount;
+	}
 	
 	public boolean isArchiveExpired() {
 		return archiveExpired;

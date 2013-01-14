@@ -30,9 +30,8 @@
 			<minBatchSize>1</minBatchSize>
 			<intervalMultiplier>1</intervalMultiplier>
 		</batchConfig>
-		
+		<stackTraceLinesCount>3</stackTraceLinesCount>
 	</typeConfig>
-	
 	
 	
 </retry>

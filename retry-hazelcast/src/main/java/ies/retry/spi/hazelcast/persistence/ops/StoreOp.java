@@ -4,12 +4,10 @@ import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.persistence.DBMergePolicy;
 import ies.retry.spi.hazelcast.persistence.RetryEntity;
 import ies.retry.spi.hazelcast.persistence.RetryId;
-import ies.retry.spi.hazelcast.util.TSHolderComparator;
+import ies.retry.spi.hazelcast.util.RetryUtil;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.TreeSet;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -17,10 +15,10 @@ import javax.persistence.PersistenceException;
 
 import provision.services.logging.Logger;
 
+
 public class StoreOp extends AbstractOp<Void>{
 
 	private final static String CALLER = StoreOp.class.getName();
-	private boolean update;
 	
 	private DBMergePolicy mergePolicy = DBMergePolicy.FIND_OVERWRITE;
 	
@@ -87,26 +85,11 @@ public class StoreOp extends AbstractOp<Void>{
 		
 		try {
 			if (entity != null) {
-				TreeSet<RetryHolder> mergeSet = new TreeSet<RetryHolder>(new TSHolderComparator());
-				List<RetryHolder> dbList = entity.fromByte(entity.getRetryData());
-				
-				mergeSet.addAll(dbList);
-				mergeSet.addAll(getListHolder());
-				
-				//back to list
-				ArrayList<RetryHolder> mergeList = new ArrayList<RetryHolder>(mergeSet.size());
-				mergeList.addAll(mergeSet);
 
-				if (stripDupTs) {
-					//strip all that had the same create TS
-					long lastTs = -1;
-					Iterator<RetryHolder> iter = mergeList.iterator();
-					while(iter.hasNext()) {
-						RetryHolder holder = iter.next();
-						if (lastTs == holder.getSystemTs())
-							iter.remove();
-					}
-				}
+				List<RetryHolder> dbList = entity.fromByte(entity.getRetryData());
+				@SuppressWarnings("unchecked")
+				List<RetryHolder> mergeList = RetryUtil.merge(dbList, getListHolder());
+				
 				entity.populate(mergeList);
 				em.persist(entity);
 			} else {

@@ -23,8 +23,10 @@ import javax.persistence.EntityManagerFactory;
 import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 
+import org.hibernate.ScrollMode;
 import org.hibernate.ScrollableResults;
 import org.hibernate.Session;
+import org.hibernate.StatelessSession;
 
 import provision.services.logging.Logger;
 
@@ -54,6 +56,8 @@ public class RetryMapStore {//implements MapStore<String, List<RetryHolder>> {
 	
 	private boolean hasData = true;
 	private ScrollableResults retryCursor;
+	private StatelessSession statelessSession;
+
 	
 	//Provided	
 	ExecutorService execService = null;
@@ -95,6 +99,33 @@ public class RetryMapStore {//implements MapStore<String, List<RetryHolder>> {
 		}		
 	}
 
+	public Map<String,List<RetryHolder>> load(int start,int size) {
+		Logger.info(CALLER, "Retry_Map_Load_Keys", "loading  all keys from provided start.", "Start", start, "Size", size, "Type", mapName);
+		Map<String,List<RetryHolder>> map = new HashMap<String, List<RetryHolder>>(size);
+		try {
+			Query query = sync_emf.createQuery("SELECT r FROM RetryEntity r where r.id.type= :type");
+			query.setParameter("type", mapName);
+			query.setFirstResult(start);
+			query.setMaxResults(size);
+			List<RetryEntity> listResult = query.getResultList();
+			for (RetryEntity entity:listResult) {
+				try {
+				entity.setHolderList(entity.fromByte(entity.getRetryData()));
+				map.put(entity.getId().getId(), entity.getHolderList());
+				}catch (Exception e) {
+					Logger.error(CALLER, "Retry_Map_Load_Keys", "Exception Message: " + e.getMessage(), "Start", start, "Size", size, "Type", mapName, e);
+				}
+			}
+		}finally {
+			if (sync_emf != null ) {
+				sync_emf.clear();
+				//can't close this one it's stateful
+				//sync_emf.close();
+			}
+		}
+		//sync_emf.close();
+		return map;
+	}
 
 	/**
 	 * Use a scroll-able cursor, only available in hibernate
@@ -109,34 +140,38 @@ public class RetryMapStore {//implements MapStore<String, List<RetryHolder>> {
 		
 		if (!hasData)
 			return map;
-		
+
 		try {
+			
 			if(retryCursor == null) {
 				Logger.info(CALLER, "Retry_Map_Load_Keys", "creating database cursor", "Type", mapName);
 				// Get Hibernate session for scroll-able cursor from JPA 1.0
-				Session session = (Session)sync_emf.getDelegate();
-				org.hibernate.Query query = session.createQuery("SELECT r FROM RetryEntity r where r.id.type= :type");
+				//session = (Session)sync_emf.getDelegate();
+				this.statelessSession = ((Session)sync_emf.getDelegate()).getSessionFactory().openStatelessSession();
+				org.hibernate.Query query = this.statelessSession.createQuery("SELECT r FROM RetryEntity r where r.id.type= :type");
 				query.setParameter("type", mapName);
-				retryCursor = query.scroll();
+				retryCursor = query.scroll(ScrollMode.FORWARD_ONLY);
 			}
 			
 			int i=0;
 			while(i<batchSize && retryCursor.next()){
+				
 				RetryEntity entity = (RetryEntity)retryCursor.get(0); 
 				entity.setHolderList(entity.fromByte(entity.getRetryData()));
 				map.put(entity.getId().getId(), entity.getHolderList());
-			
+				
 				i++;
 			}
 		
 			if(i==0){ // no data to read
 				closeRetryCursor();
 			}
-
-			Logger.debug(CALLER, "Loaded " + map.keySet().size() + " retries from db");
+			Logger.debug(CALLER, "Loaded " + map.keySet().size() + " retries from db for type " + mapName);
 		} catch (Exception e) {
 			Logger.error(CALLER, "Retry_Map_Load_Keys", "Exception Message: " + e.getMessage(), "Size", batchSize, "Type", mapName, e);
 			closeRetryCursor();
+		}finally {
+
 		}
 		
 		return map;
@@ -154,6 +189,17 @@ public class RetryMapStore {//implements MapStore<String, List<RetryHolder>> {
 		}
 		finally{
 			retryCursor = null;
+		}
+
+		if(statelessSession!=null){
+			try {
+				statelessSession.close();
+			} catch(Exception e) {
+				Logger.error(CALLER, "closeStatelessSession", "Close statelessSession fail", "HibernateException Message: " + e.getMessage(), "Type", mapName, e);
+			}
+			finally{
+				statelessSession = null;
+			}
 		}
 	}
 	/**

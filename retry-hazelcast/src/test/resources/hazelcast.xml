@@ -71,6 +71,11 @@
         <max-pool-size>264</max-pool-size>
         <keep-alive-seconds>60</keep-alive-seconds>
     </executor-service>
+    <executor-service name="RETRY_INIT" >
+        <core-pool-size>2</core-pool-size>
+        <max-pool-size>2</max-pool-size>
+        <keep-alive-seconds>60</keep-alive-seconds>
+    </executor-service>
     <executor-service name="RETRY_ADD" >
         <core-pool-size>16</core-pool-size>
         <max-pool-size>64</max-pool-size>

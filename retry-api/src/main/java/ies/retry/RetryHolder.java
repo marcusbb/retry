@@ -1,6 +1,8 @@
 package ies.retry;
 
+
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Date;
 
 /**
@@ -73,7 +75,7 @@ public class RetryHolder implements Serializable {
 	 * 
 	 */
 	int count;
-	
+
 	public RetryHolder(String id,String type) {
 		this.id = id;
 		this.type = type;
@@ -161,8 +163,6 @@ public class RetryHolder implements Serializable {
 		this.failed = failed;
 	}*/
 
-	
-	
 
 	public String getSecondaryIndex() {
 		return secondaryIndex;
@@ -193,6 +193,11 @@ public class RetryHolder implements Serializable {
 		return false;
 	}
 	
-	
+    public void setStackTraceCount(int num)
+
+	{
+	    exception.setStackTrace(Arrays.copyOf(exception.getStackTrace(), num));
+	}
+
 	
 }

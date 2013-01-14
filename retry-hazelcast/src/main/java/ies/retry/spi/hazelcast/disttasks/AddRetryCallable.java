@@ -1,5 +1,6 @@
 package ies.retry.spi.hazelcast.disttasks;
 
+import ies.retry.Retry;
 import ies.retry.RetryConfiguration;
 import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
@@ -7,6 +8,7 @@ import ies.retry.spi.hazelcast.StateManager;
 import ies.retry.spi.hazelcast.StateManager.LoadingState;
 import ies.retry.spi.hazelcast.persistence.DBMergePolicy;
 import ies.retry.spi.hazelcast.persistence.RetryMapStoreFactory;
+import ies.retry.spi.hazelcast.util.RetryUtil;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -15,6 +17,7 @@ import java.util.concurrent.Callable;
 
 import provision.services.logging.Logger;
 
+import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 
 /**
@@ -32,7 +35,7 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 	private boolean appendList = true;
 	//private long nextTs = 0;
 	private boolean persist = true;
-	private boolean merge;
+
 	//private RetryConfiguration config;
 	private long backOffInterval;
 	
@@ -61,8 +64,8 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 		try {
 			if (retryList != null)
 				return callListPut();
-			
-			distMap = HazelcastRetryImpl.getHzInst().getMap(retry.getType());
+			HazelcastInstance h1 = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1();
+			distMap = h1.getMap(retry.getType());
 			distMap.lock(retry.getId());
 			
 			long curTs = System.currentTimeMillis();
@@ -73,7 +76,7 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 			if (listHolder == null) {
 				listHolder = new ArrayList<RetryHolder>();
 			}
-			if (appendList)
+			if (appendList || listHolder.size()==0)
 				listHolder.add(retry);
 			else {
 				listHolder.set(0, retry);
@@ -114,18 +117,25 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 	public Void callListPut() throws Exception {
 		
 		RetryHolder retry = retryList.get(0);
-		IMap<String,List<RetryHolder>> distMap = HazelcastRetryImpl.getHzInst().getMap(retry.getType());
+		HazelcastInstance h1 = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1();
+		IMap<String,List<RetryHolder>> distMap = h1.getMap(retry.getType());
 		try {
 			distMap.lock(retry.getId());
 			long curTs = System.currentTimeMillis();
 			long nextTs = curTs + backOffInterval;
 			//sync all counts and nextTs date
-					for (RetryHolder holder:retryList) {
-						holder.setSystemTs(curTs);
-						holder.setCount(0);
-						holder.setNextAttempt(nextTs);
-					}
-			distMap.put(retry.getId(),retryList);
+			for (RetryHolder holder : retryList) {
+				//holder.setSystemTs(curTs); //NOT SURE IF NEEDED
+				holder.setCount(0);
+				holder.setNextAttempt(nextTs);
+			}
+					
+			List<RetryHolder> inMemoryList = distMap.get(retry.getId());
+			if (inMemoryList != null) { // Merge two lists (from DB and from HZ)
+				retryList = RetryUtil.merge(retryList, inMemoryList);
+			}
+					
+			distMap.put(retry.getId(), retryList);
 			
 			if (persist)
 				RetryMapStoreFactory.getInstance().newMapStore(retry.getType()).store(retryList, DBMergePolicy.OVERWRITE);

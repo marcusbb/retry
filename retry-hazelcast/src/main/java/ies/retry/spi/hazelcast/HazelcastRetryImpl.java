@@ -201,6 +201,9 @@ public class HazelcastRetryImpl implements RetryManager {
 					
 		
 		RetryConfiguration config = configMgr.getConfiguration(retry.getType());
+		
+		if (config.getStackTraceLinesCount()>0) 
+			retry.setStackTraceCount(config.getStackTraceLinesCount());
 		//inform state manager
 		stateMgr.retryAddedEvent(retry.getType(),true);
 				
