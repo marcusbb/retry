@@ -1,7 +1,5 @@
 package timer;
 
-import static org.junit.Assert.*;
-
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -17,8 +15,6 @@ public class STPETests {
 		stpe.scheduleWithFixedDelay(new Task(), 
 				1000, 
 				1000, TimeUnit.MILLISECONDS);
-		
-		Thread t = new Thread();
 		
 		Thread.sleep(1000);
 	}
