@@ -40,7 +40,7 @@ public class RetryHolder implements Serializable {
 	 */
 	long systemTs;
 	
-	Long nextAttempt;
+	long nextAttempt;
 	
 	//Boolean failed; //??
 	/**
@@ -147,11 +147,11 @@ public class RetryHolder implements Serializable {
 		this.count++;
 	}
 
-	public Long getNextAttempt() {
+	public long getNextAttempt() {
 		return nextAttempt;
 	}
 
-	public void setNextAttempt(Long nextAttempt) {
+	public void setNextAttempt(long nextAttempt) {
 		this.nextAttempt = nextAttempt;
 	}
 
@@ -173,25 +173,30 @@ public class RetryHolder implements Serializable {
 	}
 
 	public String toString() {
-		long nextTs = nextAttempt!=null?nextAttempt:0;
 		return "RetryHolder [id=" + id + ", type=" + type + ", systemTs="
-				+ new Date(systemTs) + ", nextAttempt=" + new Date(nextTs) + 
+				+ new Date(systemTs) + ", nextAttempt=" + new Date(nextAttempt) + 
 				", retryData=" + retryData + ", exception="
 				+ exception + ", count=" + count + "]";
 	}
 
 	@Override
 	public int hashCode() {
-		return id.hashCode();
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + ((type == null) ? 0 : type.hashCode());
+		return result;
 	}
 
 	@Override
 	public boolean equals(Object obj) {
+		if(this == obj) return true;
+		if((obj == null) || (obj.getClass() != this.getClass())) return false;
 		RetryHolder comp = (RetryHolder)obj;
-		if (comp.getId().equals(id) && comp.getType().equals(type))
-			return true;
-		return false;
+		return (comp.getId().equals(id) && comp.getType().equals(type));
+			
 	}
+
 	
     public void setStackTraceCount(int num)
 

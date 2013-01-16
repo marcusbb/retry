@@ -78,9 +78,8 @@ public class StringUtilTest {
 	
 	@Test
 	public void replaceCorners() {
-		StringUtil util = new StringUtil();		// For the sake of coverage
-		assertEquals("${Foo}", util.replace("${Foo}", replacements));
-		assertEquals("Foo", util.replace("$Foo", replacements));
+		assertEquals("${Foo}", StringUtil.replace("${Foo}", replacements));
+		assertEquals("Foo", StringUtil.replace("$Foo", replacements));
 	}
 	
 	@Test

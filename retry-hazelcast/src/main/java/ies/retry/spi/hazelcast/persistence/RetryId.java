@@ -7,6 +7,12 @@ import javax.persistence.Embeddable;
 
 @Embeddable
 public class RetryId implements Serializable{
+	
+	/**
+	 * generated
+	 */
+	private static final long serialVersionUID = -251304715190051339L;
+
 
 	public RetryId() {}
 	public RetryId(String id,String type) {
@@ -42,15 +48,13 @@ public class RetryId implements Serializable{
 		result = prime * result + ((type == null) ? 0 : type.hashCode());
 		return result;
 	}
+	
 	@Override
 	public boolean equals(Object obj) {
-		boolean equals = false;
+		if(this == obj) return true;
+		if((obj == null) || (obj.getClass() != this.getClass())) return false;
 		RetryId retryid = (RetryId)obj;
-		if (id.equals(retryid.getId()) && type.equals(retryid.getType()) )
-			equals = true;
-		return equals;
+		return (id.equals(retryid.getId()) && type.equals(retryid.getType()));
 	}
-	
-	
 	
 }

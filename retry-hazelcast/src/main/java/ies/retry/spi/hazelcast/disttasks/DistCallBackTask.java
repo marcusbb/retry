@@ -151,8 +151,7 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 							//set all of them to be safe (and help in query)
 							for (RetryHolder fh:failedHolder) {
 								fh.incrementCount();
-								int nextTs = Math.round( backOff.getMilliInterval()  );
-								fh.setNextAttempt(System.currentTimeMillis() + nextTs);
+								fh.setNextAttempt(System.currentTimeMillis() + backOff.getMilliInterval());
 							}
 							
 							retryMap.put(id, failedHolder);
