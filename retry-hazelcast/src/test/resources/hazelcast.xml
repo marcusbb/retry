@@ -14,11 +14,11 @@
                 <multicast-port>54327</multicast-port>
             </multicast>
            <tcp-ip enabled="true">
-                <!-- <interface>127.0.0.1</interface> -->
-                
-                <interface>10.137.24.22</interface>
-                <interface>10.137.20.61</interface>
-                
+                <interface>127.0.0.1</interface>
+                <!-- 
+                <interface>10.137.24.34</interface>
+                <interface>10.137.20.73</interface>
+                 -->
             </tcp-ip>
              <aws enabled="false">
 		        <access-key>my-access-key</access-key>
