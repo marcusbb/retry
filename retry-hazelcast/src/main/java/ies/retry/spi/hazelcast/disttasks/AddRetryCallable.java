@@ -136,6 +136,7 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 			}
 					
 			distMap.put(retry.getId(), retryList);
+
 			
 			if (persist)
 				RetryMapStoreFactory.getInstance().newMapStore(retry.getType()).store(retryList, DBMergePolicy.OVERWRITE);

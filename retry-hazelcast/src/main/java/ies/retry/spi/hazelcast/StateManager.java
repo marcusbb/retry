@@ -69,10 +69,10 @@ public class StateManager implements  MembershipListener{
 	private Member masterMember = null;
 	private boolean master =false;
 	
-	
+
 	public static final String EXEC_SRV_NAME = "RETRY_INIT";
-	
-	public static final String DB_LOADING_STATE ="NEAR--RETRY_DB_LOADING_STATE";
+	public static final String DB_LOADING_STATE ="RETRY_DB_LOADING_STATE";
+
 	private IMap<String, LoadingState> loadingStateMap = null;
 	
 	//stats
@@ -383,6 +383,7 @@ public class StateManager implements  MembershipListener{
 		//that the cluster + storage is drained - let's make sure
 		boolean storedRetry = false;
 		
+
 		//first check we're QUEUED
 		//then that the grid is empty
 		//finally synchronize with DB
@@ -404,6 +405,7 @@ public class StateManager implements  MembershipListener{
 					Logger.warn(CALLER, "SYNC_GRID_DB_ERROR", "Found retries in store, loading...", "Type", type);
 					loadData(type, configMgr.getConfiguration(type),false);
 				}
+
 			}
 		//} 
 		return storedRetry;
