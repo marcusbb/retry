@@ -17,6 +17,13 @@ public class TestCallback implements RetryCallback {
 	
 	public TestCallback() {}
 	
+	public TestCallback(TestCallback callback) {
+		this.sleep = callback.sleep;
+		this.sleepOn = callback.sleepOn;
+		this.success = callback.success;
+		this.rethrow = callback.rethrow;
+	}
+	
 	public TestCallback(boolean success, long sleep) {
 		if (sleep > 0) {
 			this.sleepOn = true;
@@ -89,5 +96,13 @@ public class TestCallback implements RetryCallback {
 	public void setRand(Random rand) {
 		this.rand = rand;
 	}
+
+	@Override
+	public String toString() {
+		return "TestCallback [sleepOn=" + sleepOn + ", sleep=" + sleep
+				+ ", success=" + success + ", rethrow=" + rethrow + ", rand="
+				+ rand + "]";
+	}
+	
 	
 }

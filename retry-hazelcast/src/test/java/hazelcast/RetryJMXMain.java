@@ -6,6 +6,7 @@ import ies.retry.RetryConfiguration;
 import ies.retry.RetryManager;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 import ies.retry.spi.hazelcast.jmx.RetryManagement;
+import ies.retry.xml.XMLRetryConfigMgr;
 
 import java.lang.management.ManagementFactory;
 
@@ -20,9 +21,17 @@ public class RetryJMXMain {
 	public static void main(String[] args) throws Exception {
 		
 		//XMLRetryConfigMgr.setXML_FILE("retry_config_persistence.xml");
+		if (args.length > 0 ) {
+			if (args[0] != null)
+				HazelcastRetryImpl.HZ_CONFIG_FILE = args[0];
+			if (args[1] != null)
+				XMLRetryConfigMgr.XML_FILE = args[1];
+		}
+		
 		
 		RetryManager retryManager = Retry.getRetryManager();
-
+		
+		
 		RetryManagement management = new RetryManagement();
 		management.init((HazelcastRetryImpl) retryManager);
 

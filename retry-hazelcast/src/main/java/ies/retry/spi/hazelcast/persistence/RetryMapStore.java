@@ -42,7 +42,9 @@ import provision.services.logging.Logger;
  * As the writes can be configured behind {@link #writeSync} - we can not support read/write/read consistency.
  * 
  * 
- *   
+ * Moving all operations to be stateless - single operation capable only - except for
+ * loading.
+ * 
  * @author msimonsen
  *
  */
@@ -81,22 +83,25 @@ public class RetryMapStore {//implements MapStore<String, List<RetryHolder>> {
 	
 	public List<RetryHolder> load(String key) {
 		Logger.info(CALLER, "Retry_Map_Load_Key", "loading  " + key, "Type", mapName);
-		
-		RetryEntity entity = sync_emf.find(RetryEntity.class, new RetryId(key, mapName));
-		
-		if(entity != null){
-			try {
-				entity.setHolderList( entity.fromByte(entity.getRetryData()) );
-			}catch(Exception e) {
-				entity.setHolderList(new ArrayList<RetryHolder>());
-				Logger.error(CALLER, "Retry_Map_Load_Key_Exception", e.getMessage(), "Key", key, "Type", mapName, e);
-			}
+		try {
+			RetryEntity entity = sync_emf.find(RetryEntity.class, new RetryId(key, mapName));
 			
-			//To MC: this was throwing nullpointer when calling getRetry() through container only. Please check fix is okay
-			return entity.getHolderList();
-		}else{ 
-			return null;
-		}		
+			if(entity != null){
+				try {
+					entity.setHolderList( entity.fromByte(entity.getRetryData()) );
+				}catch(Exception e) {
+					entity.setHolderList(new ArrayList<RetryHolder>());
+					Logger.error(CALLER, "Retry_Map_Load_Key_Exception", e.getMessage(), "Key", key, "Type", mapName, e);
+				}
+				
+				//To MC: this was throwing nullpointer when calling getRetry() through container only. Please check fix is okay
+				return entity.getHolderList();
+			}else{ 
+				return null;
+			}	
+		}finally {
+			sync_emf.close();
+		}
 	}
 
 	public Map<String,List<RetryHolder>> load(int start,int size) {
@@ -207,13 +212,18 @@ public class RetryMapStore {//implements MapStore<String, List<RetryHolder>> {
 	 * @return
 	 */
 	public int count() {
-		Query query =sync_emf.createNativeQuery("SELECT count(*) FROM RETRIES WHERE RETRY_TYPE = :type");
-		query.setParameter("type", mapName);
-		query.setFirstResult(0);
-		query.setMaxResults(1);
-		BigDecimal count = (BigDecimal)query.getSingleResult();
-		
-		return count.intValue();
+		try {
+			Query query =sync_emf.createNativeQuery("SELECT count(*) FROM RETRIES WHERE RETRY_TYPE = :type");
+			query.setParameter("type", mapName);
+			query.setFirstResult(0);
+			query.setMaxResults(1);
+			BigDecimal count = (BigDecimal)query.getSingleResult();
+			
+			return count.intValue();
+		}
+		finally {
+			sync_emf.close();
+		}
 	}
 	
 

@@ -132,7 +132,7 @@ public class CallbackManager  {
 	 * @param callback
 	 */
 	public void removeCallback(RetryCallback callback,String retryType) {
-		callbackMap.remove(retryType);
+		callbackMap.remove(callback);
 	}
 	
 	
