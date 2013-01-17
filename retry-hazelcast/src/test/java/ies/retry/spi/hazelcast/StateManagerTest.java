@@ -1,5 +1,6 @@
 package ies.retry.spi.hazelcast;
 
+import ies.retry.Retry;
 import ies.retry.RetryConfiguration;
 import ies.retry.RetryState;
 import ies.retry.xml.XMLRetryConfigMgr;
@@ -63,14 +64,14 @@ public class StateManagerTest {
 		
 				
 		
-		HazelcastInstance hzinst = HazelcastRetryImpl.getHzInst();
+		HazelcastInstance hzinst = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1();
 		hzinst.getMap(StateManager.STATE_MAP_NAME).put("POKE", RetryState.QUEUED);
 		
 		//miss the initial notification
 		Thread.sleep(200);
 		
 		RetryStats stats = retryManager.initStats();
-		stateManager = new StateManager(retryManager.configMgr, stats);
+		stateManager = new StateManager(retryManager.configMgr, stats,retryManager.getH1());
 		
 		CountDownLatch latch = new CountDownLatch(1);
 		stateManager.addTransitionListener(new StateListener(latch));
@@ -93,13 +94,13 @@ public class StateManagerTest {
 		
 				
 		
-		HazelcastInstance hzinst = HazelcastRetryImpl.getHzInst();
+		HazelcastInstance hzinst = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1();
 		hzinst.getMap(StateManager.STATE_MAP_NAME).put("POKE_CLONED", RetryState.QUEUED);
 		//miss the initial notification
 		Thread.sleep(200);
 				
 		RetryStats stats = retryManager.initStats();
-		stateManager = new StateManager(retryManager.configMgr, stats);
+		stateManager = new StateManager(retryManager.configMgr, stats,retryManager.getH1());
 		
 		CountDownLatch latch = new CountDownLatch(1);
 		stateManager.addTransitionListener(new StateListener(latch));

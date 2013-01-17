@@ -1,5 +1,7 @@
 package ies.retry.spi.hazelcast;
 
+import com.hazelcast.core.HazelcastInstance;
+
 import ies.retry.Retry;
 
 
@@ -9,21 +11,21 @@ public abstract class HzIntegrationTestUtil {
 
 	
 	public static void beforeClass()  {
-		
-		if (HazelcastRetryImpl.getH1()!= null) {
-			HazelcastRetryImpl.getH1().getLifecycleService().shutdown();
-			HazelcastRetryImpl.setH1(null);
-		}
+		/*HazelcastInstance inst = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1();
+		if (inst!= null) {
+			inst.getLifecycleService().shutdown();
+			((HazelcastRetryImpl)Retry.getRetryManager()).setH1(null);
+		}*/
 	}
 	
 	
 	public static void afterClass()  {
-		
-		if (HazelcastRetryImpl.getH1() != null &&
-			HazelcastRetryImpl.getH1().getLifecycleService().isRunning() ) {
-			HazelcastRetryImpl.getH1().getLifecycleService().shutdown();
+		HazelcastInstance inst = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1();
+		if (inst != null &&
+			inst.getLifecycleService().isRunning() ) {
+			inst.getLifecycleService().shutdown();
 		}
-		HazelcastRetryImpl.setH1(null);
+		((HazelcastRetryImpl)Retry.getRetryManager()).setH1(null);
 		Retry.setRetryManager(null);
 	}
 }

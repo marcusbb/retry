@@ -49,7 +49,7 @@ public class GridHealthCheck {
 	public GridHealthCheck(StateManager stateManager) {
 		this.stateManager = stateManager;
 		
-		topic = HazelcastRetryImpl.getHzInst().getTopic (TOPIC_NAME);
+		topic = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1().getTopic (TOPIC_NAME);
 		this.config = stateManager.getGlobalConfig();
 	}
 	
@@ -62,7 +62,7 @@ public class GridHealthCheck {
 			stpe.scheduleAtFixedRate(new GridSizeCheck(stateManager), period, period, tu);
 			
 			period = config.getHealthCheckConfig().getCheckMemeberInterval();
-			stpe.scheduleAtFixedRate(new MemberCheck(HazelcastRetryImpl.getHzInst(), stateManager), period, period, TimeUnit.MILLISECONDS);
+			stpe.scheduleAtFixedRate(new MemberCheck(((HazelcastRetryImpl)Retry.getRetryManager()).getH1(), stateManager), period, period, TimeUnit.MILLISECONDS);
 		}
 			
 	}
@@ -129,7 +129,7 @@ class GridSizeCheck implements Runnable {
 				Collection<RetryConfiguration> retrySet = retryManager.getConfigManager().getConfigMap().values();
 				for (RetryConfiguration retryConfig: retrySet) {
 					Logger.debug(CALLER, "Check_Retry_Type: " + retryConfig.getType());
-					IMap<String,List<RetryHolder>>  retryMap = HazelcastRetryImpl.getHzInst().getMap(retryConfig.getType());
+					IMap<String,List<RetryHolder>>  retryMap = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1().getMap(retryConfig.getType());
 					if (retryMap.localKeySet().size()>0) {
 						Logger.info(GridHealthCheck.CALLER, "Health_Check_Items_Found", "Found items in the grid, broadcasting", "Type", retryConfig.getType());
 						//ITopic<TryDequeueEvent> topic = HazelcastRetryImpl.getHzInst().getTopic (GridHealthCheck.TOPIC_NAME);

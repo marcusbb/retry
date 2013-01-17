@@ -45,9 +45,14 @@ public class RetryJMXMain {
 		retryManager.registerCallback(delayCallback, "POKE_CLONED");
 		
 		mbs.registerMBean(new TestRetryAdd(retryManager, "POKE_CLONED",delayCallback),new ObjectName("retry:test=ClonedRetryAdd"));
+		
 		// You probably want to do this as a one time, or limited
 		// basis
 		System.out.println("PID: " + ManagementFactory.getRuntimeMXBean().getName());
+		
+		long colStatSleep = 5000;
+		
+		
 		
 	}
 

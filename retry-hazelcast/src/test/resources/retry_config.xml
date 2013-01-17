@@ -5,15 +5,16 @@
 	<persistenceConfig>
 		<ON>true</ON>
 		<jpaPU>retryPool</jpaPU>
+		<loadFetchSize>500</loadFetchSize>
 	</persistenceConfig>
 	
 	<!-- health check config -->
 	<healthCheckConfig>
-		<enabled>false</enabled>
-		<checkInterval>10</checkInterval>
+		<enabled>true</enabled>
+		<checkInterval>30</checkInterval>
 		<timeUnit>SECONDS</timeUnit>
 	</healthCheckConfig>
-	<pickLocalCallback>false</pickLocalCallback>
+	<pickLocalCallback>true</pickLocalCallback>
 	
 	<typeConfig>
 		<type>POKE</type>
@@ -30,8 +31,40 @@
 			<minBatchSize>1</minBatchSize>
 			<intervalMultiplier>1</intervalMultiplier>
 		</batchConfig>
-		<stackTraceLinesCount>3</stackTraceLinesCount>
+		
 	</typeConfig>
-	
+	<!-- <typeConfig>
+		<type>POKE_BY_PIN</type>
+		<listBacked>true</listBacked>
+		<queueStrategy>UNORDERED</queueStrategy>
+		<backOff>
+			<interval>5000</interval>
+			<intervalMultiplier>1.0</intervalMultiplier>
+			<maxAttempts>1000</maxAttempts>
+		</backOff>
+		<batchConfig>
+			<batchHeartBeat>5050</batchHeartBeat>
+			<batchSize>1000</batchSize>
+			<intervalMultiplier>1</intervalMultiplier>
+		</batchConfig>
+		
+	</typeConfig>
+	<typeConfig>
+		<type>POKE_SLOW</type>
+		<listBacked>true</listBacked>
+		<queueStrategy>UNORDERED</queueStrategy>
+		<backOff>
+			<interval>60000</interval>
+			<intervalMultiplier>1.0</intervalMultiplier>
+			<maxAttempts>1000</maxAttempts>
+		</backOff>
+		<batchConfig>
+			<batchHeartBeat>60100</batchHeartBeat>
+			<batchSize>1000</batchSize>
+			<intervalMultiplier>1</intervalMultiplier>
+		</batchConfig>
+		
+	</typeConfig>
+	-->
 	
 </retry>

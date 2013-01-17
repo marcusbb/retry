@@ -60,7 +60,7 @@ public class HazelcastRetryImpl implements RetryManager {
 	private static String CALLER = HazelcastRetryImpl.class.getName();
 	public static String HZ_CONFIG_FILE = "hazelcast.xml";
 	
-	protected static HazelcastInstance h1 = null;
+	protected HazelcastInstance h1 = null;
 	public static String EXEC_SRV_NAME = "RETRY_ADD";
 	protected HazelcastConfigManager configMgr;
 	
@@ -106,8 +106,8 @@ public class HazelcastRetryImpl implements RetryManager {
 		//Stats might need to be augmented by state manager as well.
 		stats = initStats();
 		initIndexes();
-		stateMgr = new StateManager(configMgr,stats);
-		callbackManager = new CallbackManager(configMgr,stateMgr,stats);
+		stateMgr = new StateManager(configMgr,stats,h1);
+		callbackManager = new CallbackManager(configMgr,stateMgr,stats,h1);
 		callbackManager.init();
 		//stateMgr.addTransitionListener(callbackManager);
 		//possibly load data from DB
@@ -116,7 +116,7 @@ public class HazelcastRetryImpl implements RetryManager {
 				
 				
 	}
-	public static HazelcastInstance getHzInst() {
+	public HazelcastInstance getHzInst() {
 		return h1;
 	}
 	
@@ -446,11 +446,11 @@ public class HazelcastRetryImpl implements RetryManager {
 	public void setStats(RetryStats stats) {
 		this.stats = stats;
 	}
-	public static HazelcastInstance getH1() {
+	public HazelcastInstance getH1() {
 		return h1;
 	}
-	public static void setH1(HazelcastInstance h1) {
-		HazelcastRetryImpl.h1 = h1;
+	public void setH1(HazelcastInstance h1) {
+		this.h1 = h1;
 	}
 	@Override
 	public RetryState getState(String type) {

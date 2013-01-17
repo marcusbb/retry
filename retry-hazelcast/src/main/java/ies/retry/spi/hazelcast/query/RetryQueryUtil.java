@@ -1,5 +1,6 @@
 package ies.retry.spi.hazelcast.query;
 
+import ies.retry.Retry;
 import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 
@@ -15,7 +16,7 @@ import com.hazelcast.core.MultiTask;
 
 public class RetryQueryUtil {
 
-	static HazelcastInstance  h1 =  HazelcastRetryImpl.getHzInst();
+	static HazelcastInstance  h1 =  ((HazelcastRetryImpl)Retry.getRetryManager()).getH1();
 	
 	public static QueryResults execute(BaseQuery query)  {
 		QueryResults finalResult = new QueryResults();

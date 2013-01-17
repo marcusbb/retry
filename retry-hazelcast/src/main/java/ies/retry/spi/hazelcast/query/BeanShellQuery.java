@@ -1,5 +1,6 @@
 package ies.retry.spi.hazelcast.query;
 
+import ies.retry.Retry;
 import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 
@@ -40,7 +41,7 @@ public class BeanShellQuery implements BaseQuery {
 		QueryResults results = new QueryResults();
 		Interpreter interpreter = new Interpreter();
 		List<RetryHolder> list = new ArrayList<RetryHolder>();
-		HazelcastInstance h1 = HazelcastRetryImpl.getHzInst();
+		HazelcastInstance h1 = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1();
 		results.setMember(h1.getCluster().getLocalMember());
 		IMap<String,List<RetryHolder>> map = h1.getMap(mapName);
 		Iterator<String> iter = map.localKeySet().iterator();

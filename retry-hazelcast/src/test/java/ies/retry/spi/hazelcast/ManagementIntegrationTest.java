@@ -55,10 +55,11 @@ public class ManagementIntegrationTest {
 	@AfterClass
 	public static void afterClass() throws Exception {
 		
-		retryManager.shutdown();
-		HzIntegrationTestUtil.afterClass();
 		MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
 		mbs.unregisterMBean( new ObjectName( "retry:retry=hazelcast-retry"));
+		retryManager.shutdown();
+		HzIntegrationTestUtil.afterClass();
+		
 	}
 	@Before
 	public void before() {

@@ -1,6 +1,7 @@
 package ies.retry.spi.hazelcast;
 
 
+import ies.retry.Retry;
 import ies.retry.RetryConfiguration;
 import ies.retry.RetryHolder;
 import ies.retry.RetryState;
@@ -75,6 +76,7 @@ public class StateManager implements  MembershipListener{
 	public static final String DB_LOADING_STATE ="NEAR--RETRY_DB_LOADING_STATE";
 	private IMap<String, LoadingState> loadingStateMap = null;
 	
+	private HazelcastInstance h1 = null;
 	//stats
 	private RetryStats stats;
 	
@@ -88,11 +90,11 @@ public class StateManager implements  MembershipListener{
 		LOADING,READY;
 	}
 	
-	public StateManager(HazelcastConfigManager configManager,RetryStats stats) {
-						
-		globalStateMap = HazelcastRetryImpl.getHzInst().getMap(STATE_MAP_NAME);
-		loadingStateMap = HazelcastRetryImpl.getHzInst().getMap(DB_LOADING_STATE);
-		HazelcastRetryImpl.getHzInst().getCluster().addMembershipListener(this);
+	public StateManager(HazelcastConfigManager configManager,RetryStats stats,HazelcastInstance h1) {
+		this.h1 = h1;
+		globalStateMap = h1.getMap(STATE_MAP_NAME);
+		loadingStateMap = h1.getMap(DB_LOADING_STATE);
+		h1.getCluster().addMembershipListener(this);
 		this.configMgr = configManager;
 		this.globalConfig = (HazelcastXmlConfig)configManager.getConfig();
 		
@@ -161,7 +163,7 @@ public class StateManager implements  MembershipListener{
 	 * @param config
 	 */
 	protected void loadData(String type,RetryConfiguration config) {
-		HazelcastInstance h1 = HazelcastRetryImpl.getHzInst();
+		HazelcastInstance h1 = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1();
 		RetryMapStore store = (RetryMapStore)RetryMapStoreFactory.getInstance().newMapStore(config.getType());
 		boolean hasMore = true;
 		int retSize = globalConfig.getPersistenceConfig().getLoadFetchSize();
@@ -202,34 +204,38 @@ public class StateManager implements  MembershipListener{
 						continue;
 										
 						
-					// initialize loading state null -> loading
-					loadingStateMap.put(config.getType(), LoadingState.LOADING);
-					Logger.info(CALLER, "Load_Data_Async", "Update loading State -> LOADING", "Type", config.getType());
-					loadData(config.getType(),config,true);
-					
-					
-					if(loadingStateMap.tryLock(config.getType())) {
-						if(loadingStateMap.get(config.getType()) == null) {
-							// initialize loading state null -> loading
-							loadingStateMap.put(config.getType(), LoadingState.LOADING);
-							Logger.info(CALLER, "Load_Data_Async", "Update loading State -> LOADING", "Type", config.getType());
-							
-							//scrolling or paging loading?
-							if (configMgr.getHzConfig().getPersistenceConfig().isPagedLoading())
-								loadData(config.getType(), config);
-							else
-								loadData(config.getType(),config,true);
-							
-							loadingStateMap.put(config.getType(), LoadingState.READY);
-							Logger.info(CALLER, "Load_Data_Async", "Update loading State -> READY", "Type", config.getType());
-						}
-						loadingStateMap.put(config.getType(), LoadingState.READY);
-						Logger.info(CALLER, "Load_Data_Async", "Update loading State -> READY", "Type", config.getType());
-						
-					}
+					loadData(type);
 				}	
 			}
 		});
+	}
+	private void loadData(String type) {
+		RetryConfiguration config = configMgr.getConfiguration(type);
+		// initialize loading state null -> loading
+		loadingStateMap.put(config.getType(), LoadingState.LOADING);
+		Logger.info(CALLER, "Load_Data_Async", "Update loading State -> LOADING", "Type", config.getType());
+		loadData(config.getType(),config,true);
+		
+		
+		if(loadingStateMap.tryLock(config.getType())) {
+			if(loadingStateMap.get(config.getType()) == null) {
+				// initialize loading state null -> loading
+				loadingStateMap.put(config.getType(), LoadingState.LOADING);
+				Logger.info(CALLER, "Load_Data_Async", "Update loading State -> LOADING", "Type", config.getType());
+				
+				//scrolling or paging loading?
+				if (configMgr.getHzConfig().getPersistenceConfig().isPagedLoading())
+					loadData(config.getType(), config);
+				else
+					loadData(config.getType(),config,true);
+				
+				loadingStateMap.put(config.getType(), LoadingState.READY);
+				Logger.info(CALLER, "Load_Data_Async", "Update loading State -> READY", "Type", config.getType());
+			}
+			loadingStateMap.put(config.getType(), LoadingState.READY);
+			Logger.info(CALLER, "Load_Data_Async", "Update loading State -> READY", "Type", config.getType());
+			
+		}
 	}
 	
 	
@@ -244,7 +250,7 @@ public class StateManager implements  MembershipListener{
 	 * @param isWait
 	 */
 	protected void loadData(String type,RetryConfiguration config,boolean isWait) {
-		HazelcastInstance h1 = HazelcastRetryImpl.getHzInst();
+		HazelcastInstance h1 = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1();
 		RetryMapStore store = (RetryMapStore)RetryMapStoreFactory.getInstance().newMapStore(config.getType());
 		boolean hasMore = true;
 		int retSize = globalConfig.getPersistenceConfig().getLoadFetchSize();
@@ -287,7 +293,7 @@ public class StateManager implements  MembershipListener{
 	}
 	
 	protected void setMaster()  {
-		HazelcastInstance h1 = HazelcastRetryImpl.getHzInst();
+		
 		masterMember = h1.getCluster().getMembers().iterator().next();
 		//if I'm the master member then I own the scheduler
 		if (h1.getCluster().getLocalMember().equals(masterMember)) {			
@@ -402,7 +408,7 @@ public class StateManager implements  MembershipListener{
 					//as for some reason the 
 					//DB has records that the grid does not
 					Logger.warn(CALLER, "SYNC_GRID_DB_ERROR", "Found retries in store, loading...", "Type", type);
-					loadData(type, configMgr.getConfiguration(type),false);
+					loadData(type);
 				}
 			}
 		//} 
@@ -417,7 +423,7 @@ public class StateManager implements  MembershipListener{
 	}
 	
 	private Collection<Integer> getLocalKeySetSizes(String type) {
-		HazelcastInstance h1 = HazelcastRetryImpl.getHzInst();
+		HazelcastInstance h1 = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1();
 		
 		MultiTask<Integer> sizeTask = new MultiTask<Integer>(new KeySetSizeTask(type),h1.getCluster().getMembers());
 		

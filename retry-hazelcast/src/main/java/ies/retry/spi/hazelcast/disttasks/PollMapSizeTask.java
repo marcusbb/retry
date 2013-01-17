@@ -29,7 +29,8 @@ public class PollMapSizeTask implements Callable<Map<String,Integer>>,Serializab
 		for (String type:retry.getConfigManager().getConfigMap().keySet()) {
 			
 			map.put(type, 
-					HazelcastRetryImpl.getHzInst().getMap(type).localKeySet().size()
+					((HazelcastRetryImpl)Retry.getRetryManager()).getH1()
+						.getMap(type).localKeySet().size()
 					);
 			
 		}

@@ -64,7 +64,7 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 			HazelcastRetryImpl retryImpl = ((HazelcastRetryImpl)Retry.getRetryManager());
 			RetryConfiguration config = retryImpl.getConfigManager().getConfiguration(type);
 			RetryCallback callback = retryImpl.getCallbackManager().getCallbackMap().get(type);
-			retryMap = HazelcastRetryImpl.getHzInst().getMap(type);
+			retryMap = retryImpl.getH1().getMap(type);
 			if (callback == null){
 				Logger.error(CALLER, "Null_Callback","Callback was not set for type " + type,"ID",id);
 				throw new NoCallbackRegistered();
@@ -151,7 +151,8 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 							//set all of them to be safe (and help in query)
 							for (RetryHolder fh:failedHolder) {
 								fh.incrementCount();
-								fh.setNextAttempt(System.currentTimeMillis() + backOff.getMilliInterval());
+								int nextTs = Math.round( backOff.getMilliInterval()  );
+								fh.setNextAttempt(System.currentTimeMillis() + nextTs);
 							}
 							
 							retryMap.put(id, failedHolder);

@@ -1,5 +1,6 @@
 package ies.retry.spi.hazelcast.disttasks;
 
+import ies.retry.Retry;
 import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 
@@ -29,7 +30,7 @@ public class KeySetSizeTask implements Callable<Integer>,Serializable {
 	@Override
 	public Integer call() throws Exception {
 		Integer ret = 0;
-		IMap<String,List<RetryHolder>> map = HazelcastRetryImpl.getHzInst().getMap(type);
+		IMap<String,List<RetryHolder>> map = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1().getMap(type);
 		
 		if (map != null)
 			ret = map.localKeySet().size();

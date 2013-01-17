@@ -45,11 +45,32 @@ public class TestRetryAdd implements TestRetryAddMBean{
 	public void addRetry(int num) {
 		
 		
-		
+		Exception e = new IOException("Houston there is a problem");
 			
 			for (int i = 0; i < num; i++) {
 				RetryHolder holder = new RetryHolder(blockPrefix + "12334" + i, retryType,
-						new IOException("Houston there is a problem"),
+						e,
+						"Useful Serializable object ");
+				retryManager.addRetry(holder);
+			}
+			
+			blockPrefix++;
+		
+			
+		
+		
+	}
+	@Override
+	public void addRetry(int num,boolean withException) {
+		
+		
+		Exception e = null;
+		
+		if (withException)
+			e = new IOException("Houston there is a problem");
+			for (int i = 0; i < num; i++) {
+				RetryHolder holder = new RetryHolder(blockPrefix + "12334" + i, retryType,
+						e,
 						"Useful Serializable object ");
 				retryManager.addRetry(holder);
 			}

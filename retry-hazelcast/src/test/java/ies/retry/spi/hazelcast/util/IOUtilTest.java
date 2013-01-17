@@ -17,6 +17,7 @@ public class IOUtilTest {
 	public void testLoad_pass() {
 		System.out.println("Current working directory: " + System.getProperty("user.dir"));
 		String msg = "I WORK!";
+		IOUtil util = new IOUtil();		// For the sake of coverage
 		File file = new File("IOUtilTestTemp.txt");
 		
 		try {
@@ -24,7 +25,7 @@ public class IOUtilTest {
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 		    writer.write(msg);
 		    writer.close();
-		    assertEquals(msg, IOUtil.load(file.getName()));
+		    assertEquals(msg, util.load(file.getName()));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

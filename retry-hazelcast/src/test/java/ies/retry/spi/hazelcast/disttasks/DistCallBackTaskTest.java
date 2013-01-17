@@ -108,7 +108,7 @@ public class DistCallBackTaskTest {
 		String type = !archive ? "ARCHIVE_OFF" : "ARCHIVE_ON";
 		String key = "key_" + archive + "_" + System.currentTimeMillis();
 		
-		IMap<String,List<RetryHolder>> retryMap = HazelcastRetryImpl.getHzInst().getMap(type);
+		IMap<String,List<RetryHolder>> retryMap = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1().getMap(type);
 		 
 		List<RetryHolder> listHolder = new ArrayList<RetryHolder>();
 		RetryHolder holder = new RetryHolder(key, type,

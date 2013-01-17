@@ -89,7 +89,7 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 			distMap.put(retry.getId(), listHolder);
 			
 			DBMergePolicy mergePolicy = null;
-			IMap<String, LoadingState> loadStateMap = HazelcastRetryImpl.getHzInst().getMap(StateManager.DB_LOADING_STATE);
+			IMap<String, LoadingState> loadStateMap = h1.getMap(StateManager.DB_LOADING_STATE);
 			
 			if( (loadStateMap == null) || (loadStateMap.get(retry.getType()) == LoadingState.LOADING) )
 				mergePolicy = DBMergePolicy.ORDER_TS_DISCARD_DUP_TS;
