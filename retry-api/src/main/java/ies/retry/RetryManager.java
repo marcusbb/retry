@@ -36,6 +36,12 @@ public interface RetryManager {
 	 */
 	public void addRetry(RetryHolder retry) throws NoCallbackException,ConfigException; //throws IOException??
 	
+	/*
+	 * Created to support immediate archiving of passed retry object without de-queueing  
+	 */
+	public void archiveRetry(RetryHolder retry) throws NoCallbackException,ConfigException;
+	
+	
 	/**
 	 * Unlike the add operation above, this has no additive effect.
 	 * This puts over-riding any previous retry with the given id.
@@ -87,6 +93,27 @@ public interface RetryManager {
 	 * @return
 	 */
 	public int count(String type);
+	
+	/**
+	 * Get the count of the number of retry holders for given type and id.
+	 * 
+	 * The total number of retry holders in the list in the queue.
+	 * 
+	 * 
+	 * 
+	 * @param type
+	 * @return
+	 */
+	//public int count(String retryId, String type);
+	
+	/**
+	 * Checks whether there is a retry for given type and id.
+	 * 
+	 * 
+	 * @param type
+	 * @return
+	 */
+	public boolean exists(String retryId, String type);
 	
 	/**
 	 * this is absolutely necessary for anything useful to be made for

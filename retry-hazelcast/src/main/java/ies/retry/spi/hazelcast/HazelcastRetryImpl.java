@@ -9,6 +9,7 @@ import ies.retry.RetryHolder;
 import ies.retry.RetryManager;
 import ies.retry.RetryState;
 import ies.retry.RetryTransitionListener;
+import ies.retry.spi.hazelcast.StateManager.LoadingState;
 import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
 import ies.retry.spi.hazelcast.config.HazelcastXmlConfFactory;
 import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
@@ -16,15 +17,19 @@ import ies.retry.spi.hazelcast.disttasks.AddRetryCallable;
 import ies.retry.spi.hazelcast.persistence.RetryMapStore;
 import ies.retry.spi.hazelcast.persistence.RetryMapStoreFactory;
 import ies.retry.spi.hazelcast.util.IOUtil;
+import ies.retry.spi.hazelcast.util.RetryUtil;
 import ies.retry.spi.hazelcast.util.StringUtil;
 import ies.retry.xml.XMLRetryConfigMgr;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
+
+import org.hibernate.action.Executable;
 
 import provision.services.logging.Logger;
 
@@ -59,6 +64,7 @@ public class HazelcastRetryImpl implements RetryManager {
 	//static Logger logger = Logger.getLogger(HazelcastRetryImpl.class.getName()); 
 	private static String CALLER = HazelcastRetryImpl.class.getName();
 	public static String HZ_CONFIG_FILE = "hazelcast.xml";
+	private final static StackTraceElement [] EMPTY_STACK_TRACE = new StackTraceElement [0];
 	
 	protected static HazelcastInstance h1 = null;
 	public static String EXEC_SRV_NAME = "RETRY_ADD";
@@ -109,11 +115,9 @@ public class HazelcastRetryImpl implements RetryManager {
 		stateMgr = new StateManager(configMgr,stats);
 		callbackManager = new CallbackManager(configMgr,stateMgr,stats);
 		callbackManager.init();
-		//stateMgr.addTransitionListener(callbackManager);
+
 		//possibly load data from DB
 		stateMgr.init();
-		
-				
 				
 	}
 	public static HazelcastInstance getHzInst() {
@@ -202,8 +206,8 @@ public class HazelcastRetryImpl implements RetryManager {
 		
 		RetryConfiguration config = configMgr.getConfiguration(retry.getType());
 		
-		if (config.getStackTraceLinesCount()>0) 
-			retry.setStackTraceCount(config.getStackTraceLinesCount());
+		if (null != retry.getException()) truncateStackTrace(retry, config);
+		
 		//inform state manager
 		stateMgr.retryAddedEvent(retry.getType(),true);
 				
@@ -219,13 +223,71 @@ public class HazelcastRetryImpl implements RetryManager {
 			Logger.error(CALLER, "Add_Retry_Exception", "Exception Message: " + e.getMessage(), "ID", retry.getId(), "Type", e);
 		}
 		
-		
-		
-		
-		
+	}
+
+	/*
+	 * Created to support immediate archiving of retry object without de-queueing  
+	 */
+	public void archiveRetry(RetryHolder retry) throws NoCallbackException,ConfigException{
+
+		if (configMgr.getConfiguration(retry.getType()) == null) {
+			throw new ConfigException("No configuration set for type: " + retry.getType());
+		}
+		 
+		Logger.info(CALLER, "Archive_Retry_No_Dequeue", "Archiving Retry", "ID", retry.getId(), "Type", retry.getType());
+
+		RetryMapStore store = (RetryMapStore)RetryMapStoreFactory.getInstance().newMapStore(retry.getType());
+		List<RetryHolder> retries = new ArrayList<RetryHolder>();
+		retries.add(retry);
+		store.archive(retries, false);
 	}
 	
 	
+	/**
+	 * Rules of truncating stack trace:
+	 * 
+	 * 
+	 */
+	private void truncateStackTrace(RetryHolder retry, RetryConfiguration config) {
+		
+		if (null == retry.getException()) return;	
+								
+		final int EXCEPTION_LEVEL = config.getExceptionLevel();
+		final int STACK_TRACE_COUNT = config.getStackTraceLinesCount();
+		
+		Exception exceptionCloned = null;
+		Exception exceptionInitial = retry.getException();
+			
+		if (EXCEPTION_LEVEL<=0) 
+			exceptionCloned = createException(exceptionInitial, STACK_TRACE_COUNT);
+		else {
+			for (int i= 0; i < EXCEPTION_LEVEL; i++)
+			{	if (exceptionInitial.getCause()==null || 
+						exceptionInitial.getCause() == exceptionInitial) 
+							break;
+				exceptionInitial = (Exception)exceptionInitial.getCause();
+			}
+			exceptionCloned = createException(exceptionInitial, STACK_TRACE_COUNT);
+		}
+		
+		retry.setException(exceptionCloned);
+			
+	}
+	
+	private Exception createException(Exception exception, int linesCount){
+		if (null == exception) return null;
+		
+		Exception cloned = new Exception(exception.getMessage());
+		
+		if (linesCount <=0 ) 
+			cloned.setStackTrace(new StackTraceElement[]{});
+		else if ( linesCount >= exception.getStackTrace().length) 
+			cloned.setStackTrace(Arrays.copyOf(exception.getStackTrace(), exception.getStackTrace().length));
+		else 
+			cloned.setStackTrace(Arrays.copyOf(exception.getStackTrace(), linesCount));
+		
+		return cloned;
+	}
 	
 	public void putRetry(List<RetryHolder> retryList)
 			throws NoCallbackException, ConfigException {
@@ -247,11 +309,7 @@ public class HazelcastRetryImpl implements RetryManager {
 		if (configMgr.getConfiguration(retry.getType()) == null) {
 			throw new ConfigException("No configuration set for type: " + retry.getType());
 		}
-		
-		for (RetryHolder rh: retryList) {
-			rh.setSystemTs(System.currentTimeMillis());
-			
-		}
+
 		try {
 			Future<Void> future = h1.getExecutorService().submit(new AddRetryCallable(retryList, config,persist ));
 			if (config.isSyncRetryAdd())
@@ -295,6 +353,7 @@ public class HazelcastRetryImpl implements RetryManager {
 				list = RetryMapStoreFactory.getInstance().newMapStore(type).load(retryId);
 				//only call putRetry if the list is not empty, putRetry will log error otherwise (before it was throwing an index out of bound but I changed it to log an error)
 				if(list != null && !list.isEmpty()){
+					Logger.info(CALLER, "Put_Retry_RetryList", "Loaded retry list from DB", "Type", type, "Id", retryId, "Size", list.size());
 					putRetry(list, false);
 				}else{
 					//TODO - MS - I think the mapstorefactory sets this to empty list but probably should be null??
@@ -369,6 +428,33 @@ public class HazelcastRetryImpl implements RetryManager {
 		return null;
 		
 	}
+	
+
+	
+	public boolean exists(String retryId, String type) {
+		Map<String, List<RetryHolder>> distMap = h1.getMap(type);
+		boolean exists = distMap.containsKey(retryId);
+
+		// resort to Db fetch if data has not been loaded yet from DB
+		if (!exists && !RetryUtil.hasLoaded(type)) {
+			exists = RetryMapStoreFactory.getInstance().newMapStore(type).load(retryId) != null;
+		}
+		return exists;
+	}
+	
+	/*public int count(String retryId, String type) {
+		Map<String, List<RetryHolder>> distMap = h1.getMap(type);
+		List<RetryHolder> list = distMap.get(retryId);
+
+		// resort to Db fetch if data has not been loaded yet from DB
+		if (list == null && !RetryUtil.hasLoadedFromDB(type)) {
+			list = RetryMapStoreFactory.getInstance().newMapStore(type)
+					.load(retryId);
+		}
+
+		return list!=null ? list.size() : 0;
+	}*/
+
 	public int count(String type) {
 		RetryState transitionType = stateMgr.getState(type);
 		int count = 0;
@@ -378,7 +464,7 @@ public class HazelcastRetryImpl implements RetryManager {
 		}
 		return count;
 	}
-
+	
 	public void registerCallback(RetryCallback callback, String type) {
 		callbackManager.addCallback(callback, type);
 	}

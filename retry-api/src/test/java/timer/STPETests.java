@@ -15,7 +15,7 @@ public class STPETests {
 		stpe.scheduleWithFixedDelay(new Task(), 
 				1000, 
 				1000, TimeUnit.MILLISECONDS);
-		
+
 		Thread.sleep(1000);
 	}
 

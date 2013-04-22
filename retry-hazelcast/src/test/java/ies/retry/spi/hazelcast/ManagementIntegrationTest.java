@@ -22,6 +22,7 @@ import javax.management.ObjectName;
 import junit.framework.Assert;
 
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -32,6 +33,7 @@ public class ManagementIntegrationTest {
 	private static RetryManagement management;
 	private static StateManager stateManager;
 	//private static int numRetryTypes = 3;
+	private static int runCount = 0;
 	
 	
 	@BeforeClass
@@ -62,7 +64,7 @@ public class ManagementIntegrationTest {
 	}
 	@Before
 	public void before() {
-		
+		runCount++;
 	}
 	
 	/**
@@ -72,7 +74,7 @@ public class ManagementIntegrationTest {
 	@Test
 	public void getState() throws Exception {
 		String state = management.getState("POKE");
-		
+		Assume.assumeTrue("getState() is not the first executed test. Therefore, it was ignored", runCount ==1);
 		Assert.assertEquals("DRAINED", state);
 		
 	}

@@ -8,7 +8,10 @@ import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.CallbackStat;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 import ies.retry.spi.hazelcast.NoCallbackRegistered;
+import ies.retry.spi.hazelcast.persistence.DBMergePolicy;
+import ies.retry.spi.hazelcast.persistence.RetryMapStore;
 import ies.retry.spi.hazelcast.persistence.RetryMapStoreFactory;
+import ies.retry.spi.hazelcast.util.RetryUtil;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -30,10 +33,9 @@ import com.hazelcast.core.IMap;
  */
 public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
+
+	private static final long serialVersionUID = 4900910399786170157L;
+
 	private List<RetryHolder> listHolder;
 	private static String CALLER = DistCallBackTask.class.getName();
 	private boolean archiveRetries;
@@ -56,14 +58,11 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 		}
 		
 		try {
-			//debug to remove
-			/*for (RetryHolder dh:listHolder) {
-				Logger.debug(CALLER, "Callback_Examine_All_Retry: "+dh);
-			}*/
 			
 			HazelcastRetryImpl retryImpl = ((HazelcastRetryImpl)Retry.getRetryManager());
 			RetryConfiguration config = retryImpl.getConfigManager().getConfiguration(type);
 			RetryCallback callback = retryImpl.getCallbackManager().getCallbackMap().get(type);
+			
 			retryMap = HazelcastRetryImpl.getHzInst().getMap(type);
 			if (callback == null){
 				Logger.error(CALLER, "Null_Callback","Callback was not set for type " + type,"ID",id);
@@ -73,7 +72,7 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 			BackOff backOff = config.getBackOff();
 			
 			List<RetryHolder> listHolder = retryMap.get(id);
-			//retryMap.lock(id);
+			//retryMap.lock(id); // WE do lock below
 			boolean exec = false;
 			long curTime = System.currentTimeMillis();
 			
@@ -88,7 +87,7 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 					
 					if (firstHolder.getNextAttempt() <= curTime) {
 						exec = true;
-						
+
 						int i = 0;
 						
 						//this is to mark the different behaviour between throwing an exception and returning false(MS-please examine if this behaviour difference is desired), while preventing an 
@@ -123,39 +122,75 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 						if (failedHolder.size() == 0) {
 							Logger.info(CALLER, "Retry_Callback_Sucess: ID=" + id);
 							retryMap.lock(id);
-							retryMap.remove(id);
-							RetryMapStoreFactory.getInstance().newMapStore(type).delete(id);
+							List<RetryHolder> latest = retryMap.get(id);
+							List<RetryHolder> mergedList = RetryUtil.merge(CALLER, listHolder, failedHolder, latest);
+							
+							RetryMapStore mapStore = RetryMapStoreFactory.getInstance().newMapStore(type);
+							
+							if(mergedList.size()==0){
+								retryMap.remove(id);
+								mapStore.delete(id);
+							}
+							else{
+								retryMap.put(id, mergedList);
+								mapStore.store(mergedList, DBMergePolicy.FIND_OVERWRITE); // only new retries will be stored to DB, so it is OK to synchronize
+							}
+							
+							
 						} 
 						else {
 							stat.setSuccess(false);
 						}
 						
 					}
-				/*for (RetryHolder fh:failedHolder) {
-					Logger.debug(CALLER, "Examine_failed_retry: " + fh);
-				}*/
+
+					
 				if (!stat.isSuccess() && exec) {
 						retryMap.lock(id);
+						List<RetryHolder> latest = retryMap.get(id);
+						RetryMapStore mapStore = RetryMapStoreFactory.getInstance().newMapStore(type);
 						
 						firstHolder = failedHolder.get(0);
 						if (firstHolder.getCount()>= backOff.getMaxAttempts()) {
-							stat.setSuccess(false);
-							retryMap.remove(id);
-							if(!archiveRetries)
-								RetryMapStoreFactory.getInstance().newMapStore(type).delete(id);
-							else 
-								RetryMapStoreFactory.getInstance().newMapStore(type).archive(id);
+							failedHolder.remove(0);
+							List<RetryHolder> mergedList = RetryUtil.merge(CALLER, listHolder, failedHolder, latest);	
+							
+							if(mergedList.size()>0){
+								// only one item in the beginning of the failedHolder list can expire
+								// so we archive only first entry
+								if(archiveRetries){
+									List<RetryHolder> expired = new ArrayList<RetryHolder>();
+									expired.add(firstHolder);
+									mapStore.archive(expired, false);
+								}
+								mapStore.store(mergedList, DBMergePolicy.FIND_OVERWRITE); // first item has been removed from the list, so we have to synchronize with DB
+								retryMap.put(id, mergedList);
+							}
+							else {
+								retryMap.remove(id);
+								if(!archiveRetries)
+									mapStore.delete(id);
+								else 
+									mapStore.archive(listHolder, true);
+							}
 							Logger.warn(CALLER, "Dist_Callback_Retry_Failed", "Failed to retry: " + firstHolder);
+							
 						} else {
 							//we separate the timer from the calculation of next
 							//set all of them to be safe (and help in query)
 							for (RetryHolder fh:failedHolder) {
-								fh.incrementCount();
 								int nextTs = Math.round( backOff.getMilliInterval()  );
 								fh.setNextAttempt(System.currentTimeMillis() + nextTs);
+								fh.incrementCount();
 							}
-							
-							retryMap.put(id, failedHolder);
+							List<RetryHolder> mergedList = RetryUtil.merge(CALLER, listHolder, failedHolder, latest);
+							// nothing expired so only new item could have been potentially added to the list
+							boolean updateDB = failedHolder.size()!=listHolder.size() ? true : // some successfully processed items are removed from the list
+									latest.size()!=listHolder.size(); // some new item(s) has been added
+
+							if(updateDB) // we synchronize only if there were changes to number of items in the list
+								mapStore.store(mergedList, DBMergePolicy.FIND_OVERWRITE);
+							retryMap.put(id, mergedList);
 						}
 						stat.setCount(firstHolder.getCount());
 						stat.setDateCreated(firstHolder.getSystemTs());
@@ -174,5 +209,6 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 		}
 		return stat;
 	}
+	
 
 }

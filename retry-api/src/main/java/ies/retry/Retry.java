@@ -62,8 +62,12 @@ public class Retry {
 
 		} catch (Exception e) {
 			e.printStackTrace();
-			throw new ConfigException(e);	
+			throw new ConfigException(e);
+			
+		}finally {
+						
 		}
+		
 	}
 	
 	

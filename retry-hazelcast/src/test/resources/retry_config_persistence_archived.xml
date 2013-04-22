@@ -3,13 +3,14 @@
 	<provider>ies.retry.spi.hazelcast.HazelcastRetryImpl</provider>
 	<typeConfig>
 		<archiveExpired>true</archiveExpired>
+		<maxListSize>100</maxListSize>
 		<type>ARCHIVE_ON</type>
 		<listBacked>true</listBacked>
 		<queueStrategy>UNORDERED</queueStrategy>
 		<backOff>
 			<interval>5000</interval>
 			<intervalMultiplier>1.0</intervalMultiplier>
-			<maxAttempts>2</maxAttempts>
+			<maxAttempts>1</maxAttempts>
 		</backOff>
 		<batchConfig>
 			<batchHeartBeat>5050</batchHeartBeat>
@@ -20,6 +21,7 @@
 	</typeConfig>
 	<typeConfig>
 		<archiveExpired>false</archiveExpired>
+		<maxListSize>100</maxListSize>
 		<type>ARCHIVE_OFF</type>
 		<listBacked>true</listBacked>
 		<queueStrategy>UNORDERED</queueStrategy>

@@ -8,7 +8,6 @@
 
 		<!-- Entities here -->
 		<class>ies.retry.spi.hazelcast.persistence.RetryEntity</class>
-		<class>ies.retry.spi.hazelcast.persistence.ArchivedRetryEntity</class>
 		
 					
 		<properties>
@@ -21,10 +20,10 @@
 			<property name="hibernate.format_sql" value="false" />
 			 <property name="hibernate.jdbc.batch_size" value="20" />
 			 
-			 <property name="hibernate.connection.driver_class" value="oracle.jdbc.driver.OracleDriver" />
-			 <property name="hibernate.connection.url" value="jdbc:oracle:thin:@(DESCRIPTION = (ADDRESS = (PROTOCOL = TCP)(HOST = dbprv59yyz.labyyz.testnet.rim.net)(PORT = 1523))(CONNECT_DATA =(SERVER = DEDICATED)(SERVICE_NAME = Vostok)))" />
-			 <property name="hibernate.connection.username" value="ms_icrs" />
-			 <property name="hibernate.connection.password" value="ms_icrs" />
+			<!-- <property name="hibernate.connection.url"
+				value="jdbc:oracle:thin:@//dbprv59yyz.labyyz.testnet.rim.net:1523/VOSTOK" />
+			<property name="hibernate.connection.username" value="AK_ICRS" />
+			<property name="hibernate.connection.password" value="wipeitclean" /> -->
 			 
 		</properties>
 	</persistence-unit>

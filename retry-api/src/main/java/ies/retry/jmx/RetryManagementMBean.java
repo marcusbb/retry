@@ -1,6 +1,7 @@
 package ies.retry.jmx;
 
 import ies.retry.RetryManager;
+import ies.retry.RetryTransitionEvent;
 
 public interface RetryManagementMBean {
 
@@ -52,4 +53,10 @@ public interface RetryManagementMBean {
 	 * @return
 	 */
 	public String getState(String type);
+	
+	
+	
+	
+	
+	
 }

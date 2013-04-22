@@ -9,6 +9,8 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.PersistenceException;
 
+import org.hibernate.exception.ConstraintViolationException;
+
 import provision.services.logging.Logger;
 
 /**
@@ -19,6 +21,8 @@ import provision.services.logging.Logger;
  * @param <T>
  */
 public abstract class AbstractOp<T> implements Callable<T>{
+	
+	private String caller = this.getClass().getName();
 
 	protected EntityManagerFactory emf;
 	
@@ -70,52 +74,41 @@ public abstract class AbstractOp<T> implements Callable<T>{
 	@Override
 	public T call() throws Exception {
 		EntityManager em = emf.createEntityManager();
-		try {
-			
-			em.getTransaction().begin();
-			
-			T ret = exec(em);
-			
-			if (allowExceptionHandling()) {
-				try {
-					em.flush();
-				}catch (PersistenceException e) {
-					handleException(e);
+		
+		long maxTimes = 5; // we try to re-run operation maxTimes if primary key of retries tables was violated
+		
+		for (int i = 0; i < maxTimes; i++) {
+			try {
+				em.getTransaction().begin();
+				T ret = exec(em);
+				em.flush();
+				em.getTransaction().commit();
+				return ret;  // success, going out of the loop
+			}
+			catch (ConstraintViolationException e) {
+				if(i == maxTimes-1){ // log error if we failed to execute Op maxTimes
+					Logger.error(caller, "Persistence_Op_PK_Exception", "DB operation failed because of PK violation: " + e.getMessage(), e); // log error message
+				}
+				else{
+					Logger.warn(caller, "Persistence_Op_PK_Exception", "DB operation failed because of PK violation: " + e.getMessage(), e); // just log message, going to next iteration
 				}
 			}
-			em.getTransaction().commit();
-			return ret;
-		} catch (PersistenceException e) {
-			em.getTransaction().rollback();
-			throw e;
-		}catch (Exception e) {
-			Logger.error(getClass().getName(), "Persistence_Op_Exception", "Exception Message: " + e.getMessage(), e);
-		}finally {
-			if (em != null)
-				em.close();
+			catch (PersistenceException e) {
+				Logger.error(caller, "Persistence_Op_Exception", "Exception Message: " + e.getMessage(), e);
+				throw e; // unknown persistence exception, leaving the loop
+			} catch (Exception e) {
+				Logger.error(caller, "Persistence_Op_Exception", "Exception Message: " + e.getMessage(), e);
+				break; // unknown exception, leaving the loop
+			} finally {
+				em.getTransaction().rollback();
+			}
+
 		}
+		
 		return null;
 	}
 	
 	public abstract T exec(EntityManager em) throws Exception;
 	
-	/**
-	 * Gives chance for exception handling prior to commit,
-	 * flushing resources before the commit is called.
-	 * 
-	 * @return
-	 */
-	public  boolean allowExceptionHandling() {
-		return false;
-	}
-	/**
-	 * handle the commit exception (flush)
-	 * 
-	 * By default just logs
-	 * @param e
-	 */
-	public void handleException(PersistenceException e) throws PersistenceException {
-		Logger.warn(getClass().getName(), "Persistence_Op_Handle_Exception", "Exception Message: " + e.getMessage(),e);
-		throw e;
-	}
+
 }

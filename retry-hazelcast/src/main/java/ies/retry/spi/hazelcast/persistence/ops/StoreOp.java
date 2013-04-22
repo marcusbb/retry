@@ -6,7 +6,6 @@ import ies.retry.spi.hazelcast.persistence.RetryEntity;
 import ies.retry.spi.hazelcast.persistence.RetryId;
 import ies.retry.spi.hazelcast.util.RetryUtil;
 
-import java.util.Iterator;
 import java.util.List;
 
 import javax.persistence.EntityManager;
@@ -14,7 +13,6 @@ import javax.persistence.EntityManagerFactory;
 import javax.persistence.PersistenceException;
 
 import provision.services.logging.Logger;
-
 
 public class StoreOp extends AbstractOp<Void>{
 
@@ -44,15 +42,11 @@ public class StoreOp extends AbstractOp<Void>{
 			findUpdatePayload(em);
 		}
 		else if (mergePolicy == DBMergePolicy.OVERWRITE) {
-			
 			em.persist(new RetryEntity(listHolder));
-			
 		}
-		else if (mergePolicy == DBMergePolicy.ORDER_TS)
-			findAndMergePayload(em, false);
-		else if ( mergePolicy == DBMergePolicy.ORDER_TS_DISCARD_DUP_TS)
-			findAndMergePayload(em, true);
-		
+		else if (mergePolicy == DBMergePolicy.ORDER_TS || mergePolicy == DBMergePolicy.ORDER_TS_DISCARD_DUP_TS)
+			findAndMergePayload(em);
+
 		return null;
 	}
 	
@@ -80,16 +74,24 @@ public class StoreOp extends AbstractOp<Void>{
 	//merge
 	//use traversal, and order by TS
 	//strip
-	private void findAndMergePayload(EntityManager em,boolean stripDupTs) {
+	private void findAndMergePayload(EntityManager em) {
 		RetryEntity entity = em.find(RetryEntity.class, new RetryId(storeId, retryType));
 		
 		try {
 			if (entity != null) {
-
-				List<RetryHolder> dbList = entity.fromByte(entity.getRetryData());
-				@SuppressWarnings("unchecked")
-				List<RetryHolder> mergeList = RetryUtil.merge(dbList, getListHolder());
+				List<RetryHolder> dbList = null;
 				
+				try {
+					dbList = entity.fromByte(entity.getRetryData());
+				} catch (Exception e) {
+					Logger.error(CALLER, "Find_Merge_Payload", "Failed to de-serialize binary data: " + e.getMessage(), 
+							"Key", storeId, "Type", retryType, "Version", entity.getVersion(), e);
+				}
+				
+				@SuppressWarnings("unchecked")
+				List<RetryHolder> mergeList = dbList==null ? 
+						getListHolder() : RetryUtil.merge(dbList, getListHolder());
+		
 				entity.populate(mergeList);
 				em.persist(entity);
 			} else {
@@ -104,12 +106,6 @@ public class StoreOp extends AbstractOp<Void>{
 		}
 	}
 	
-
-	@Override
-	public boolean allowExceptionHandling() {
-		return true;
-	}
-
 	/*@Override
 	public void handleException(PersistenceException e) throws PersistenceException {
 		Logger.warn(CALLER, "Handle_Exception", e.getMessage(),e);

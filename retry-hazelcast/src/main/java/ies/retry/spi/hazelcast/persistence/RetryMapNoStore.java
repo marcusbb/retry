@@ -68,8 +68,7 @@ public class RetryMapNoStore extends RetryMapStore {
 	}
 
 	@Override
-	public void archive(String key) {
-
+	public void archive(final List<RetryHolder> list, boolean removeEntity){
 	}
 
 }

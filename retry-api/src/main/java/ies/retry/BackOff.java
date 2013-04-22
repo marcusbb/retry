@@ -1,6 +1,7 @@
 package ies.retry;
 
 import java.io.Serializable;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 
@@ -47,13 +48,13 @@ public class BackOff implements Serializable {
 	 * The absolute number of attempts for any type.
 	 */
 	private int maxAttempts = 10; //
-	
+
 	/**
 	 * The millis between successive callback attempts {@link RetryCallback}
 	 * 
 	 */
 	private long interval = 60 * 1000; //min interval
-	
+
 	/**
 	 * combined with the {@link #interval} will determine the actual backoff.
 	 * If < 1 then it will be shorter period - hence not a back off.
@@ -61,11 +62,10 @@ public class BackOff implements Serializable {
 	@Deprecated
 	private float intervalMultiplier = 1;
 
-	
-	private long[] staticIntervals;
+	private List<Long> staticIntervals;
 
 	private TimeUnit timeUnit = TimeUnit.MILLISECONDS;
-	
+
 	public int getMaxAttempts() {
 		return maxAttempts;
 	}
@@ -95,13 +95,12 @@ public class BackOff implements Serializable {
 		this.intervalMultiplier = intervalMultiplier;
 	}
 
-
-	public long[] getStaticIntervals() {
+	public List<Long> getStaticIntervals() {
 		return staticIntervals;
 	}
 
 
-	public void setStaticIntervals(long[] staticIntervals) {
+	public void setStaticIntervals(List<Long> staticIntervals) {
 		this.staticIntervals = staticIntervals;
 	}
 
@@ -114,19 +113,19 @@ public class BackOff implements Serializable {
 	public void setTimeUnit(TimeUnit timeUnit) {
 		this.timeUnit = timeUnit;
 	}
-	
+
 	public long getMilliInterval() {
 		long milliInterval = TimeUnit.MILLISECONDS.convert(interval, this.timeUnit);
-				
+
 		return milliInterval;
 	}
-	
+
 	public long []staticMillis() {
 		long []milliIntervals = null;
 		if (staticIntervals != null) {
-			milliIntervals = new long[staticIntervals.length];
-			for (int i=0;i<staticIntervals.length;i++)
-				milliIntervals[i] = timeUnit.toMillis(staticIntervals[i]);
+			milliIntervals = new long[staticIntervals.size()];
+			for (int i=0;i<staticIntervals.size();i++)
+				milliIntervals[i] = timeUnit.toMillis(staticIntervals.get(i));
 		}
 		return milliIntervals;
 	}

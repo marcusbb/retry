@@ -188,21 +188,13 @@ public class RetryHolder implements Serializable {
 		return result;
 	}
 
+
 	@Override
 	public boolean equals(Object obj) {
 		if(this == obj) return true;
 		if((obj == null) || (obj.getClass() != this.getClass())) return false;
 		RetryHolder comp = (RetryHolder)obj;
 		return (comp.getId().equals(id) && comp.getType().equals(type));
-			
 	}
-
-	
-    public void setStackTraceCount(int num)
-
-	{
-	    exception.setStackTrace(Arrays.copyOf(exception.getStackTrace(), num));
-	}
-
-	
+  
 }

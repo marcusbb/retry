@@ -1,11 +1,9 @@
 package ies.retry.spi.hazelcast.disttasks;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import ies.retry.Retry;
 import ies.retry.RetryCallback;
 import ies.retry.RetryHolder;
@@ -21,45 +19,45 @@ import ies.retry.spi.hazelcast.persistence.RetryMapStoreFactory;
 import ies.retry.spi.hazelcast.persistence.TestUtils;
 import ies.retry.xml.XMLRetryConfigMgr;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
-
-import static junit.framework.Assert.*;
 
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
 import provision.services.logging.Logger;
+import test.util.PersistenceUtil;
 
 import com.hazelcast.core.IMap;
-
-import test.util.PersistenceUtil;
 
 /*
  * 
  * @author akharchuk
  */
-@Ignore /* due to race condition */
-@RunWith(Parameterized.class)
-public class DistCallBackTaskTest {
-	private final static String CALLER = DistCallBackTaskTest.class.getName();
-
+@Ignore /* due to race condition */ 
+public class DistCallBackTaskSyncTest {
+	private final static String CALLER = DistCallBackTaskSyncTest.class
+			.getName();
 	private static EntityManagerFactory emf;
-	private static RetryMapStore onMapStore = null;
-	private static RetryMapStore offMapStore = null;
+	private static RetryMapStore mapStore = null;
 
-	private final static String XML_CONFIG = "retry_config_persistence_archived.xml";
-	private final static String ARCHIVE_ON_CONFIG = "ARCHIVE_ON";
-	private final static String ARCHIVE_OFF_CONFIG = "ARCHIVE_OFF";
+	private final static String XML_CONFIG = "retry_config_persistence.xml";
+	private final static String POKE = "POKE";
 	private static String ORIG_XML_FILE;
 
 	private static RetryManager retryManager;
+
+	private int count = 0;
+	// i've kept this variables in case we need to write more robust test in future
+	private final boolean archive = true, single = false, retryFail = true,
+			presentInRetry = true, presentInArchive = false;
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Throwable {
@@ -67,7 +65,6 @@ public class DistCallBackTaskTest {
 
 		ORIG_XML_FILE = XMLRetryConfigMgr.XML_FILE;
 		XMLRetryConfigMgr.XML_FILE = XML_CONFIG;
-		// Retry.setRetryManager(null);
 		retryManager = Retry.getRetryManager();
 		emf = PersistenceUtil.getEMFactory("retryPool");
 		HazelcastXmlConfig config = new HazelcastXmlConfig();
@@ -75,17 +72,12 @@ public class DistCallBackTaskTest {
 
 		RetryMapStoreFactory.getInstance().init(config);
 		RetryMapStoreFactory.getInstance().setEMF(emf);
-		onMapStore = RetryMapStoreFactory.getInstance().newMapStore(
-				ARCHIVE_ON_CONFIG);
-		offMapStore = RetryMapStoreFactory.getInstance().newMapStore(
-				ARCHIVE_OFF_CONFIG);
+		mapStore = RetryMapStoreFactory.getInstance().newMapStore(POKE);
 
 	}
 
 	@AfterClass
 	public static void afterClass() {
-		// onMapStore.deleteByType();
-		// offMapStore.deleteByType();
 		RetryMapStoreFactory.getInstance().shutdown();
 		retryManager.shutdown();
 		Retry.setRetryManager(null);
@@ -99,25 +91,9 @@ public class DistCallBackTaskTest {
 		EntityManager em = emf.createEntityManager();
 		em.getTransaction().begin();
 		em.createNativeQuery(
-				"delete from RETRIES where retry_type in ('"
-						+ ARCHIVE_ON_CONFIG + "','" + ARCHIVE_OFF_CONFIG + "')")
+				"delete from RETRIES where retry_type in ('" + POKE + "')")
 				.executeUpdate();
 		em.getTransaction().commit();
-	}
-
-	private int count;
-	private final boolean archive, single, retryFail, presentInRetry,
-			presentInArchive;
-
-	public DistCallBackTaskTest(int count, boolean archive, boolean single,
-			final boolean retryFail, boolean presentInRetry,
-			boolean presentInArchive) {
-		this.count = count;
-		this.archive = archive;
-		this.single = single;
-		this.retryFail = retryFail;
-		this.presentInArchive = presentInArchive;
-		this.presentInRetry = presentInRetry;
 	}
 
 	@Test
@@ -134,10 +110,10 @@ public class DistCallBackTaskTest {
 			}
 		};
 
-		retryManager.registerCallback(callback, ARCHIVE_ON_CONFIG);
-		retryManager.registerCallback(callback, ARCHIVE_OFF_CONFIG);
+		retryManager.registerCallback(callback, POKE);
 
-		String type = !archive ? "ARCHIVE_OFF" : "ARCHIVE_ON";
+		// first we create new retry list and store it in HZ and DB
+		String type = POKE;
 		String key = "key_" + archive + "_" + System.currentTimeMillis();
 
 		IMap<String, List<RetryHolder>> retryMap = HazelcastRetryImpl
@@ -150,9 +126,10 @@ public class DistCallBackTaskTest {
 				new IOException(
 						"Better to remain silent and be thought a fool, than to speak and remove all doubt."),
 				"HaHaha");
-		holder.setNextAttempt(0);
+		holder.setNextAttempt(new Long(0));
 		holder.setCount(count);
 		holder.setSystemTs(System.currentTimeMillis() - 1000 * 60 * 60 * 24 * 7);
+		holder.setNextAttempt(0L);
 		listHolder.add(holder);
 		if (!single) {
 			for (int i = 0; i < 3; i++) {
@@ -162,30 +139,28 @@ public class DistCallBackTaskTest {
 						new IOException(
 								"Better to remain silent and be thought a fool, than to speak and remove all doubt."),
 						"HaHaha");
-				holder.setNextAttempt(0);
-				holder.setCount(count - 1);
+				holder.setNextAttempt(new Long(0));
+				holder.setCount(count);
 				holder.setSystemTs(System.currentTimeMillis() - 1000 * 60 * 60
 						* 24 * 7);
+				holder.setNextAttempt(0L);
 				listHolder.add(holder);
 			}
 		}
 
-
-		RetryMapStore mapStore = archive ? onMapStore : offMapStore;
 		mapStore.store(listHolder, DBMergePolicy.OVERWRITE);
-		
+
 		retryMap.lock(key);
 		retryMap.put(key, listHolder);
 		retryMap.unlock(key);
-		
-		DistCallBackTask task = new DistCallBackTask(listHolder, archive);
 
+		// Time to de-queue
+		DistCallBackTask task = new DistCallBackTask(listHolder, archive);
 		task.call();
-		// listHolder = mapStore.load(key);
-		// assertNull("Item was not archived (still in RETRIES table)",
-		// listHolder);
+		
 		EntityManager em = emf.createEntityManager();
 
+		// verify that version was not changed as indicator that we haven't updated in DB
 		RetryEntity entity = em.find(RetryEntity.class, new RetryId(key, type));
 
 		assertEquals("Archiving failed", (presentInArchive ? 1 : 0),
@@ -194,40 +169,32 @@ public class DistCallBackTaskTest {
 			assertNull(entity);
 		else
 			assertNotNull(entity);
+		
+		// Make sure retry count has been incremented
+		List<RetryHolder> holders = retryMap.get(key);
+		assertEquals(0, entity.getVersion().intValue());
+		holder = holders.get(0);
+		assertTrue(holder.getCount()>0);
+
+		// reset next attempt time so that this retry is de-queued
+		holder.setNextAttempt(0);
+		retryMap.lock(key);
+		retryMap.put(key, holders);
+		retryMap.unlock(key);
+		
+		// starting another de-queue process
+		task.call();
+		entity = em.find(RetryEntity.class, new RetryId(key, type));
+		// version must stay zero
+		assertEquals(0, entity.getVersion().intValue());
+		holders = retryMap.get(key);
+		holder = holders.get(0);
+		// none of the items was lost
+		assertEquals(4, holders.size());
+		// retry count must be incremented
+		assertTrue(holder.getCount()>1);
 		em.close();
 
-	}
-
-	public static Collection<Object[]> data() {
-		Object[][] data = new Object[][] { { 1 }, { 2 }, { 3 }, { 4 } };
-		return Arrays.asList(data);
-	}	
-
-	@Parameters(name="processRetries {index}: retry_count={0}, archiving enabled={1}, single item in the list={2}, retry fails={3}")
-	public static Collection<Object[]> testDequeue() throws Exception {
-		// two last params in array are presentInRetry, presentInArchive
-		Object[][] data = { { 2, true, true, true, false, true },
-				{ 2, true, true, false, false, false },
-				{ 2, true, false, true, true, true },
-				{ 2, true, false, false, false, false },
-
-				{ 2, false, true, true, false, false },
-				{ 2, false, true, false, false, false },
-				{ 2, false, false, true, true, false },
-				{ 2, false, true, false, false, false },
-				{ 2, false, false, false, false, false },
-
-				{ 0, true, true, true, true, false },
-				{ 0, true, true, false, false, false },
-				{ 0, true, false, true, true, false },
-				{ 0, true, false, false, false, false },
-
-				{ 0, false, true, true, true, false },
-				{ 0, false, true, false, false, false },
-				{ 0, false, false, true, true, false },
-				{ 0, false, true, false, false, false },
-				{ 0, false, false, false, false, false } };
-		return Arrays.asList(data);
 	}
 
 }

@@ -81,30 +81,54 @@ public class RetryConfiguration implements Serializable{
 	
 	
 	/**
-	 *  Inidicates whether archiving expired retries is enabled
+	 *  Indicates whether archiving of expired retries is enabled
 	 */
 	private boolean archiveExpired;
 	
+	/**
+	 *  Indicates which exception or cause exception in stack will be kept in RetryHolder
+	 */	
+	private int exceptionLevel;
+
+	public int getExceptionLevel() {
+		return exceptionLevel;
+	}
+
+	public void setExceptionLevel(int exceptionLevel) {
+		this.exceptionLevel = exceptionLevel;
+	}
 
 	/**
-	 *  Inidicates number of stack trace line that will be serilalized for exception
+	 *  Indicates how many stack trace line of Retry exception will be serialized
 	 */
 	private int stackTraceLinesCount;
 	
 	public int getStackTraceLinesCount() {
 		return stackTraceLinesCount;
 	}
-
 	public void setStackTraceLinesCount(int stackTraceLinesCount) {
 		this.stackTraceLinesCount = stackTraceLinesCount;
 	}
-	
+		
 	public boolean isArchiveExpired() {
 		return archiveExpired;
 	}
 
 	public void setArchiveExpired(boolean archiveExpired) {
 		this.archiveExpired = archiveExpired;
+	}
+
+	/**
+	 * Max list size
+	 */
+	private int maxListSize = 12000; // Some large number
+	
+	public int getMaxListSize() {
+		return maxListSize;
+	}
+
+	public void setMaxListSize(int maxListSize) {
+		this.maxListSize = maxListSize;
 	}
 
 	public String getType() {

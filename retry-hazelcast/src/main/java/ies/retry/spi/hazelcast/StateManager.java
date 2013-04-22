@@ -17,16 +17,14 @@ import ies.retry.xml.XMLRetryConfigMgr;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import provision.services.logging.Logger;
 
@@ -69,10 +67,10 @@ public class StateManager implements  MembershipListener{
 	private Member masterMember = null;
 	private boolean master =false;
 	
-
+	
 	public static final String EXEC_SRV_NAME = "RETRY_INIT";
-	public static final String DB_LOADING_STATE ="RETRY_DB_LOADING_STATE";
-
+	
+	public static final String DB_LOADING_STATE ="NEAR--RETRY_DB_LOADING_STATE";
 	private IMap<String, LoadingState> loadingStateMap = null;
 	
 	//stats
@@ -129,22 +127,23 @@ public class StateManager implements  MembershipListener{
 			//even if we have slaves coming on line, we should get informed of
 			//state changes via loading
 		}
-		
-		
 	}
 	
 	/*To be called for when dynamic retry types register themselves later */
 	public void init(RetryConfiguration config) {
+		Logger.info(CALLER, "StateManager_Init","","TYPE",config.getType());
 		//does a state already exist, just notify listener
 		if(globalStateMap.get(config.getType()) != null){
 			notifyStateListeners(new RetryTransitionEvent(globalStateMap.get(config.getType()), config.getType()));
-			return;
+			Logger.warn(CALLER, "StateManager_Init","State_determined","TYPE",config.getType(),"state",globalStateMap.get(config.getType()));
+			//return;
+		} else {
+			//set all to drained state initially:
+			globalStateMap.put(config.getType(), RetryState.DRAINED);
 		}
-		//set all to drained state initially:
-		globalStateMap.put(config.getType(), RetryState.DRAINED);
-		
 		//load retry data		
 		if (master) {
+			Logger.info(CALLER, "Init_State","master_loading","TYPE",config.getType());
 			List<String> types = new ArrayList<String>();
 			types.add(config.getType());
 			loadDataAsync(types);
@@ -163,35 +162,44 @@ public class StateManager implements  MembershipListener{
 	protected void loadData(String type,RetryConfiguration config) {
 		HazelcastInstance h1 = HazelcastRetryImpl.getHzInst();
 		RetryMapStore store = (RetryMapStore)RetryMapStoreFactory.getInstance().newMapStore(config.getType());
-		boolean hasMore = true;
+
 		int retSize = globalConfig.getPersistenceConfig().getLoadFetchSize();
 		int index = 0;
 		ExecutorService exec = h1.getExecutorService(EXEC_SRV_NAME);
 		
-		while (hasMore) {
+		int count = store.count();
+		Logger.info(CALLER, "Load_Data", "Starting to load  " + count + " " + type + " retries");
+		
+		while (count>0) {
 			long start = System.currentTimeMillis();
-			Map<String,List<RetryHolder>> map = store.load(index, retSize);
-			boolean nonZeroMap = map.size() >0;
-			if (nonZeroMap) {
-				Logger.info(CALLER, "Load_Data", "Loading Retry from Store.", "Type", type, "Index", index, "Map_Size", map.size());
-				retryAddedEvent(type,false);
-			}
+			Map<String,List<RetryHolder>> map = new HashMap<String, List<RetryHolder>>();
+			count -= retSize;
+			try {
+				map = store.load(index, retSize);
+
+				boolean nonZeroMap = map.size() >0;
+				if (nonZeroMap) {
+					Logger.info(CALLER, "Load_Data", "Loading Retry from Store.", "Type", type, "Index", index, "Map_Size", map.size());
+					retryAddedEvent(type,false);
+				}
 			
-			for (List<RetryHolder> retry:map.values()) {
-				String retryId = retry.get(0).getId();
-				DistributedTask<Void> distTask = new DistributedTask<Void>(new AddRetryCallable(retry, config,false), retryId);
+				for (List<RetryHolder> retries : map.values()) {
+					String retryId = retries.get(0).getId();
+					DistributedTask<Void> distTask = new DistributedTask<Void>(new AddRetryCallable(retries, config,false), retryId);
 				
-				exec.submit(distTask);
-				
+					exec.submit(distTask);
+				}
+
+				index += retSize;
+
+			}catch (Exception e) {
+				Logger.error(CALLER, "LOAD_EXCEPTION","",e.getMessage(),e);
 			}
-			index += retSize;
-			//System.out.println(type + " map size: " + map.size());
-			hasMore = nonZeroMap && map.size()== retSize;
-			Logger.info(CALLER,"Loaded : " + map.size() + "in " + ( System.currentTimeMillis() - start));
+			Logger.info(CALLER, "Type", type, "Loaded: " + map.size() + " in " + ( System.currentTimeMillis() - start));
 		}
 	}
-	
-	protected void loadDataAsync(final List<String> types) {
+
+	public void loadDataAsync(final List<String> types) {
 		publishExec.submit(new Runnable() {
 
 			@Override
@@ -200,16 +208,10 @@ public class StateManager implements  MembershipListener{
 					RetryConfiguration config = configMgr.getConfiguration(type);
 					if(config == null)
 						continue;
-										
-						
-					// initialize loading state null -> loading
-					loadingStateMap.put(config.getType(), LoadingState.LOADING);
-					Logger.info(CALLER, "Load_Data_Async", "Update loading State -> LOADING", "Type", config.getType());
-					loadData(config.getType(),config,true);
+					try {
 					
-					
-					if(loadingStateMap.tryLock(config.getType())) {
-						if(loadingStateMap.get(config.getType()) == null) {
+						if(loadingStateMap.tryLock(config.getType(),0,TimeUnit.MILLISECONDS)) {
+							if(loadingStateMap.get(config.getType()) != LoadingState.LOADING) {
 							// initialize loading state null -> loading
 							loadingStateMap.put(config.getType(), LoadingState.LOADING);
 							Logger.info(CALLER, "Load_Data_Async", "Update loading State -> LOADING", "Type", config.getType());
@@ -223,15 +225,19 @@ public class StateManager implements  MembershipListener{
 							loadingStateMap.put(config.getType(), LoadingState.READY);
 							Logger.info(CALLER, "Load_Data_Async", "Update loading State -> READY", "Type", config.getType());
 						}
-						loadingStateMap.put(config.getType(), LoadingState.READY);
-						Logger.info(CALLER, "Load_Data_Async", "Update loading State -> READY", "Type", config.getType());
-						
-					}
-				}	
+							else {
+								Logger.warn(CALLER, "UnableToLoad","","TYPE",config.getType());
+							}
+						} else {
+							Logger.warn(CALLER, "NoLockAquired","","TYPE",config.getType());
+						}
+					}finally {
+						loadingStateMap.unlock(config.getType());
+					}		
+				}
 			}
 		});
 	}
-	
 	
 	
 	/**
@@ -291,7 +297,7 @@ public class StateManager implements  MembershipListener{
 		masterMember = h1.getCluster().getMembers().iterator().next();
 		//if I'm the master member then I own the scheduler
 		if (h1.getCluster().getLocalMember().equals(masterMember)) {			
-			Logger.debug(CALLER, "I_Am_Master", "I am the master: "+ masterMember);
+			Logger.info(CALLER, "I_Am_Master", "I am the master: "+ masterMember);
 			master = true;
 			//
 			long queueCheckPeriod = configMgr.getHzConfig().getQueueCheckPeriod();
@@ -299,7 +305,7 @@ public class StateManager implements  MembershipListener{
 					new PeriodicQueuedStateTask(this), 
 					queueCheckPeriod, queueCheckPeriod, TimeUnit.MILLISECONDS);
 		} else {
-			Logger.debug(CALLER, "I_Am_Slave", "I am a slave: master=["+ masterMember + "] slave=" + h1.getCluster().getLocalMember());			
+			Logger.info(CALLER, "I_Am_Slave", "I am a slave: master=["+ masterMember + "] slave=" + h1.getCluster().getLocalMember());			
 		}		
 	}
 	
@@ -313,6 +319,7 @@ public class StateManager implements  MembershipListener{
 
 	@Override
 	public void memberRemoved(MembershipEvent membershipEvent) {
+		Logger.info(CALLER, "Member_Removed", "Member was removed "+ membershipEvent.getMember());
 		memberLostEvent = true;
 		setMaster();
 		
@@ -383,30 +390,28 @@ public class StateManager implements  MembershipListener{
 		//that the cluster + storage is drained - let's make sure
 		boolean storedRetry = false;
 		
-
 		//first check we're QUEUED
 		//then that the grid is empty
 		//finally synchronize with DB
 		//if (t == RetryState.QUEUED) {
 			Logger.debug(CALLER, "SYNC_GRID_QUEUED","","TYPE",type);
 			if (gridEmpty(type)) {
-				
-				storedRetry =storedRetry(type);
-				if ( !storedRetry ) {
-					publish(new RetryTransitionEvent(RetryState.DRAINED,type));
+			
+			storedRetry =storedRetry(type);
+			if ( !storedRetry ) {
+				publish(new RetryTransitionEvent(RetryState.DRAINED,type));
 					Logger.info(CALLER, "SYNC_GRID_DB_SYNCED","","TYPE",type);
-					//finally flip the member lost event off,
-					//as we're  synchronized persistence
-					memberLostEvent = false;
-				} else if (master) {
-					//actively load
+				//finally flip the member lost event off,
+				//as we're  synchronized persistence
+				memberLostEvent = false;
+			} else if(master) {
+				//actively load
 					//as for some reason the 
 					//DB has records that the grid does not
 					Logger.warn(CALLER, "SYNC_GRID_DB_ERROR", "Found retries in store, loading...", "Type", type);
 					loadData(type, configMgr.getConfiguration(type),false);
-				}
-
 			}
+		} 
 		//} 
 		return storedRetry;
 	}

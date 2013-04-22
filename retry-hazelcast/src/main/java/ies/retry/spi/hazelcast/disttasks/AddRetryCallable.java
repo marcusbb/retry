@@ -36,12 +36,13 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 	//private long nextTs = 0;
 	private boolean persist = true;
 
-	//private RetryConfiguration config;
+	private RetryConfiguration config;
 	private long backOffInterval;
 	
 	public AddRetryCallable() {}
 	
 	public AddRetryCallable(RetryHolder holder,RetryConfiguration config) {
+		this.config = config;
 		this.retry = holder;
 		this.appendList = config.isListBacked();
 		//this.nextTs = System.currentTimeMillis() + config.getBackOff().getMilliInterval();
@@ -49,6 +50,7 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 	}
 	
 	public AddRetryCallable(List<RetryHolder> listHolder,RetryConfiguration config) {
+		this.config = config;
 		this.retryList = listHolder;
 		this.appendList = config.isListBacked();
 		//this.nextTs = System.currentTimeMillis() + config.getBackOff().getMilliInterval();
@@ -70,7 +72,7 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 			
 			long curTs = System.currentTimeMillis();
 			retry.setSystemTs(curTs);
-			long nextTs = curTs + backOffInterval;
+			retry.setNextAttempt(curTs + backOffInterval);
 					
 			List<RetryHolder> listHolder = distMap.get(retry.getId());
 			if (listHolder == null) {
@@ -81,17 +83,25 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 			else {
 				listHolder.set(0, retry);
 			}
-			//sync all counts and nextTs date
-			for (RetryHolder holder:listHolder) {
-				holder.setCount(0);
-				holder.setNextAttempt(nextTs);
+
+			
+			 //  apply max list size policy
+			int maxListSize = this.config.getMaxListSize(); // max allowed number of items in the list
+			while(maxListSize<listHolder.size()){
+				RetryHolder retryHolder = listHolder.remove(0);
+				if(config.isArchiveExpired()){
+					List<RetryHolder> list = new ArrayList<RetryHolder>();
+					list.add(retryHolder);
+					RetryMapStoreFactory.getInstance().newMapStore(retry.getType()).archive(list, false);
+				}
+				Logger.warn(CALLER, "Add_Retry_Task_Max_List_Size_Reached", "Retry holder was removed: " + retryHolder.getId(), "Type",	retryHolder.getType());
 			}
+			
 			distMap.put(retry.getId(), listHolder);
 			
 			DBMergePolicy mergePolicy = null;
-			IMap<String, LoadingState> loadStateMap = HazelcastRetryImpl.getHzInst().getMap(StateManager.DB_LOADING_STATE);
-			
-			if( (loadStateMap == null) || (loadStateMap.get(retry.getType()) == LoadingState.LOADING) )
+		
+			if(!RetryUtil.hasLoaded(retry.getType()))
 				mergePolicy = DBMergePolicy.ORDER_TS_DISCARD_DUP_TS;
 			else if(listHolder.size() > 1)
 				mergePolicy = DBMergePolicy.FIND_OVERWRITE;
@@ -101,10 +111,6 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 			if (persist)
 				RetryMapStoreFactory.getInstance().newMapStore(retry.getType()).store(listHolder, mergePolicy);
 			
-			//distMap.unlock(retry.getId());
-			/*for (RetryHolder rh:listHolder) {
-				Logger.debug(CALLER, "Add_Task: " + rh);
-			}*/
 		}catch (Exception e) {
 			Logger.error(CALLER, "Add_Retry_Task_Call_Exception", "Exception Message: " + e.getMessage(), e);
 		}finally {
@@ -121,22 +127,23 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 		IMap<String,List<RetryHolder>> distMap = h1.getMap(retry.getType());
 		try {
 			distMap.lock(retry.getId());
-			long curTs = System.currentTimeMillis();
-			long nextTs = curTs + backOffInterval;
-			//sync all counts and nextTs date
+			long nextTs = System.currentTimeMillis() + backOffInterval;
+
+			//sync nextTs date
 			for (RetryHolder holder : retryList) {
-				//holder.setSystemTs(curTs); //NOT SURE IF NEEDED
-				holder.setCount(0);
-				holder.setNextAttempt(nextTs);
+				holder.setNextAttempt(nextTs); // we reset timestamp for all events loaded from database
 			}
 					
 			List<RetryHolder> inMemoryList = distMap.get(retry.getId());
+			int hzSize = retryList.size();
 			if (inMemoryList != null) { // Merge two lists (from DB and from HZ)
-				retryList = RetryUtil.merge(retryList, inMemoryList);
+				retryList = RetryUtil.merge(inMemoryList, retryList);
+				Logger.info(CALLER, "Add_Retry_Task_Call_callListPut", "Merged data from DB and HZ", "Type", retry.getType(), "Id", retry.getId(), 
+						"InMemory", inMemoryList.size(), "HZ", hzSize, "Result", retryList!=null ? retryList.size() : 0);
 			}
 					
 			distMap.put(retry.getId(), retryList);
-
+			
 			
 			if (persist)
 				RetryMapStoreFactory.getInstance().newMapStore(retry.getType()).store(retryList, DBMergePolicy.OVERWRITE);

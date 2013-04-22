@@ -3,6 +3,8 @@ package ies.retry.spi.hazelcast;
 import java.io.Serializable;
 
 public class Employee implements Serializable {
+	
+	private static final long serialVersionUID = -790544225333865972L;
 
 	private String name;
 	private int age;
@@ -36,8 +38,19 @@ public class Employee implements Serializable {
 		return "Employee [name=" + name + ", age=" + age + ", title=" + title
 				+ "]";
 	}
+	
+	@Override
+	public int hashCode() { //added
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		return result;
+	}
+
 	@Override
 	public boolean equals(Object obj) {
+		if(this == obj) return true;
+		if((obj == null) || (obj.getClass() != this.getClass())) return false;
 		return ((Employee)obj).name.equals(name);
 	}
 	

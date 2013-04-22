@@ -57,6 +57,7 @@ public class MiscTest {
 		
 		config.setBackOff(backOff);
 		config.setArchiveExpired(true);
+		config.setMaxListSize(300); 
 		
 		FileWriter fw = new FileWriter(new File("config.xml"));
 		
@@ -91,6 +92,7 @@ public class MiscTest {
 		
 		config.setBackOff(backOff);
 		config.setArchiveExpired(true);
+		config.setMaxListSize(300); // # of Spartans
 		
 		File file = new File("config_readwrite.xml");
 		FileWriter fw = new FileWriter(file);
@@ -107,6 +109,7 @@ public class MiscTest {
 		xmlconfig = (XmlRetryConfig)unmarshaller.unmarshal(ins);
 		config = xmlconfig.getTypeConfig().get(0);
 		Assert.assertTrue("Archive expired is supposed to be true", config.isArchiveExpired());
+		Assert.assertEquals("Number of Spartans was different", 300, config.getMaxListSize());
 	}
 	
 	

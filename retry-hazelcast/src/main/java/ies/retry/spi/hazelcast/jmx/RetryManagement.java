@@ -1,13 +1,18 @@
 package ies.retry.spi.hazelcast.jmx;
 
 import ies.retry.ConfigException;
+import ies.retry.RetryConfiguration;
 import ies.retry.RetryState;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 import ies.retry.spi.hazelcast.RetryStat;
 import ies.retry.spi.hazelcast.StateManager;
+import ies.retry.spi.hazelcast.StateManager.LoadingState;
+import ies.retry.spi.hazelcast.persistence.RetryMapStore;
+import ies.retry.spi.hazelcast.persistence.RetryMapStoreFactory;
 import ies.retry.xml.XMLRetryConfigMgr;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
@@ -17,6 +22,7 @@ import javax.xml.bind.JAXBException;
 
 import provision.services.logging.Logger;
 
+import com.hazelcast.core.IMap;
 import com.hazelcast.core.ITopic;
 import com.hazelcast.core.Message;
 import com.hazelcast.core.MessageListener;
@@ -55,9 +61,15 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 		((XMLRetryConfigMgr)this.coordinator.getConfigManager()).setConfig(event.getXmlConfig());
 		
 	}
+	
 
 
 	
+	@Override
+	public String getMaster() {
+		//will get the hostname of the master node
+		return coordinator.getStateMgr().getMasterMember().getInetSocketAddress().getHostName();
+	}
 	@Override
 	public void shutdown() {
 		coordinator.shutdown();
@@ -233,6 +245,81 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 		return coordinator.getCallbackManager().getBatchSize(type);
 	}
 	
+	
+	
+	@Override
+	public void loadFromDB() {
+		XMLRetryConfigMgr configMgr = ((XMLRetryConfigMgr)coordinator.getConfigManager());
+		ArrayList<String> typeList = new ArrayList<String>();
+		for (RetryConfiguration config:configMgr.getConfigMap().values()) {
+			Logger.info(CALLER, "Loading from DB: " + config.getType());
+			typeList.add(config.getType());
+		}
+		coordinator.getStateMgr().loadDataAsync(typeList);
+		
+		
+	}
+	@Override
+	public void loadFromDB(String retryType) {
+		
+		ArrayList<String> typeList = new ArrayList<String>();
+		typeList.add(retryType);
+		coordinator.getStateMgr().loadDataAsync(typeList);
+		
+	}
+		
+	/**
+	 * Gets loading state.
+	 */
+	@Override
+	public String getLoadingState(String retryType) {
+		IMap<String, LoadingState> loadingStateMap = coordinator.getH1().getMap(StateManager.DB_LOADING_STATE);
+		
+		return loadingStateMap.get(retryType).toString();
+		
+	}
+		
+	@Override
+	public String[] getLoadingState() {
+		IMap<String, LoadingState> loadingStateMap = coordinator.getH1().getMap(StateManager.DB_LOADING_STATE);
+		String []retArr = new String[loadingStateMap.size()];
+		int i=0;
+		for (String key:loadingStateMap.keySet()) {
+			String val = loadingStateMap.get(key).toString();
+			retArr[i] = key + ":" +val;
+			i++;
+		}
+		return retArr;
+		
+	}
+	
+	/*
+	 * Only Master node requests count from RETRY table
+	 */
+	@Override
+	public long getStoreCount(String type) {
+		if(stateMgr.isMaster()) 
+			return RetryMapStoreFactory.getInstance().newMapStore(type).count();
+		else 
+			return Long.MIN_VALUE;
+	}
+	
+	/*
+	 * Only Master node requests count from RETRY table
+	 */
+	@Override
+	public long getStoreCount() {
+		if (stateMgr.isMaster()) {
+			XMLRetryConfigMgr configMgr = ((XMLRetryConfigMgr)coordinator.getConfigManager());
+			long count = 0;
+			for (String type:configMgr.getConfigMap().keySet()) {
+				count += getStoreCount(type);
+			}
+			return count;
+			}
+		else 
+			return  Long.MIN_VALUE;
+	}
 	public HazelcastRetryImpl getOrchestrator() {
 		return coordinator;
 	}

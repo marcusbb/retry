@@ -1,7 +1,6 @@
 package ies.retry.spi.hazelcast;
 
 import ies.retry.RetryConfiguration;
-
 import ies.retry.RetryState;
 import ies.retry.xml.XMLRetryConfigMgr;
 
@@ -13,7 +12,6 @@ import junit.framework.Assert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
-
 import org.junit.Test;
 
 import com.hazelcast.core.HazelcastInstance;

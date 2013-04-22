@@ -23,7 +23,7 @@
 		<dependency>
 			<groupId>ies</groupId>
 			<artifactId>retry-api</artifactId>
-			<version>1.0.6-SNAPSHOT</version>
+			<version>1.0.6.1-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>ies.common.util</groupId>
@@ -42,7 +42,11 @@
 			<type>jar</type>
 			<scope>compile</scope>
 		</dependency>
-		
+		<dependency>
+			<groupId>com.esotericsoftware.kryo</groupId>
+			<artifactId>kryo</artifactId>
+			<version>2.20</version>
+		</dependency>
 		<dependency>
 			<groupId>javax.persistence</groupId>
 			<artifactId>persistence-api</artifactId>
@@ -72,7 +76,7 @@
 	      <dependency>
 		      <groupId>junit</groupId>
 		      <artifactId>junit</artifactId>
-		      <version>4.8</version>
+		      <version>4.11</version>
 		      <scope>test</scope>
 		   </dependency>
 		  
@@ -153,11 +157,8 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>cobertura-maven-plugin</artifactId>
-				<version>2.5.2</version>
+				<version>2.5.1</version>
 				<configuration>
-				  <formats>
-		            	  	<format>xml</format>
-		          	  </formats>
 				  <instrumentation>
 				    <excludes>
 						<exclude>ies/retry/spi/hazelcast/disttasks/BroadcastState.*</exclude>
@@ -188,21 +189,16 @@
 			</plugin>		
 		</plugins>
 	</build>
-
+	
 	<reporting>
-            <plugins>
-                <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>cobertura-maven-plugin</artifactId>
-                        <version>2.5.2</version>
-                        <configuration>
-                          <formats>
-                            <format>xml</format>
-                          </formats>
-                        </configuration>
-                </plugin>
-                </plugins>
-        </reporting>
+	    <plugins>
+	    	<plugin>
+	      		<groupId>org.codehaus.mojo</groupId>
+	      		<artifactId>cobertura-maven-plugin</artifactId>
+	      		<version>2.5.1</version>
+	    	</plugin>
+	  	</plugins>
+	</reporting>
 	
 	<distributionManagement>
 	    <repository>

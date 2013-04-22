@@ -71,4 +71,27 @@ public interface RetryManagementMBean extends ies.retry.jmx.RetryManagementMBean
 	 * @return
 	 */
 	public int getDequeueBlockSize(String type);
+	
+	/**
+	 * Gets the hostname/IP of the master node.
+	 */
+	public String getMaster();
+	
+	/**
+	 * Loads and overwrites anything in the grid.
+	 */
+	public void loadFromDB();
+	
+	public void loadFromDB(String retryType);
+	
+	public String getLoadingState(String retryType);
+	
+	public String [] getLoadingState();
+	/**
+	 * Gets count of items in the store
+	 * @return
+	 */
+	public long getStoreCount(String type);
+	
+	public long getStoreCount();
 }

@@ -28,6 +28,14 @@ public class StubbedRetryManager implements RetryManager {
 		// TODO Auto-generated method stub
 		
 	}
+	/*
+	 * Created to support immediate archiving of passed retry object without de-queueing  
+	 */
+	public void archiveRetry(RetryHolder retry) throws NoCallbackException,ConfigException{
+		
+	}
+	
+	
 
 	
 	public void removeRetry(String retryId, String type) {
@@ -147,6 +155,13 @@ public class StubbedRetryManager implements RetryManager {
 	public Map<String, RetryState> getAllStates() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+
+	@Override
+	public boolean exists(String retryId, String type) {
+		// TODO Auto-generated method stub
+		return false;
 	}
 
 	
