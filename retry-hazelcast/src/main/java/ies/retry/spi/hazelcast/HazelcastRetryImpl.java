@@ -78,6 +78,8 @@ public class HazelcastRetryImpl implements RetryManager {
 	protected RetryStats stats;
 	protected GridHealthCheck gridCheck;
 	
+	protected LocalQueuer localQueuer;
+	
 	public HazelcastRetryImpl() throws ConfigException {
 		
 		
@@ -118,6 +120,8 @@ public class HazelcastRetryImpl implements RetryManager {
 
 		//possibly load data from DB
 		stateMgr.init();
+		
+		localQueuer = new LocalQueuerImpl(h1, xmlconfigMgr);
 				
 	}
 	public static HazelcastInstance getHzInst() {
@@ -221,6 +225,9 @@ public class HazelcastRetryImpl implements RetryManager {
 		}catch (Exception e) {
 			//Unable to add retry
 			Logger.error(CALLER, "Add_Retry_Exception", "Exception Message: " + e.getMessage(), "ID", retry.getId(), "Type", e);
+			
+			//Add to local queue for later consumption
+			localQueuer.add(retry);
 		}
 		
 	}
