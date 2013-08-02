@@ -6,6 +6,8 @@ import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 import ies.retry.spi.hazelcast.StateManager;
 import ies.retry.spi.hazelcast.StateManager.LoadingState;
+import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
+import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
 import ies.retry.spi.hazelcast.persistence.DBMergePolicy;
 import ies.retry.spi.hazelcast.persistence.RetryMapStoreFactory;
 import ies.retry.spi.hazelcast.util.RetryUtil;
@@ -14,6 +16,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
 import provision.services.logging.Logger;
 
@@ -63,13 +66,25 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 	
 	public Void call() throws Exception {
 		IMap<String,List<RetryHolder>> distMap = null;
+		boolean lockAquired = false;
 		try {
 			if (retryList != null)
 				return callListPut();
-			HazelcastInstance h1 = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1();
-			distMap = h1.getMap(retry.getType());
-			distMap.lock(retry.getId());
 			
+
+			
+			HazelcastConfigManager configMgr = (HazelcastConfigManager)((HazelcastRetryImpl)Retry.getRetryManager()).getConfigManager();
+			
+			RetryConfiguration curConfig = configMgr.getConfiguration(retry.getType());
+			HazelcastInstance h1 = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1();
+			
+			distMap = h1.getMap(retry.getType());
+			//distMap.lock(retry.getId());
+			lockAquired = distMap.tryLock(retry.getId(), configMgr.getHzConfig().getRetryAddLockTimeout(), TimeUnit.MILLISECONDS);
+			if ( ! lockAquired ) {
+				Logger.warn(CALLER, "Add_Retry_Task_Call_LockTimeout","Lock timeout","retry",retry);
+				throw new RuntimeException("Unable to Aquire Lock: " + retry.toString());
+			}
 			long curTs = System.currentTimeMillis();
 			retry.setSystemTs(curTs);
 			retry.setNextAttempt(curTs + backOffInterval);
@@ -84,8 +99,6 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 				listHolder.set(0, retry);
 			}
 
-			RetryConfiguration curConfig = ((HazelcastRetryImpl)Retry.getRetryManager()).getConfigManager().getConfiguration(retry.getType());
-			
 			 //  apply max list size policy
 			int maxListSize = curConfig.getMaxListSize(); // max allowed number of items in the list
 			while(maxListSize<listHolder.size()){
@@ -115,7 +128,7 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 		}catch (Exception e) {
 			Logger.error(CALLER, "Add_Retry_Task_Call_Exception", "Exception Message: " + e.getMessage(), e);
 		}finally {
-			if (distMap != null && retry != null)
+			if (distMap != null && retry != null && lockAquired)
 				distMap.unlock(retry.getId());
 		}
 		return null;
