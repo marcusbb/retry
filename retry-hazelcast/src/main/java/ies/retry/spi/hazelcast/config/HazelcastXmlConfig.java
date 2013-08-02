@@ -32,6 +32,8 @@ public class HazelcastXmlConfig extends XmlRetryConfig {
 	
 	private long retryAddLockTimeout = 5 * 1000;
 	
+	private int defaultLocalQueueSize = 64000;
+			
 	public PersistenceConfig getPersistenceConfig() {
 		return persistenceConfig;
 	}
@@ -99,6 +101,16 @@ public class HazelcastXmlConfig extends XmlRetryConfig {
 
 	public void setRetryAddLockTimeout(long retryAddLockTimeout) {
 		this.retryAddLockTimeout = retryAddLockTimeout;
+	}
+
+
+	public int getDefaultLocalQueueSize() {
+		return defaultLocalQueueSize;
+	}
+
+
+	public void setDefaultLocalQueueSize(int defaultLocalQueueSize) {
+		this.defaultLocalQueueSize = defaultLocalQueueSize;
 	}
 	
 	
