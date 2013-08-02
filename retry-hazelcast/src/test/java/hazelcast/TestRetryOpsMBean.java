@@ -1,7 +1,9 @@
 package hazelcast;
 
-public interface TestRetryAddMBean {
+public interface TestRetryOpsMBean {
 
+	public void addRetry(String id);
+	
 	public void addRetry();
 	
 	public void addRetry(int num);
@@ -21,4 +23,8 @@ public interface TestRetryAddMBean {
 	public void setDelay(long delay);
 	
 	public void makeSuccessfulNoDelay();
+	
+	public void lock(String id);
+	
+	public void unlock(String id);
 }

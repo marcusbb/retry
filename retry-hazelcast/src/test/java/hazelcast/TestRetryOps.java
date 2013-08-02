@@ -1,5 +1,6 @@
 package hazelcast;
 
+import ies.retry.Retry;
 import ies.retry.RetryHolder;
 import ies.retry.RetryManager;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
@@ -13,7 +14,7 @@ import com.hazelcast.core.ITopic;
 import com.hazelcast.core.Message;
 import com.hazelcast.core.MessageListener;
 
-public class TestRetryAdd implements TestRetryAddMBean,  MessageListener<TestBroadcastMsg>{
+public class TestRetryOps implements TestRetryOpsMBean,  MessageListener<TestBroadcastMsg>{
 
 	HazelcastRetryImpl retryManager;
 	//not thread safe
@@ -22,11 +23,11 @@ public class TestRetryAdd implements TestRetryAddMBean,  MessageListener<TestBro
 	TestCallback callback;
 	String topicName = "TEST_TOPIC";
 	
-	public TestRetryAdd(RetryManager retryManager,String retryType,TestCallback callback) {
-		this.retryManager = (HazelcastRetryImpl)retryManager;
+	public TestRetryOps(String retryType,TestCallback callback) {
+		retryManager = (HazelcastRetryImpl)Retry.getRetryManager();
 		this.retryType = retryType;
 		this.callback = callback;
-		ITopic<TestBroadcastMsg> topic = this.retryManager.getHzInst().getTopic(topicName);
+		ITopic<TestBroadcastMsg> topic = retryManager.getHzInst().getTopic(topicName);
 		topic.addMessageListener(this);
 	}
 	@Override
@@ -127,5 +128,26 @@ public class TestRetryAdd implements TestRetryAddMBean,  MessageListener<TestBro
 		retryManager.addRetry(holder);
 		blockPrefix++;
 	}
+	@Override
+	public void addRetry(String id) {
+		RetryHolder holder = new RetryHolder(id, retryType,
+				new IOException("Houston there is a problem"),
+				"Useful Serializable object ");
+		
+		retryManager.addRetry(holder);
+		
+	}
+	@Override
+	public void lock(String id) {
+		retryManager.getHzInst().getMap(retryType).lock(id);
+		
+		
+	}
+	@Override
+	public void unlock(String id) {
+		retryManager.getHzInst().getMap(retryType).unlock(id);
+		
+	}
+	
 
 }

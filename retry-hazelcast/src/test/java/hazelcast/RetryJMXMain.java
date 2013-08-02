@@ -39,7 +39,7 @@ public class RetryJMXMain {
 		mbs.registerMBean(management, new ObjectName(
 				"retry:retry=hazelcast-retry"));
 		TestCallback nodelayCallback = new TestCallback(false,-1,false);
-		mbs.registerMBean(new TestRetryAdd(retryManager,"POKE",nodelayCallback), new ObjectName("retry:test=StaticRetryAdd"));
+		mbs.registerMBean(new TestRetryOps("POKE",nodelayCallback), new ObjectName("retry:test=StaticRetryAdd"));
 		// You probably want to do this as a one time, or limited
 		// basis
 		
@@ -53,7 +53,7 @@ public class RetryJMXMain {
 		TestCallback delayCallback = new TestCallback(false,500,false);
 		retryManager.registerCallback(delayCallback, "POKE_CLONED");
 		
-		mbs.registerMBean(new TestRetryAdd(retryManager, "POKE_CLONED",delayCallback),new ObjectName("retry:test=ClonedRetryAdd"));
+		mbs.registerMBean(new TestRetryOps( "POKE_CLONED",delayCallback),new ObjectName("retry:test=ClonedRetryAdd"));
 		// You probably want to do this as a one time, or limited
 		// basis
 		System.out.println("PID: " + ManagementFactory.getRuntimeMXBean().getName());
