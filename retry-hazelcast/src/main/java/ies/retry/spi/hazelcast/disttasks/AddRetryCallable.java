@@ -36,13 +36,13 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 	//private long nextTs = 0;
 	private boolean persist = true;
 
-	private RetryConfiguration config;
+	//private RetryConfiguration config;
 	private long backOffInterval;
 	
 	public AddRetryCallable() {}
 	
 	public AddRetryCallable(RetryHolder holder,RetryConfiguration config) {
-		this.config = config;
+		//this.config = config;
 		this.retry = holder;
 		this.appendList = config.isListBacked();
 		//this.nextTs = System.currentTimeMillis() + config.getBackOff().getMilliInterval();
@@ -50,7 +50,7 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 	}
 	
 	public AddRetryCallable(List<RetryHolder> listHolder,RetryConfiguration config) {
-		this.config = config;
+		//this.config = config;
 		this.retryList = listHolder;
 		this.appendList = config.isListBacked();
 		//this.nextTs = System.currentTimeMillis() + config.getBackOff().getMilliInterval();
@@ -84,12 +84,13 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 				listHolder.set(0, retry);
 			}
 
+			RetryConfiguration curConfig = ((HazelcastRetryImpl)Retry.getRetryManager()).getConfigManager().getConfiguration(retry.getType());
 			
 			 //  apply max list size policy
-			int maxListSize = this.config.getMaxListSize(); // max allowed number of items in the list
+			int maxListSize = curConfig.getMaxListSize(); // max allowed number of items in the list
 			while(maxListSize<listHolder.size()){
 				RetryHolder retryHolder = listHolder.remove(0);
-				if(config.isArchiveExpired()){
+				if(curConfig.isArchiveExpired()){
 					List<RetryHolder> list = new ArrayList<RetryHolder>();
 					list.add(retryHolder);
 					RetryMapStoreFactory.getInstance().newMapStore(retry.getType()).archive(list, false);
