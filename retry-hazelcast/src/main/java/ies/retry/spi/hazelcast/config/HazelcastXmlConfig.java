@@ -30,6 +30,8 @@ public class HazelcastXmlConfig extends XmlRetryConfig {
 	
 	private long queueCheckPeriod = 10 * 1000;
 	
+	private long retryAddLockTimeout = 5 * 1000;
+	
 	public PersistenceConfig getPersistenceConfig() {
 		return persistenceConfig;
 	}
@@ -87,6 +89,16 @@ public class HazelcastXmlConfig extends XmlRetryConfig {
 
 	public void setQueueCheckPeriod(long queueCheckPeriod) {
 		this.queueCheckPeriod = queueCheckPeriod;
+	}
+
+
+	public long getRetryAddLockTimeout() {
+		return retryAddLockTimeout;
+	}
+
+
+	public void setRetryAddLockTimeout(long retryAddLockTimeout) {
+		this.retryAddLockTimeout = retryAddLockTimeout;
 	}
 	
 	
