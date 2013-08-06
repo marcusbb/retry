@@ -19,7 +19,11 @@ public interface LocalQueuer {
 	 * @return
 	 */
 	public boolean addIfNotEmpty(RetryHolder retryHolder);
-	
+	/**
+	 * current implementation blocks when reached the largest queue size
+	 * @param retryHolder
+	 * @return
+	 */
 	public boolean add(RetryHolder retryHolder);
 	
 	public int size(String retryType);
