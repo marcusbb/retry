@@ -320,6 +320,24 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 		else 
 			return  Long.MIN_VALUE;
 	}
+	
+	@Override
+	public int getLocalQueueCount(String type) {
+		return coordinator.getLocalQueuer().size(type);
+	}
+	
+	@Override
+	public int[] getLocalQueueCounts() {
+		
+		Map<String,RetryConfiguration> configMap = coordinator.getConfigManager().getConfigMap();
+		int []ret = new int[configMap.size()];
+		int i = 0;
+		for (String type:configMap.keySet()) {
+			ret[i++] = coordinator.getLocalQueuer().size(type);
+		}
+		
+		return ret;
+	}
 	public HazelcastRetryImpl getOrchestrator() {
 		return coordinator;
 	}

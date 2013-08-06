@@ -94,4 +94,10 @@ public interface RetryManagementMBean extends ies.retry.jmx.RetryManagementMBean
 	public long getStoreCount(String type);
 	
 	public long getStoreCount();
+	
+	public int getLocalQueueCount(String type);
+	
+	public int [] getLocalQueueCounts();
+	
+	
 }
