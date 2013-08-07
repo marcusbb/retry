@@ -2,13 +2,18 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
                       http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>ies</groupId>
+	
 	<artifactId>retry-api</artifactId>
 	<packaging>jar</packaging>
-	<version>1.0.6.1-SNAPSHOT</version>
+	
 	<name>RETRY API</name>
 	<description>Retry specification.</description>
 		
+	<parent>
+		<groupId>ies</groupId>
+		<artifactId>retry</artifactId>
+		<version>1.1.1-SNAPSHOT</version>
+	</parent>
 	<dependencies>
 		<!-- Should not necessarily be provided -->
 		<dependency>

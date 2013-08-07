@@ -5,12 +5,17 @@
 	<groupId>ies</groupId>
 	<artifactId>hazelcast-retry</artifactId>
 	<packaging>jar</packaging>
-	<version>1.1.1-SNAPSHOT</version>
+	
 	<name>HAZELCAST RETRY</name>
 	<description>
 		Hazelcast grid implementation of retry framework
 	</description>
 	
+	<parent>
+		<groupId>ies</groupId>
+		<artifactId>retry</artifactId>
+		<version>1.1.1-SNAPSHOT</version>
+	</parent>
 	<!-- for some reason rim maven mirror hasn't mirrored hazelcast latest jars. -->
 	<repositories>
 		 <repository>
