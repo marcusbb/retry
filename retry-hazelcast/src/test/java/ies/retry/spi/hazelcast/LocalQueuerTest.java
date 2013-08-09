@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -27,8 +28,8 @@ public class LocalQueuerTest {
 		retryManager = (HazelcastRetryImpl) Retry.getRetryManager();
 		
 	}
-	@After
-	public void after() {
+	@AfterClass
+	public static void after() {
 		retryManager.shutdown();
 	}
 	
