@@ -9,15 +9,15 @@ import ies.retry.spi.hazelcast.disttasks.AddRetryCallable;
 import java.util.HashMap;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
+
+import provision.services.logging.Logger;
 
 import com.hazelcast.core.DistributedTask;
 import com.hazelcast.core.HazelcastInstance;
@@ -28,37 +28,59 @@ public class LocalQueuerImpl implements LocalQueuer {
 	private HazelcastXmlConfig config;
 	private HazelcastConfigManager configMgr;
 	
-	private HashMap<String, Queue<RetryHolder>> queueMap;
+	private ConcurrentHashMap<String, Queue<RetryHolder>> queueMap;
 	private HashMap<String,ExecutorService> queueExec;
 	private HashMap<String,PollQueue> pollQueueMap;
 	
-	private Object lock = new String();
+	static long awaitPollPeriod = 10; //seconds
 	
-	private long quietPeriod = 1000;
+	static RetryHolder emptyHolder;
 			
+	static Queue<RetryHolder> emptyQueue;
+	
+	static {
+		emptyHolder = new RetryHolder("empty", "reserved");
+		
+		Queue<RetryHolder> emptyQueue = new SynchronousQueue<RetryHolder>();
+				
+	}
+	
 	public LocalQueuerImpl(HazelcastInstance inst,HazelcastConfigManager configMgr) {
 		this.hz = inst;
 		this.configMgr = configMgr;
 		this.config = configMgr.getHzConfig();
-		queueMap = new HashMap<String, Queue<RetryHolder>>();
+		queueMap = new ConcurrentHashMap<String, Queue<RetryHolder>>();
 		queueExec = new HashMap<String, ExecutorService>();
 		pollQueueMap = new HashMap<String, PollQueue>();
 	}
 	
 	private Queue<RetryHolder> getQueue(String key) {
+		
+		
 		Queue<RetryHolder> queue = queueMap.get(key);
+		
 		if (queue == null) {
-			synchronized (lock) {
-				queue = new ArrayBlockingQueue<RetryHolder>(config.getDefaultLocalQueueSize());
-				ExecutorService exec = new ThreadPoolExecutor(1,1,1L,TimeUnit.SECONDS,new SynchronousQueue<Runnable>());
-				queueExec.put(key, exec );
-				//polling queue implementation
-				PollQueue poller = new PollQueue( queue, configMgr.getConfiguration(key), hz);
-				exec.submit(poller);
-				pollQueueMap.put(key, poller);
+			initPollingQueue(key);
 				//initPoll(queue, exec,key,pollQueueMap.get(key));
-			}
 		}
+		
+		return queue;
+	}
+	//May improve this but it's a one time synchronization (per key)
+	private synchronized Queue<RetryHolder> initPollingQueue(String key) {
+		//check to the map, since it could have blocked/queued on synchronized:
+		if (queueMap.get(key) != null) {
+			return queueMap.get(key);
+		}
+		Queue<RetryHolder> queue = new ArrayBlockingQueue<RetryHolder>(config.getDefaultLocalQueueSize());
+		queueMap.put(key, queue);
+		ExecutorService exec = new ThreadPoolExecutor(1,1,1L,TimeUnit.SECONDS,new SynchronousQueue<Runnable>());
+		queueExec.put(key, exec );
+		//polling queue implementation
+		PollQueue poller = new PollQueue( queue, configMgr.getConfiguration(key), hz,awaitPollPeriod);
+		exec.submit(poller);
+		pollQueueMap.put(key, poller);
+		
 		return queue;
 	}
 	@Override
@@ -109,22 +131,23 @@ public class LocalQueuerImpl implements LocalQueuer {
 
 	private static class PollQueue implements Runnable {
 
-		
-		//final Condition condition;
 		final Queue<RetryHolder> queue;
 		final RetryConfiguration config;
 		final HazelcastInstance hz;
 		
-		//TODO the synchronization could be smarter.
+		//the synchronization could be smarter.
 		CountDownLatch latch = new CountDownLatch(1);
 		boolean done = false;
+		//paranonia to make we don't wait for ever
+		long await;
 		
-		PollQueue(Queue<RetryHolder> queue,RetryConfiguration config,HazelcastInstance hz) {
+		PollQueue(Queue<RetryHolder> queue,RetryConfiguration config,HazelcastInstance hz,long await) {
 			
 			//this.condition = condition;
 			this.queue = queue;
 			this.config = config;
 			this.hz = hz;
+			this.await = await;
 		}
 		
 		protected void signal() {
@@ -144,26 +167,27 @@ public class LocalQueuerImpl implements LocalQueuer {
 				//await at the barrier
 				if (retry == null) {
 					try {
-						latch.await();
+						latch.await(await,TimeUnit.SECONDS);
 						latch = new CountDownLatch(1);
 					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+						Logger.warn(getClass().getName(), "INTERUPTED_EX","ex_msg",e.getMessage(),e);
+						stop();
 					} 
 				}else {
 					
 					
 					DistributedTask<Void> distTask = new DistributedTask<Void>(new AddRetryCallable(retry, config), retry.getId());
 					try {
+						//By future.get()  we ensure a FIFO processing
 						hz.getExecutorService(HazelcastRetryImpl.EXEC_SRV_NAME).submit(distTask).get();
+						//Don't remove if it failed.
 						queue.remove();
 						
 					}catch (ExecutionException e) {
-						//TODO 
-						e.printStackTrace();
+						Logger.warn(getClass().getName(), "TODO","ex_msg",e.getMessage(),e);
 					}catch (InterruptedException e) {
-						//TODO
-						e.printStackTrace();
+						Logger.warn(getClass().getName(), "INTERUPTED_EX","ex_msg",e.getMessage(),e);
+						stop();
 					}
 					
 					
