@@ -27,7 +27,10 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.hibernate.action.Executable;
 
@@ -192,7 +195,7 @@ public class HazelcastRetryImpl implements RetryManager {
 	/**
 	 * 
 	 * 
-	 * Only supported unordered dequeue.
+	 * See {@link CallbackManager} for de-queuing
 	 * 
 	 */
 	public void addRetry(RetryHolder retry) throws NoCallbackException,
@@ -225,18 +228,30 @@ public class HazelcastRetryImpl implements RetryManager {
 			DistributedTask<Void> distTask = new DistributedTask<Void>(new AddRetryCallable(retry, config), retry.getId());
 			
 			h1.getExecutorService(EXEC_SRV_NAME).submit(distTask);
-			if (config.isSyncRetryAdd())
-				distTask.get();
+			
+			dealSync(distTask,config);
 		}catch (Exception e) {
 			//Unable to add retry
 			Logger.error(CALLER, "Add_Retry_Exception", "Exception Message: " + e.getMessage(), "ID", retry.getId(), "Type", e);
-			
-			//Add to local queue for later consumption
-			localQueuer.add(retry);
+			if (configMgr.getHzConfig().isThrowOnAddException())
+				throw new RuntimeException("Configured to Throw exception, deal with it");
+			else {
+				//Add to local queue for later consumption
+				localQueuer.add(retry);
+			}
 		}
 		
 	}
-
+	
+	private void dealSync(DistributedTask<Void> distTask,RetryConfiguration config) throws ExecutionException, InterruptedException, TimeoutException {
+		
+		//right now its a global configuration, TODO: change by type
+		if (config.isSyncRetryAdd()) {
+			long timeout = configMgr.getHzConfig().getRetryAddLockTimeout();
+			distTask.get(timeout,TimeUnit.MILLISECONDS);
+			
+		}
+	}
 	/*
 	 * Created to support immediate archiving of retry object without de-queueing  
 	 */
@@ -323,12 +338,25 @@ public class HazelcastRetryImpl implements RetryManager {
 		}
 
 		try {
-			Future<Void> future = h1.getExecutorService().submit(new AddRetryCallable(retryList, config,persist ));
-			if (config.isSyncRetryAdd())
-				future.get();
+			//queue locally if we have a local queue buffer
+			if (localQueuer.addIfNotEmpty(retry)) {
+				
+				return;
+			}
+			
+			DistributedTask<Void> distTask = new DistributedTask<Void>(new AddRetryCallable(retry, config), retry.getId());
+			
+			h1.getExecutorService(EXEC_SRV_NAME).submit(distTask);
+			dealSync(distTask, config);
 		}catch (Exception e) {
 			//Unable to add retry
 			Logger.error(CALLER, "Put_Retry_Exception", "Exception Message: " + e.getMessage(), "Type", (retry!=null)?retry.getType():null, e);
+			if (configMgr.getHzConfig().isThrowOnAddException())
+				throw new RuntimeException("Configured to Throw exception, deal with it");
+			else {
+				//Add to local queue for later consumption
+				localQueuer.add(retry);
+			}
 		}
 		//inform state manager
 		stateMgr.retryAddedEvent(retry.getType(),true);
