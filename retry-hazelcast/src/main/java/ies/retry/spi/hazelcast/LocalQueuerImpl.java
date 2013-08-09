@@ -60,7 +60,7 @@ public class LocalQueuerImpl implements LocalQueuer {
 		Queue<RetryHolder> queue = queueMap.get(key);
 		
 		if (queue == null) {
-			initPollingQueue(key);
+			queue = initPollingQueue(key);
 				//initPoll(queue, exec,key,pollQueueMap.get(key));
 		}
 		
