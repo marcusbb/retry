@@ -2,6 +2,12 @@ package ies.retry.spi.hazelcast;
 
 import ies.retry.RetryHolder;
 
+/**
+ * A LocalQueuer that dispatches to HZ map. 
+ * 
+ * @author msimonsen
+ *
+ */
 public interface LocalQueuer {
 
 	/**
