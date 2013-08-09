@@ -29,10 +29,14 @@ public class HazelcastXmlConfig extends XmlRetryConfig {
 	private PubConfig pubConfig = new PubConfig();
 	
 	private long queueCheckPeriod = 10 * 1000;
-	
-	private long retryAddLockTimeout = 5 * 1000;
+	/**
+	 * The time to wait for a lock to be tried on adding retry to the grid (and storage)
+	 */
+	private long retryAddLockTimeout = 10 * 1000;
 	
 	private int defaultLocalQueueSize = 64000;
+	
+	private boolean throwOnAddException = true;
 			
 	public PersistenceConfig getPersistenceConfig() {
 		return persistenceConfig;
@@ -111,6 +115,16 @@ public class HazelcastXmlConfig extends XmlRetryConfig {
 
 	public void setDefaultLocalQueueSize(int defaultLocalQueueSize) {
 		this.defaultLocalQueueSize = defaultLocalQueueSize;
+	}
+
+
+	public boolean isThrowOnAddException() {
+		return throwOnAddException;
+	}
+
+
+	public void setThrowOnAddException(boolean throwOnAddException) {
+		this.throwOnAddException = throwOnAddException;
 	}
 	
 	

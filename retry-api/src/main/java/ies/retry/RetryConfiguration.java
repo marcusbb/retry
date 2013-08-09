@@ -56,6 +56,10 @@ public class RetryConfiguration implements Serializable{
 	private boolean syncRetryAdd = true;
 	
 	/**
+	 * Is only timeout for add operation currently.
+	 */
+	private long syncTimeoutInms = 20 * 1000;
+	/**
 	 *  
 	 * Based on input on the review there is no need to drain FIFO.
 	 * TODO: Remove {@link DrainStrategy#FIFO}
@@ -187,5 +191,14 @@ public class RetryConfiguration implements Serializable{
 		this.persistenceOn = persistenceOn;
 	}
 
+	public long getSyncTimeoutInms() {
+		return syncTimeoutInms;
+	}
+
+	public void setSyncTimeoutInms(long syncTimeoutInms) {
+		this.syncTimeoutInms = syncTimeoutInms;
+	}
+
+	
 	
 }
