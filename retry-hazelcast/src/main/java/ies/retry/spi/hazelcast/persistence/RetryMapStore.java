@@ -16,6 +16,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -57,7 +58,8 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 	private boolean hasData = true;
 	private ScrollableResults retryCursor;
 	private StatelessSession statelessSession;
-
+	private long timeOut;
+	
 	// Provided
 	ExecutorService execService = null;
 
@@ -72,6 +74,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		this.emf = emf;
 		this.sync_emf = emf.createEntityManager();
 		this.writeSync = config.isWriteSync();
+		this.timeOut = config.getTimeoutInms();
 	}
 
 	public RetryEntity getEntity(String key) {
@@ -234,7 +237,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 	}
 
 	/**
-	 * There is a serious bug in hibernate that once paging is requested
+	 * Get a count by sql
 	 * 
 	 * @return
 	 */
@@ -337,7 +340,10 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 	private void handleWriteSync(Future<Void> future) throws RuntimeException {
 		if (writeSync) {
 			try {
-				future.get();
+				if (future.get(timeOut,TimeUnit.MILLISECONDS) == null) {
+					Logger.warn(CALLER, "DB_TIMEOUT_OP");
+					future.cancel(true);
+				}
 			} catch (ExecutionException e) {
 				if (e.getCause() instanceof PersistenceException) {
 					throw (PersistenceException) e.getCause();

@@ -21,6 +21,8 @@ public class PersistenceConfig implements Serializable {
 	private int coreSize = 50;
 	private int boundedQueueSize = Integer.MAX_VALUE;
 	
+	private long timeoutInms = 10 * 1000;
+	
 	private boolean pagedLoading = true;
 	
 	public enum ThreadQueuePolicy {
@@ -102,19 +104,27 @@ public class PersistenceConfig implements Serializable {
 		this.pagedLoading = pagedLoading;
 	}
 
+	
+	public long getTimeoutInms() {
+		return timeoutInms;
+	}
+
+	public void setTimeoutInms(long timeoutInms) {
+		this.timeoutInms = timeoutInms;
+	}
+
 	@Override
 	public String toString() {
 		return "PersistenceConfig [ON=" + ON + ", writeSync=" + writeSync
 				+ ", jpaPU=" + jpaPU + ", loadFetchSize=" + loadFetchSize
 				+ ", queuePolicy=" + queuePolicy + ", maxPoolSize="
 				+ maxPoolSize + ", coreSize=" + coreSize
-				+ ", boundedQueueSize=" + boundedQueueSize + ", pagedLoading="
-				+ pagedLoading + "]";
+				+ ", boundedQueueSize=" + boundedQueueSize + ", timeoutInms="
+				+ timeoutInms + ", pagedLoading=" + pagedLoading + "]";
 	}
 
 	
 		
-	
 	
 	
 }
