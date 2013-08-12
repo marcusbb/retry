@@ -366,8 +366,8 @@ public class StateManager implements  MembershipListener{
 	}
 	
 	protected void publish(RetryTransitionEvent event) {
-		
-		globalStateMap.put(event.getRetryType(), event.getRetryState());
+		//putting async because if other nodes can't be reached then this will pass through
+		globalStateMap.putAsync(event.getRetryType(), event.getRetryState());
 		
 		//notify others - this will happen in the event change listeners below
 		//notifyStateListeners(event);
