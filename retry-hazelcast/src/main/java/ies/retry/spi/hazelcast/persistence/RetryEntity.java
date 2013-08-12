@@ -68,7 +68,7 @@ public class RetryEntity implements Serializable{
 		
 		id = new RetryId(holder.getId(),holder.getType());
 		//1.0.9 HF - remove the exception from persistence
-		Logger.info(CALLER, "Dropping exception from RetryHolder","","ID", id,"TYPE",holder.getType());
+		Logger.debug(CALLER, "Dropping exception from RetryHolder","","ID", id,"TYPE",holder.getType());
 		Exception[] exceptionBackup = new Exception[holderList.size()];
 		int count = 0;
 		for (RetryHolder th:holderList) {			
