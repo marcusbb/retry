@@ -470,7 +470,11 @@ public class HazelcastRetryImpl implements RetryManager {
 	}
 	
 
-	
+	/**
+	 * TODO: we need a consistent method for checking that we go to storage or remain
+	 * purely a HZ operation.
+	 * 
+	 */
 	public boolean exists(String retryId, String type) {
 		Map<String, List<RetryHolder>> distMap = h1.getMap(type);
 		boolean exists = distMap.containsKey(retryId);
