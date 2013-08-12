@@ -343,14 +343,14 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 	@Override
 	public int getStoreQueueCount() {
 		if ( RetryMapStoreFactory.getInstance() !=null) {
-			RetryMapStoreFactory.getInstance().getTPE().getQueue().size();
+			return RetryMapStoreFactory.getInstance().getTPE().getQueue().size();
 		}
 		throw new IllegalStateException("RetryMapStoreFactory is not initialized");
 	}
 	@Override
 	public int getStoreActiveThread() {
 		if ( RetryMapStoreFactory.getInstance() !=null) {
-			RetryMapStoreFactory.getInstance().getTPE().getActiveCount();
+			return RetryMapStoreFactory.getInstance().getTPE().getActiveCount();
 		}
 		throw new IllegalStateException("RetryMapStoreFactory is not initialized");
 		
