@@ -1,6 +1,7 @@
 package ies.retry.spi.hazelcast.persistence;
 
 import ies.retry.RetryHolder;
+import ies.retry.spi.hazelcast.StoreTimeoutException;
 import ies.retry.spi.hazelcast.config.PersistenceConfig;
 import ies.retry.spi.hazelcast.persistence.ops.ArchiveOp;
 import ies.retry.spi.hazelcast.persistence.ops.DelOp;
@@ -343,6 +344,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 				if (future.get(timeOut,TimeUnit.MILLISECONDS) == null) {
 					Logger.warn(CALLER, "DB_TIMEOUT_OP");
 					future.cancel(true);
+					throw new StoreTimeoutException("Unable to handle storage");
 				}
 			} catch (ExecutionException e) {
 				if (e.getCause() instanceof PersistenceException) {
