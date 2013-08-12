@@ -7,9 +7,11 @@ import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 import ies.retry.spi.hazelcast.RetryStat;
 import ies.retry.spi.hazelcast.StateManager;
 import ies.retry.spi.hazelcast.StateManager.LoadingState;
+import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
 import ies.retry.spi.hazelcast.persistence.RetryMapStore;
 import ies.retry.spi.hazelcast.persistence.RetryMapStoreFactory;
 import ies.retry.xml.XMLRetryConfigMgr;
+import ies.retry.xml.XmlRetryConfig;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -141,6 +143,12 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 		
 	}
 
+	public void broadcastCurrentConfig() {
+		hzTopic.publish( new ConfigBroadcast( ((XMLRetryConfigMgr)coordinator.getConfigManager()).getConfig() ) );
+	}
+	public void broadCast(XmlRetryConfig config) {
+		hzTopic.publish(new ConfigBroadcast(config));
+	}
 	/**
 	 * loads config from xml - distributes configuration
 	 */
@@ -355,6 +363,19 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 		throw new IllegalStateException("RetryMapStoreFactory is not initialized");
 		
 	}
+	
+	
+	@Override
+	public boolean isPersistenceOn() {
+		return ((HazelcastConfigManager)coordinator.getConfigManager()).getHzConfig().getPersistenceConfig().isON();
+		
+	}
+	@Override
+	public void setPersistenceOn(boolean on) {
+		((HazelcastConfigManager)coordinator.getConfigManager()).getHzConfig().getPersistenceConfig().setON(on);
+		broadcastCurrentConfig();
+		
+	}
 	public HazelcastRetryImpl getOrchestrator() {
 		return coordinator;
 	}
@@ -367,6 +388,7 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 	public void setStateMgr(StateManager stateMgr) {
 		this.stateMgr = stateMgr;
 	}
+	
 	
 	
 	

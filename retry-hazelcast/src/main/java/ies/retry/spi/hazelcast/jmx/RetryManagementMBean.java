@@ -87,6 +87,10 @@ public interface RetryManagementMBean extends ies.retry.jmx.RetryManagementMBean
 	public String getLoadingState(String retryType);
 	
 	public String [] getLoadingState();
+	/*
+	 * All persistent based operations should be refactored into 
+	 * PersistenceManagement MBean
+	 */
 	/**
 	 * Gets count of items in the store
 	 * @return
@@ -103,5 +107,8 @@ public interface RetryManagementMBean extends ies.retry.jmx.RetryManagementMBean
 	
 	public int getStoreActiveThread();
 	
+	public boolean isPersistenceOn();
+	
+	public void setPersistenceOn(boolean on);
 	
 }
