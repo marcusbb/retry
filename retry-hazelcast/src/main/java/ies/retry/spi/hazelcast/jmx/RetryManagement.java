@@ -338,6 +338,23 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 		
 		return ret;
 	}
+	
+	
+	@Override
+	public int getStoreQueueCount() {
+		if ( RetryMapStoreFactory.getInstance() !=null) {
+			RetryMapStoreFactory.getInstance().getTPE().getQueue().size();
+		}
+		throw new IllegalStateException("RetryMapStoreFactory is not initialized");
+	}
+	@Override
+	public int getStoreActiveThread() {
+		if ( RetryMapStoreFactory.getInstance() !=null) {
+			RetryMapStoreFactory.getInstance().getTPE().getActiveCount();
+		}
+		throw new IllegalStateException("RetryMapStoreFactory is not initialized");
+		
+	}
 	public HazelcastRetryImpl getOrchestrator() {
 		return coordinator;
 	}

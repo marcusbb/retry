@@ -99,5 +99,9 @@ public interface RetryManagementMBean extends ies.retry.jmx.RetryManagementMBean
 	
 	public int [] getLocalQueueCounts();
 	
+	public int getStoreQueueCount();
+	
+	public int getStoreActiveThread();
+	
 	
 }
