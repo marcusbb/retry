@@ -1,5 +1,11 @@
 package ies.retry.spi.hazelcast.jmx;
 
+/**
+ * This isn't used at the moment, but should split persistent monitor ops
+ * from {@link RetryManagementMBean}
+ * 
+ *
+ */
 public interface PersistenceManagementMBean {
 
 
