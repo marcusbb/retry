@@ -21,7 +21,7 @@ public class PersistenceConfig implements Serializable {
 	private int coreSize = 50;
 	private int boundedQueueSize = Integer.MAX_VALUE;
 	
-	private long timeoutInms = 10 * 1000;
+	private long timeoutInms = 5 * 1000;
 	
 	private boolean pagedLoading = true;
 	
