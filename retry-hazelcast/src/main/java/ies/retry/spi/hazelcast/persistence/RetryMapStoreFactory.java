@@ -4,7 +4,6 @@ import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
 import ies.retry.spi.hazelcast.config.PersistenceConfig;
 
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -24,7 +23,7 @@ public class RetryMapStoreFactory {//implements MapStoreFactory<String, List<Ret
 
 	private static RetryMapStoreFactory instance = null;
 	
-	ExecutorService execService = null;
+	ThreadPoolExecutor execService = null;
 	
 	static {
 		instance = new RetryMapStoreFactory();
@@ -99,5 +98,9 @@ public class RetryMapStoreFactory {//implements MapStoreFactory<String, List<Ret
 	public void shutdown() {
 		if (execService != null)
 			execService.shutdown();
+	}
+	
+	public ThreadPoolExecutor getTPE() {
+		return execService;
 	}
 }
