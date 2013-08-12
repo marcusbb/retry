@@ -1,5 +1,7 @@
 package ies.retry.spi.hazelcast;
 
+import java.io.Serializable;
+
 import ies.retry.spi.hazelcast.config.PersistenceConfig;
 
 /**
@@ -9,7 +11,7 @@ import ies.retry.spi.hazelcast.config.PersistenceConfig;
  * @author msimonsen
  *
  */
-public class StoreTimeoutException extends RuntimeException {
+public class StoreTimeoutException extends RuntimeException implements Serializable {
 
 	/**
 	 * 
