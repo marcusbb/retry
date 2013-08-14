@@ -16,6 +16,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import provision.services.logging.Logger;
 
@@ -179,12 +180,15 @@ public class LocalQueuerImpl implements LocalQueuer {
 					DistributedTask<Void> distTask = new DistributedTask<Void>(new AddRetryCallable(retry, config), retry.getId());
 					try {
 						//By future.get()  we ensure a FIFO processing
-						hz.getExecutorService(HazelcastRetryImpl.EXEC_SRV_NAME).submit(distTask).get();
-						//Don't remove if it failed.
+						hz.getExecutorService(HazelcastRetryImpl.EXEC_SRV_NAME).submit(distTask).get(await,TimeUnit.SECONDS);
+						//Don't remove if it failed/timedout.
 						queue.remove();
 						
-					}catch (ExecutionException e) {
-						Logger.warn(getClass().getName(), "TODO","ex_msg",e.getMessage(),e);
+					} catch (TimeoutException e) {
+						Logger.warn(getClass().getName(), "TimeoutException","ex_msg",e.getMessage(),e);
+					}
+					catch (ExecutionException e) {
+						Logger.warn(getClass().getName(), "ExecutionException","ex_msg",e.getMessage(),e);
 					}catch (InterruptedException e) {
 						Logger.warn(getClass().getName(), "INTERUPTED_EX","ex_msg",e.getMessage(),e);
 						stop();
