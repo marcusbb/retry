@@ -9,7 +9,6 @@ import ies.retry.RetryHolder;
 import ies.retry.RetryManager;
 import ies.retry.RetryState;
 import ies.retry.RetryTransitionListener;
-import ies.retry.spi.hazelcast.StateManager.LoadingState;
 import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
 import ies.retry.spi.hazelcast.config.HazelcastXmlConfFactory;
 import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
@@ -28,11 +27,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.hibernate.action.Executable;
+import javax.persistence.PersistenceException;
 
 import provision.services.logging.Logger;
 
@@ -230,7 +228,19 @@ public class HazelcastRetryImpl implements RetryManager {
 			h1.getExecutorService(EXEC_SRV_NAME).submit(distTask);
 			
 			dealSync(distTask,config);
-		}catch (Exception e) {
+		} 
+		
+		//Storage Exceptions are only propagated AFTER
+		//HZ update has been propagated - hence no need to store to local queue
+		//However we will have a delta between storage and HZ
+		catch (StoreTimeoutException e) {
+			Logger.error(CALLER, "Add_Retry_StorageTimeout_Exception", "Exception Message: " + e.getMessage(), "ID", retry.getId(), "Type", e);
+			
+		} catch (PersistenceException e) {
+			Logger.error(CALLER, "Add_Retry_Persistence_Exception", "Exception Message: " + e.getMessage(), "ID", retry.getId(), "Type", e);
+		} 
+		
+		catch (Exception e) {
 			//Unable to add retry
 			Logger.error(CALLER, "Add_Retry_Exception", "Exception Message: " + e.getMessage(), "ID", retry.getId(), "Type", e);
 			if (configMgr.getHzConfig().isThrowOnAddException())
@@ -252,6 +262,7 @@ public class HazelcastRetryImpl implements RetryManager {
 			
 		}
 	}
+	
 	/*
 	 * Created to support immediate archiving of retry object without de-queueing  
 	 */
