@@ -157,5 +157,18 @@ public class LocalQueuerTest {
 		
 	}
 	
-
+	//TODO - to complete this test.
+	@Test
+	public void integrationHZshutdownTest() {
+		
+		retryManager.getHzInst().getLifecycleService().shutdown();
+		
+		RetryHolder retry = new RetryHolder("id-local-to-fail", TYPE,new Exception(),"Object");
+		
+		retryManager.addRetry(retry);
+		
+		
+		
+		
+	}
 }
