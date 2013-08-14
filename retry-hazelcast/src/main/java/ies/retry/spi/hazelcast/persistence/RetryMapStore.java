@@ -18,6 +18,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -341,11 +342,12 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 	private void handleWriteSync(Future<Void> future) throws RuntimeException {
 		if (writeSync) {
 			try {
-				if (future.get(timeOut,TimeUnit.MILLISECONDS) == null) {
-					Logger.warn(CALLER, "DB_TIMEOUT_OP");
-					future.cancel(true);
-					throw new StoreTimeoutException("Unable to handle storage");
-				}
+				future.get(timeOut,TimeUnit.MILLISECONDS);					
+				
+			} catch (TimeoutException e) {
+				Logger.warn(CALLER, "DB_TIMEOUT_OP","msg",e.getMessage(),e);
+				future.cancel(true);
+				throw new StoreTimeoutException("Unable to handle storage");
 			} catch (ExecutionException e) {
 				if (e.getCause() instanceof PersistenceException) {
 					throw (PersistenceException) e.getCause();
