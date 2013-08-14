@@ -347,7 +347,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 			} catch (TimeoutException e) {
 				Logger.warn(CALLER, "DB_TIMEOUT_OP","msg",e.getMessage(),e);
 				future.cancel(true);
-				throw new StoreTimeoutException("Unable to handle storage");
+				throw new StoreTimeoutException("Unable to handle storage",e);
 			} catch (ExecutionException e) {
 				if (e.getCause() instanceof PersistenceException) {
 					throw (PersistenceException) e.getCause();
