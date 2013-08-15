@@ -28,7 +28,7 @@
 		<dependency>
 			<groupId>ies</groupId>
 			<artifactId>retry-api</artifactId>
-			<version>1.0.6.1-SNAPSHOT</version>
+			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>ies.common.util</groupId>
