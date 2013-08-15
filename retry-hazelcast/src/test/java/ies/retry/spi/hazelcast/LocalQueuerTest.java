@@ -158,8 +158,10 @@ public class LocalQueuerTest {
 	}
 	
 	//TODO - to complete this test.
-	@Test
+	//@Test
 	public void integrationHZshutdownTest() {
+		
+		retryManager.registerCallback(new LatchCallback(new CountDownLatch(1), false), TYPE);
 		
 		retryManager.getHzInst().getLifecycleService().shutdown();
 		
@@ -167,8 +169,7 @@ public class LocalQueuerTest {
 		
 		retryManager.addRetry(retry);
 		
-		
-		
+				
 		
 	}
 }
