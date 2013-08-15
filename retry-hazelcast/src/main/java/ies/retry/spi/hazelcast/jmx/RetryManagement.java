@@ -5,6 +5,7 @@ import ies.retry.RetryConfiguration;
 import ies.retry.Retry;
 import ies.retry.RetryState;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
+import ies.retry.spi.hazelcast.HzStateMachine;
 import ies.retry.spi.hazelcast.RetryStat;
 import ies.retry.spi.hazelcast.StateManager;
 import ies.retry.spi.hazelcast.StateManager.LoadingState;
@@ -25,6 +26,7 @@ import javax.xml.bind.JAXBException;
 
 import provision.services.logging.Logger;
 
+import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.IMap;
 import com.hazelcast.core.ITopic;
 import com.hazelcast.core.Message;
@@ -375,6 +377,37 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 	public void setPersistenceOn(boolean on) {
 		((HazelcastConfigManager)coordinator.getConfigManager()).getHzConfig().getPersistenceConfig().setON(on);
 		broadcastCurrentConfig();
+		
+	}
+	
+	
+	@Override
+	public int getHzRunning() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+	@Override
+	public boolean isHzRunning() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+	
+	@Override
+	public int getNumHzInstances() {
+		return Hazelcast.getAllHazelcastInstances().size();
+	}
+	@Override
+	public String getHzState() {
+		return coordinator.getHzStateMachine().getHzState().toString();
+	}
+	@Override
+	public boolean startHz() throws IllegalStateException {
+		coordinator.getHzStateMachine().startHz();
+		return true;
+	}
+	@Override
+	public void shutdownHz() {
+		coordinator.getHzStateMachine().stopHz();
 		
 	}
 	public HazelcastRetryImpl getOrchestrator() {

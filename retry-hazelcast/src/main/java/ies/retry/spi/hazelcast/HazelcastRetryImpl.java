@@ -15,6 +15,7 @@ import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
 import ies.retry.spi.hazelcast.disttasks.AddRetryCallable;
 import ies.retry.spi.hazelcast.persistence.RetryMapStore;
 import ies.retry.spi.hazelcast.persistence.RetryMapStoreFactory;
+import ies.retry.spi.hazelcast.util.HzUtil;
 import ies.retry.spi.hazelcast.util.IOUtil;
 import ies.retry.spi.hazelcast.util.RetryUtil;
 import ies.retry.spi.hazelcast.util.StringUtil;
@@ -81,6 +82,9 @@ public class HazelcastRetryImpl implements RetryManager {
 	
 	protected LocalQueuer localQueuer;
 	
+	HzStateMachine hzStateMachine;
+	
+	
 	public HazelcastRetryImpl() throws ConfigException {
 		
 		
@@ -103,7 +107,7 @@ public class HazelcastRetryImpl implements RetryManager {
 		if (h1 == null) {
 			synchronized(HazelcastRetryImpl.class) {
 				
-				loadHzConfiguration();
+				HzUtil.loadHzConfiguration();
 			
 			}
 		}
@@ -123,37 +127,15 @@ public class HazelcastRetryImpl implements RetryManager {
 		stateMgr.init();
 		
 		localQueuer = new LocalQueuerImpl(h1, xmlconfigMgr);
+		
+		hzStateMachine = new HzStateMachine(null, this, -1);
 				
 	}
 	public HazelcastInstance getHzInst() {
 		return h1;
 	}
 	
-	public void loadHzConfiguration() {
-		//XMLRetryConfigMgr xmlconfigMgr = (XMLRetryConfigMgr)configMgr;
-		try {
-			Config config = null;
-			String dir = XMLRetryConfigMgr.getCONFIG_DIR();
-			if (!"".equals(dir)) {
-				String fileName = XMLRetryConfigMgr.getCONFIG_DIR() + System.getProperty("file.separator") + HZ_CONFIG_FILE;
-				//config = new FileSystemXmlConfig(fileName);
-				String xml = IOUtil.load(fileName);
-				xml = StringUtil.replace(xml, System.getProperties());
-				config = new InMemoryXmlConfig(xml); 
-			}else {
-				config = new ClasspathXmlConfig(HZ_CONFIG_FILE);
-			}
-			
-			Logger.info(CALLER, "Load_Hazelcast_Configuration", "Loaded Hazelcast: " + config.toString());
-			
-								
-			h1 = Hazelcast.newHazelcastInstance(config);
-		}catch (Exception e) {
-			Logger.warn(CALLER, "Load_Hazelcast_Configuration", "NO HAZELCAST CONFIGURATION FOUND: " + e.getMessage(), e);
-			h1 = Hazelcast.getDefaultInstance();
-			Logger.info(CALLER, "Load_Hazelcast_Configuration", "Using default config");
-		}	
-	}
+	
 	/**
 	 * Initialization of stats.
 	 * Done at start-up or during dynamic configuration addition.
@@ -608,6 +590,9 @@ public class HazelcastRetryImpl implements RetryManager {
 		this.localQueuer = localQueuer;
 	}
 	
+	public HzStateMachine getHzStateMachine() {
+		return hzStateMachine;
+	}
 	
 	
 }

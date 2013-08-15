@@ -85,8 +85,6 @@ public class StateManager implements  MembershipListener{
 	
 	StateMapEntryListener stateMapListener;
 	
-	private HzState hzState = HzState.RUNNING;
-	
 	
 	public enum LoadingState implements Serializable {
 		LOADING,READY;
@@ -109,6 +107,7 @@ public class StateManager implements  MembershipListener{
 		globalStateMap.addEntryListener(stateMapListener, true);
 		stpe = new ScheduledThreadPoolExecutor(1);
 		
+		
 	}
 	
 	public void shutdown() {
@@ -125,6 +124,7 @@ public class StateManager implements  MembershipListener{
 				globalStateMap.put(config.getType(), RetryState.DRAINED);
 			types.add(config.getType());
 		}
+		//
 		//set master and load retry data
 		setMaster();
 		if (master) {
