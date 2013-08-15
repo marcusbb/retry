@@ -30,6 +30,7 @@ public class LocalQueuerImpl implements LocalQueuer {
 	private HazelcastConfigManager configMgr;
 	
 	private ConcurrentHashMap<String, Queue<RetryHolder>> queueMap;
+	//Can turn this into a single thread, single it's a single thread pool
 	private HashMap<String,ExecutorService> queueExec;
 	private HashMap<String,PollQueue> pollQueueMap;
 	
