@@ -27,13 +27,13 @@ import com.hazelcast.query.SqlPredicate;
 
 public class QueryTest {
 
-	private static HazelcastInstance h1 = Hazelcast.getDefaultInstance();
+	private static HazelcastInstance h1 = null;
 	private static IMap<String,List<RetryHolder>> map;
 	
 	@BeforeClass
 	public static void beforeClass() {
 		HazelcastRetryImpl retryManager = ((HazelcastRetryImpl)Retry.getRetryManager());
-		retryManager.setH1(h1);
+		h1 = retryManager.getHzInst();
 		
 		map = h1.getMap("retry");
 		Employee emp = new Employee("marcus", 30, "developer");
@@ -52,7 +52,7 @@ public class QueryTest {
 	}
 	@AfterClass
 	public static void afterClass() {
-		h1.getLifecycleService().shutdown();
+		((HazelcastRetryImpl)Retry.getRetryManager()).shutdown();
 	}
 	//@Test
 	public void addAndQuery() {

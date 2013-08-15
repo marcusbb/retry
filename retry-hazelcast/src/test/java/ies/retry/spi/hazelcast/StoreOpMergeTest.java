@@ -21,11 +21,12 @@ import javax.persistence.EntityManagerFactory;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import provision.services.logging.Logger;
 import test.util.PersistenceUtil;
-
+@Ignore
 public class StoreOpMergeTest {
 
 	private final static String CALLER = StoreOpMergeTest.class.getName();
@@ -88,7 +89,7 @@ public class StoreOpMergeTest {
 		retryManager.shutdown();
 		Retry.setRetryManager(null);
 		XMLRetryConfigMgr.setXML_FILE(ORIG_XML_FILE);
-		HzIntegrationTestUtil.afterClass();
+		//HzIntegrationTestUtil.afterClass();
 	}
 
 	@After
