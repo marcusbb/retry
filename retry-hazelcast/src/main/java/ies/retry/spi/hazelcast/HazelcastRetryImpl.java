@@ -385,7 +385,7 @@ public class HazelcastRetryImpl implements RetryManager {
 			distMap.remove(retryId);
 			RetryMapStore store = (RetryMapStore)RetryMapStoreFactory.getInstance().newMapStore(type);
 			store.delete(retryId);
-			distMap.unlock(retryId);
+			//distMap.unlock(retryId);
 		}finally {
 			if (distMap != null && retryId != null)
 				distMap.unlock(retryId);
