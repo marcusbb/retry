@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -81,6 +82,9 @@ public class StateManager implements  MembershipListener{
 	private ScheduledThreadPoolExecutor stpe = null;
 	
 	StateMapEntryListener stateMapListener;
+	
+	private HzState hzState = HzState.RUNNING;
+	
 	
 	public enum LoadingState implements Serializable {
 		LOADING,READY;
@@ -621,6 +625,16 @@ class SyncGridStorageTask implements Runnable {
 			Logger.error(CALLER,"Check_period_fail","","msg",e.getMessage(),e);
 		}
 		
+	}
+	
+}
+
+class HzInstCheckTask implements Callable<Boolean> {
+
+	@Override
+	public Boolean call() throws Exception {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 }
