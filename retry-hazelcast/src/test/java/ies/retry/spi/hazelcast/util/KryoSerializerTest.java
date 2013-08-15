@@ -25,8 +25,7 @@ public class KryoSerializerTest {
 		 */
 		Exception exception = null;
 		try{
-			XMLRetryConfigMgr.setXML_FILE("retry_config_FAKE.xml");
-			Retry.getRetryManager();
+			exception = new Exception();
 			
 		}catch (Exception e) {
 			exception = e;	
