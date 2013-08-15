@@ -6,12 +6,14 @@ import ies.retry.RetryHolder;
 import ies.retry.RetryManager;
 import ies.retry.xml.XMLRetryConfigMgr;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import junit.framework.Assert;
 
 public class StackTraceCountTrace {
 	
 	
+	@Ignore
 	@Test
 	public void countStackTrace() throws Exception{
 		Exception exception = null;
@@ -36,6 +38,8 @@ public class StackTraceCountTrace {
 		retryManager.addRetry(retry);
 		
 		Assert.assertEquals(exception.getStackTrace().length, 3);
+		
+		//HzIntegrationTestUtil.afterClass();
 		
 	}
 

@@ -116,7 +116,7 @@ public class DistCallBackTaskSyncTest {
 		String type = POKE;
 		String key = "key_" + archive + "_" + System.currentTimeMillis();
 
-		IMap<String, List<RetryHolder>> retryMap = HazelcastRetryImpl
+		IMap<String, List<RetryHolder>> retryMap = ((HazelcastRetryImpl)Retry.getRetryManager())
 				.getHzInst().getMap(type);
 
 		List<RetryHolder> listHolder = new ArrayList<RetryHolder>();

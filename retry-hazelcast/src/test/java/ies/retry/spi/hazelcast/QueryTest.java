@@ -1,5 +1,6 @@
 package ies.retry.spi.hazelcast;
 
+import ies.retry.Retry;
 import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.query.BeanShellQuery;
 import ies.retry.spi.hazelcast.query.PropertyQuery;
@@ -31,7 +32,8 @@ public class QueryTest {
 	
 	@BeforeClass
 	public static void beforeClass() {
-		HazelcastRetryImpl.setH1(h1);
+		HazelcastRetryImpl retryManager = ((HazelcastRetryImpl)Retry.getRetryManager());
+		retryManager.setH1(h1);
 		
 		map = h1.getMap("retry");
 		Employee emp = new Employee("marcus", 30, "developer");

@@ -46,6 +46,12 @@ import provision.services.logging.Logger;
  * Moving all operations to be stateless - single operation capable only - except for
  * loading.
  * 
+<<<<<<< HEAD
+=======
+ * Moving all operations to be stateless - single operation capable only - except for
+ * loading.
+ * 
+>>>>>>> v1.1.0-nonstatic-hz
  * @author msimonsen
  * 
  */

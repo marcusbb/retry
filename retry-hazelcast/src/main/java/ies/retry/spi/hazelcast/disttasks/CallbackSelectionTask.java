@@ -25,7 +25,7 @@ public class CallbackSelectionTask implements Callable<CallbackRegistration>,Ser
 	@Override
 	public CallbackRegistration call() throws Exception {
 		Logger.info(CALLER, "Callback_Selection_Task_Call", "Selecting callback registration");
-		Member localMember = HazelcastRetryImpl.getHzInst().getCluster().getLocalMember();
+		Member localMember = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1().getCluster().getLocalMember();
 		CallbackRegistration registration = new CallbackRegistration(localMember, false);
 		if (Retry.getRetryManager().registeredCallback(type)!= null) {
 			registration.setRegistered(true);

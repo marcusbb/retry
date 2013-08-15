@@ -1,5 +1,6 @@
 package ies.retry.spi.hazelcast.util;
 
+import ies.retry.Retry;
 import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 import ies.retry.spi.hazelcast.StateManager;
@@ -88,7 +89,7 @@ public class RetryUtil {
 		return result;
 	}
 	public static boolean hasLoaded(String type){
-			IMap<String, LoadingState> loadStateMap = HazelcastRetryImpl.getHzInst().getMap(StateManager.DB_LOADING_STATE);
+			IMap<String, LoadingState> loadStateMap = ((HazelcastRetryImpl)Retry.getRetryManager()).getHzInst().getMap(StateManager.DB_LOADING_STATE);
 			
 			if( (loadStateMap == null) || (loadStateMap.get(type) == LoadingState.LOADING)){
 				return false;

@@ -1,6 +1,7 @@
 package ies.retry.spi.hazelcast;
 
 import ies.retry.BatchConfig;
+import ies.retry.Retry;
 import ies.retry.RetryCallback;
 import ies.retry.RetryConfigManager;
 import ies.retry.RetryConfiguration;
@@ -30,6 +31,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import provision.services.logging.Logger;
 
 import com.hazelcast.core.DistributedTask;
+import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 import com.hazelcast.core.Member;
 import com.hazelcast.core.MultiTask;
@@ -77,11 +79,12 @@ public class CallbackManager  {
 	 */
 	private volatile int memberCursor = 0;
 	private Member distMember = null;
+	private HazelcastInstance h1;
 	
 	RetryStats stats;
 	
-	public CallbackManager(HazelcastConfigManager configMgr,StateManager stateMgr,RetryStats stats)   {
-		//scheduler = SchedulerFactory.getScheduler();
+	public CallbackManager(HazelcastConfigManager configMgr,StateManager stateMgr,RetryStats stats,HazelcastInstance h1)   {
+		this.h1 = h1;
 		callbackMap = new Hashtable<String, RetryCallback>();
 		this.configMgr = configMgr;
 		
@@ -91,8 +94,8 @@ public class CallbackManager  {
 		this.stateMgr = stateMgr;
 		
 		//
-		distMember = HazelcastRetryImpl.getHzInst().getCluster().getLocalMember();
-		distCallBackExec = HazelcastRetryImpl.getHzInst().getExecutorService(EXEC_SRV_NAME);
+		distMember = h1.getCluster().getLocalMember();
+		distCallBackExec = h1.getExecutorService(EXEC_SRV_NAME);
 		this.stats = stats;
 				
 		
@@ -119,7 +122,7 @@ public class CallbackManager  {
 	 * @param callback
 	 */
 	public void addCallback(RetryCallback callback,String retryType) {
-		Logger.info(CALLER, "Add_Callback", "putting call back availability to: " + HazelcastRetryImpl.getHzInst().getCluster().getLocalMember(), "Type", retryType);
+		Logger.info(CALLER, "Add_Callback", "putting call back availability to: " + h1.getCluster().getLocalMember(), "Type", retryType);
 		
 		callbackMap.put(retryType, callback);
 		
@@ -132,7 +135,7 @@ public class CallbackManager  {
 	 * @param callback
 	 */
 	public void removeCallback(RetryCallback callback,String retryType) {
-		callbackMap.remove(retryType);
+		callbackMap.remove(callback);
 	}
 	
 	
@@ -228,7 +231,7 @@ public class CallbackManager  {
 			}
 			
 			
-			IMap<String,List<RetryHolder>>  retryMap = HazelcastRetryImpl.getHzInst().getMap(type);
+			IMap<String,List<RetryHolder>>  retryMap = h1.getMap(type);
 			RetryStat stat = stats.getAllStats().get(type);
 			
 						
@@ -371,7 +374,7 @@ public class CallbackManager  {
 	
 	
 	private Member pickLocalMember() {
-		return HazelcastRetryImpl.getHzInst().getCluster().getLocalMember();
+		return h1.getCluster().getLocalMember();
 	}
 	
 	private Member pickMember(String type) throws NoCallbackMember {
@@ -389,7 +392,7 @@ public class CallbackManager  {
 		//	else synchronous RPC type task is 
 		}else {
 			Logger.info(CALLER, "Pick_Member", "Picking another member to execute callback ", "Type", type);			
-			MultiTask<CallbackRegistration> task = new MultiTask<CallbackRegistration>(new CallbackSelectionTask(type), HazelcastRetryImpl.getHzInst().getCluster().getMembers());
+			MultiTask<CallbackRegistration> task = new MultiTask<CallbackRegistration>(new CallbackSelectionTask(type), h1.getCluster().getMembers());
 			distCallBackExec.submit(task);
 			try {
 				Iterator<CallbackRegistration> iter = task.get().iterator();
@@ -411,7 +414,7 @@ public class CallbackManager  {
 			}catch (Exception e) {
 				//unable to choose member
 				Logger.error(CALLER, "Pick_Member_Exception", "Exception Message: " + e.getMessage(), "Type", type, e);
-				distMember = HazelcastRetryImpl.getHzInst().getCluster().getLocalMember();
+				distMember = h1.getCluster().getLocalMember();
 			}
 		}
 		return distMember;
@@ -423,7 +426,7 @@ public class CallbackManager  {
 	 * @return
 	 */
 	protected boolean isDrained(String type) {
-		IMap<String,List<RetryHolder>>  retryMap = HazelcastRetryImpl.getHzInst().getMap(type);
+		IMap<String,List<RetryHolder>>  retryMap = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1().getMap(type);
 		//evaluate both the local size and the cluster size
 		return (retryMap.localKeySet().size() == 0 && retryMap.size() ==0);
 		

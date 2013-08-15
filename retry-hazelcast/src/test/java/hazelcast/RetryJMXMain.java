@@ -58,6 +58,10 @@ public class RetryJMXMain {
 		// basis
 		System.out.println("PID: " + ManagementFactory.getRuntimeMXBean().getName());
 		
+		long colStatSleep = 5000;
+		
+		
+		
 	}
 
 }

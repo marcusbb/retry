@@ -2,6 +2,7 @@ package ies.retry.spi.hazelcast.jmx;
 
 import ies.retry.ConfigException;
 import ies.retry.RetryConfiguration;
+import ies.retry.Retry;
 import ies.retry.RetryState;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 import ies.retry.spi.hazelcast.RetryStat;
@@ -46,7 +47,7 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 	public RetryManagement(HazelcastRetryImpl coordinator,StateManager stateMgr) {
 		this.coordinator = coordinator;
 		this.stateMgr = stateMgr;
-		hzTopic =  HazelcastRetryImpl.getHzInst().getTopic(topic);
+		hzTopic =  coordinator.getH1().getTopic(topic);
 		hzTopic.addMessageListener(this);
 		
 	}
@@ -54,7 +55,7 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 	public void init(HazelcastRetryImpl impl) {
 		this.coordinator = impl;
 		this.stateMgr = impl.getStateMgr();
-		hzTopic =  HazelcastRetryImpl.getHzInst().getTopic(topic);
+		hzTopic =  impl.getH1().getTopic(topic);
 		hzTopic.addMessageListener(this);
 	}
 	
@@ -176,7 +177,7 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 	
 	public Long getGridCount(String type) {
 		if (stateMgr.getAllStates().get(type)!= null) {
-			return (long)HazelcastRetryImpl.getHzInst().getMap(type).size();
+			return (long)((HazelcastRetryImpl)Retry.getRetryManager()).getH1().getMap(type).size();
 		}
 		return 0L;
 	}

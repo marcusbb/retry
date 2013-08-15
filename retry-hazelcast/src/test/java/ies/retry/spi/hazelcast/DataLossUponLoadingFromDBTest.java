@@ -141,7 +141,7 @@ public class DataLossUponLoadingFromDBTest {
 		Thread.sleep(5000); // allow data to be loaded
 
 		for (int i = 0; i < count; i++) {
-			List<RetryHolder> holderList = (List<RetryHolder>) HazelcastRetryImpl
+			List<RetryHolder> holderList = (List<RetryHolder>) ((HazelcastRetryImpl)Retry.getRetryManager())
 					.getHzInst().getMap(type).get(id + "_" + i);
 			System.out.println("holderList=" + holderList);
 			if (holderList != null && holderList.size() > 0) {

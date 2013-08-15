@@ -5,15 +5,16 @@
 	<persistenceConfig>
 		<ON>true</ON>
 		<jpaPU>retryPool</jpaPU>
+		<loadFetchSize>500</loadFetchSize>
 	</persistenceConfig>
 	
 	<!-- health check config -->
 	<healthCheckConfig>
-		<enabled>false</enabled>
-		<checkInterval>10</checkInterval>
+		<enabled>true</enabled>
+		<checkInterval>30</checkInterval>
 		<timeUnit>SECONDS</timeUnit>
 	</healthCheckConfig>
-	<pickLocalCallback>false</pickLocalCallback>
+	<pickLocalCallback>true</pickLocalCallback>
 	
 	<typeConfig>
 		<type>POKE</type>
@@ -30,7 +31,7 @@
 			<minBatchSize>1</minBatchSize>
 			<intervalMultiplier>1</intervalMultiplier>
 		</batchConfig>
-		<stackTraceLinesCount>3</stackTraceLinesCount>
+		
 	</typeConfig>
 		<typeConfig>
 		<archiveExpired>true</archiveExpired>

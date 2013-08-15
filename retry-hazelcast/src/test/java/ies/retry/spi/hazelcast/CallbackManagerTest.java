@@ -13,10 +13,12 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.hazelcast.core.HazelcastInstance;
+
 public class CallbackManagerTest {
 
 	static HazelcastRetryImpl retryManager;
-
+	static HazelcastInstance h1 = null;
 	@BeforeClass
 	public static void beforeClass() {
 
@@ -25,6 +27,7 @@ public class CallbackManagerTest {
 		XMLRetryConfigMgr.setXML_FILE("retry_config_callback.xml");
 
 		retryManager = (HazelcastRetryImpl) Retry.getRetryManager();
+		h1 = retryManager.getH1();
 	}
 
 	@AfterClass
@@ -44,13 +47,13 @@ public class CallbackManagerTest {
 		retryManager.addRetry(holder);
 
 		System.out.println("TS: " + System.currentTimeMillis());
-		List<RetryHolder> holderList = (List<RetryHolder>) HazelcastRetryImpl.getHzInst().getMap("POKE").get(id);
+		List<RetryHolder> holderList = (List<RetryHolder>) ((HazelcastRetryImpl)Retry.getRetryManager()).getH1().getMap("POKE").get(id);
 
 		Assert.assertEquals(1, holderList.size());
 		// modify next attempt to now
 		System.out.println("Next TS: " + holderList.get(0).getNextAttempt());
 		holderList.get(0).setNextAttempt(holderList.get(0).getSystemTs());
-		HazelcastRetryImpl.getHzInst().getMap("POKE").put(id, holderList);
+		((HazelcastRetryImpl)Retry.getRetryManager()).getH1().getMap("POKE").put(id, holderList);
 		
 		// de-queue it
 		retryManager.getCallbackManager().tryDequeue("POKE");
@@ -58,7 +61,7 @@ public class CallbackManagerTest {
 		// success
 		Assert.assertTrue(latch.await(1, TimeUnit.SECONDS));
 		
-		holderList = (List<RetryHolder>) HazelcastRetryImpl.getHzInst().getMap("POKE").get(id);
+		holderList = (List<RetryHolder>) ((HazelcastRetryImpl)Retry.getRetryManager()).getH1().getMap("POKE").get(id);
 		
 		Assert.assertNull(holderList);
 
@@ -76,12 +79,12 @@ public class CallbackManagerTest {
 		retryManager.addRetry(holder);
 
 		System.out.println("TS: " + System.currentTimeMillis());
-		List<RetryHolder> holderList = (List<RetryHolder>) HazelcastRetryImpl.getHzInst().getMap(TYPE).get(id);
+		List<RetryHolder> holderList = (List<RetryHolder>) h1.getMap(TYPE).get(id);
 
 		Assert.assertEquals(1, holderList.size());
 		// modify next attempt to now
 		holderList.get(0).setNextAttempt(holderList.get(0).getSystemTs());
-		HazelcastRetryImpl.getHzInst().getMap(TYPE).put(id, holderList);
+		h1.getMap(TYPE).put(id, holderList);
 		
 		// de-queue it
 		retryManager.getCallbackManager().tryDequeue(TYPE);
@@ -89,7 +92,7 @@ public class CallbackManagerTest {
 		// success
 		Assert.assertTrue(latch.await(1, TimeUnit.SECONDS));
 		
-		holderList = (List<RetryHolder>) HazelcastRetryImpl.getHzInst().getMap("POKE_SLOW").get(id);
+		holderList = (List<RetryHolder>) h1.getMap("POKE_SLOW").get(id);
 		
 		Assert.assertNotNull(holderList);
 		
