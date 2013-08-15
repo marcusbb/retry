@@ -302,7 +302,7 @@ public class StateManager implements  MembershipListener{
 			//
 			long queueCheckPeriod = configMgr.getHzConfig().getQueueCheckPeriod();
 			stpe.scheduleAtFixedRate(
-					new PeriodicQueuedStateTask(this), 
+					new SyncGridStorageTask(this), 
 					queueCheckPeriod, queueCheckPeriod, TimeUnit.MILLISECONDS);
 		} else {
 			Logger.info(CALLER, "I_Am_Slave", "I am a slave: master=["+ masterMember + "] slave=" + h1.getCluster().getLocalMember());			
@@ -598,12 +598,12 @@ class StateMapEntryListener implements EntryListener<String,RetryState> {
 	
 }
 
-class PeriodicQueuedStateTask implements Runnable {
+class SyncGridStorageTask implements Runnable {
 
 	private StateManager stateMgr;
-	private static String CALLER = PeriodicQueuedStateTask.class.getName();
+	private static String CALLER = SyncGridStorageTask.class.getName();
 	
-	public PeriodicQueuedStateTask(StateManager stateMgr) {
+	public SyncGridStorageTask(StateManager stateMgr) {
 		this.stateMgr = stateMgr;
 	}
 	
