@@ -46,7 +46,7 @@ public class StackTraceCountTest {
 	@AfterClass
 	public static void afterClass() {
 		retryManager.shutdown();
-		HzIntegrationTestUtil.afterClass();
+		//HzIntegrationTestUtil.afterClass();
 	}
 	
 	@Test
@@ -54,8 +54,7 @@ public class StackTraceCountTest {
 
 
 		try{
-			XMLRetryConfigMgr.setXML_FILE("retry_config_FAKE.xml");
-			Retry.getRetryManager();
+			new Exception();
 			
 		}catch (Exception e) {
 				
