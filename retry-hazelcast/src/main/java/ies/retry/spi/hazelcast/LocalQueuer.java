@@ -5,6 +5,15 @@ import ies.retry.RetryHolder;
 /**
  * A LocalQueuer that dispatches to HZ map. 
  * 
+ * <randomThought>
+ * Instead of coupling the de-queuing here, 
+ * the add operations could accept a task instead
+ * such as add(RetryTask task)
+ * 
+ * where:
+ * RetryTask implements Callable<Boolean> {}
+ * </randomThought>
+ * 
  * @author msimonsen
  *
  */
