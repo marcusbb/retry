@@ -65,6 +65,7 @@ public class LocalQueuerImpl implements LocalQueuer {
 		if (queueMap.get(key) != null) {
 			return queueMap.get(key);
 		}
+		//Consider moving this to the a concurrent queue implementation
 		Queue<RetryHolder> queue = new ArrayBlockingQueue<RetryHolder>(config.getDefaultLocalQueueSize());
 		queueMap.put(key, queue);
 		ExecutorService exec = new ThreadPoolExecutor(1,1,1L,TimeUnit.SECONDS,new SynchronousQueue<Runnable>());
