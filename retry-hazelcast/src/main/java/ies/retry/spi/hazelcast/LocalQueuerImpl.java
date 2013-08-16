@@ -36,16 +36,7 @@ public class LocalQueuerImpl implements LocalQueuer {
 	
 	static long awaitPollPeriod = 10; //seconds
 	
-	static RetryHolder emptyHolder;
-			
-	static Queue<RetryHolder> emptyQueue;
 	
-	static {
-		emptyHolder = new RetryHolder("empty", "reserved");
-		
-		Queue<RetryHolder> emptyQueue = new SynchronousQueue<RetryHolder>();
-				
-	}
 	
 	public LocalQueuerImpl(HazelcastInstance inst,HazelcastConfigManager configMgr) {
 		this.hz = inst;
