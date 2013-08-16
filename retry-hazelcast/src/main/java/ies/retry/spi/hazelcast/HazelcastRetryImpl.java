@@ -236,12 +236,16 @@ public class HazelcastRetryImpl implements RetryManager {
 	}
 	
 	private void dealSync(DistributedTask<Void> distTask,RetryConfiguration config) throws ExecutionException, InterruptedException, TimeoutException {
-		
-		//right now its a global configuration, TODO: change by type
-		if (config.isSyncRetryAdd()) {
-			long timeout = configMgr.getHzConfig().getRetryAddLockTimeout();
-			distTask.get(timeout,TimeUnit.MILLISECONDS);
-			
+		try {
+			//right now its a global configuration, TODO: change by type
+			if (config.isSyncRetryAdd()) {
+				long timeout = configMgr.getHzConfig().getRetryAddLockTimeout();
+				distTask.get(timeout,TimeUnit.MILLISECONDS);
+							
+			}
+		}catch (TimeoutException e) {
+			distTask.cancel(true);
+			throw e;
 		}
 	}
 	
