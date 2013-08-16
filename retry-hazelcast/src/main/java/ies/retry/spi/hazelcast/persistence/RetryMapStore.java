@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -70,7 +71,8 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 	
 	// Provided
 	ExecutorService execService = null;
-
+	//A cached threadpool to timeout the main tasks from the thread pool above
+	ExecutorService asyncTimeoutService = null;
 	private boolean writeSync = false;
 
 	protected RetryMapStore() {
@@ -83,6 +85,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		this.sync_emf = emf.createEntityManager();
 		this.writeSync = config.isWriteSync();
 		this.timeOut = config.getTimeoutInms();
+		asyncTimeoutService = Executors.newCachedThreadPool();
 	}
 
 	public RetryEntity getEntity(String key) {
@@ -361,6 +364,11 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
+		} 
+		//Dispatch the timeout to a separate TP specific for processing timeouts
+		//but there is no need as it will be bounded by the thread pool above.
+		else {
+			asyncTimeoutService.submit(new FutureTimeoutTask(future, timeOut));
 		}
 	}
 
@@ -388,4 +396,27 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		this.writeSync = writeSync;
 	}
 
+	private static class FutureTimeoutTask implements Callable<Boolean> {
+
+		Future<Void> future;
+		long timeout;
+		
+		FutureTimeoutTask(Future<Void> future,long timeout) {
+			this.future = future;
+			this.timeout = timeout;
+		}
+		@Override
+		public Boolean call() throws Exception {
+			try {
+				future.get(timeout, TimeUnit.MILLISECONDS);
+			}catch (TimeoutException e) {
+				future.cancel(true);
+				Logger.error(CALLER, "DB_ASYNC_TIMEOUT_EX","msg",e.getMessage(),e);
+				return false;
+				
+			}
+			return true;
+		}
+		
+	}
 }
