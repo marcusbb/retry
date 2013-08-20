@@ -113,7 +113,7 @@ public interface RetryManagementMBean extends ies.retry.jmx.RetryManagementMBean
 	public void setPersistenceOn(boolean on);
 	
 	//monitoring purposes
-	public int getHzRunning();
+	public int getHzRunningInt();
 	
 	//gets number of instances in this classloader
 	public int getNumHzInstances();

@@ -5,6 +5,7 @@ import ies.retry.RetryConfiguration;
 import ies.retry.Retry;
 import ies.retry.RetryState;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
+import ies.retry.spi.hazelcast.HzState;
 import ies.retry.spi.hazelcast.HzStateMachine;
 import ies.retry.spi.hazelcast.RetryStat;
 import ies.retry.spi.hazelcast.StateManager;
@@ -382,14 +383,14 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 	
 	
 	@Override
-	public int getHzRunning() {
-		// TODO Auto-generated method stub
+	public int getHzRunningInt() {
+		if (isHzRunning())
+			return 1;
 		return 0;
 	}
 	@Override
 	public boolean isHzRunning() {
-		// TODO Auto-generated method stub
-		return false;
+		return HzState.RUNNING.equals( coordinator.getHzStateMachine().getHzState() );
 	}
 	
 	@Override
