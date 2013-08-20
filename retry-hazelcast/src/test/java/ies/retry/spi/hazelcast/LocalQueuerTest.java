@@ -21,7 +21,7 @@ public class LocalQueuerTest {
 
 	static HazelcastRetryImpl retryManager;
 	static String TYPE = "POKE";
-	
+	static String ORIG_FILE = XMLRetryConfigMgr.getXML_FILE();
 	@BeforeClass
 	public static void before() {
 		XMLRetryConfigMgr.setXML_FILE("config_local_queue.xml");
@@ -30,7 +30,10 @@ public class LocalQueuerTest {
 	}
 	@AfterClass
 	public static void after() {
-		retryManager.shutdown();
+		
+		//set back to original
+		XMLRetryConfigMgr.setXML_FILE(ORIG_FILE);
+		HzIntegrationTestUtil.afterClass();
 	}
 	
 	@Test
