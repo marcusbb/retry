@@ -18,7 +18,8 @@ import java.util.Queue;
 
 
 /**
- * Commit log writer, which stores all objects in a single file (TODO and rolls it)
+ * Commit log writer, which stores all objects in a single file commit log file
+ * TODO: roll commit log file and take that into account on the marker logic
  * 
  * There are is additionally a state maintained, being the "take" marker, which is persisted
  * as well if the JVM is to crash. 
@@ -31,7 +32,7 @@ import java.util.Queue;
  * </ol>
  * 
  * Serialized commit queue writer, that adds and takes 
- * in a serialized way - queue 
+ * in a serialized way - requires an <strong>ordered</strong> take (poll) 
  * 
  * 
  * @author msimonsen

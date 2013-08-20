@@ -23,6 +23,18 @@ import provision.services.logging.Logger;
 import com.hazelcast.core.DistributedTask;
 import com.hazelcast.core.HazelcastInstance;
 
+/**
+ * An in memory local queue, storing a queue per retry type
+ * {@link #queueMap}.
+ * 
+ *  Each queue will add to the head of the queue and subsequent operations
+ *  will not remove from the queue unless a successful operation
+ *  to take (or poll) from the queue has occurred see 
+ *  {@link PollQueue#run()} 
+ * 
+ * @author msimonsen
+ *
+ */
 public class LocalQueuerImpl implements LocalQueuer {
 
 	private HazelcastInstance hz;
