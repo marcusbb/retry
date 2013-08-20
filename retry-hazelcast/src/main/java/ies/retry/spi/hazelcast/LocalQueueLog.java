@@ -27,7 +27,7 @@ import java.util.Queue;
  * <ol>
  * 	<li>{@link #queue(RetryHolder)} - stores the data
  * 	<li>{@link #moveTakeMarker()} - increments the take marker to the next point of where a potential write will occurr
- * 	<li>{@link #replayFromFile()} - starting at the take marker will replay and return the 
+ * 	<li>{@link #replayFromFile()} - starting at the take marker will replay and return the objects from the last take marker
  * </ol>
  * 
  * Serialized commit queue writer, that adds and takes 
