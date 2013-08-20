@@ -23,7 +23,7 @@ public class HzStateMachine implements LifecycleListener {
 	public HzStateMachine(ScheduledThreadPoolExecutor executor,HazelcastRetryImpl coordinator,long pollPeriod) {
 		this.executor = executor;
 		this.coordinator = coordinator;
-		//executor.scheduleAtFixedRate(new HzCheckTask(), 0L, 0L, TimeUnit.DAYS);
+		this.inst = coordinator.getHzInst();
 		
 		hzState =  inst.getLifecycleService().isRunning()== true ? HzState.RUNNING:HzState.INACTIVE_UNGRACEFUL;
 		this.inst = coordinator.getHzInst();
