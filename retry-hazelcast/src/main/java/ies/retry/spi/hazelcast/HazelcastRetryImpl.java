@@ -107,7 +107,7 @@ public class HazelcastRetryImpl implements RetryManager {
 		if (h1 == null) {
 			synchronized(HazelcastRetryImpl.class) {
 				
-				HzUtil.loadHzConfiguration();
+				h1 = HzUtil.loadHzConfiguration();
 			
 			}
 		}
