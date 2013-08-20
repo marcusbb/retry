@@ -36,16 +36,7 @@ public class LocalQueuerImpl implements LocalQueuer {
 	
 	static long awaitPollPeriod = 10; //seconds
 	
-	static RetryHolder emptyHolder;
-			
-	static Queue<RetryHolder> emptyQueue;
 	
-	static {
-		emptyHolder = new RetryHolder("empty", "reserved");
-		
-		Queue<RetryHolder> emptyQueue = new SynchronousQueue<RetryHolder>();
-				
-	}
 	
 	public LocalQueuerImpl(HazelcastInstance inst,HazelcastConfigManager configMgr) {
 		this.hz = inst;
@@ -74,6 +65,7 @@ public class LocalQueuerImpl implements LocalQueuer {
 		if (queueMap.get(key) != null) {
 			return queueMap.get(key);
 		}
+		//Consider moving this to the a concurrent queue implementation
 		Queue<RetryHolder> queue = new ArrayBlockingQueue<RetryHolder>(config.getDefaultLocalQueueSize());
 		queueMap.put(key, queue);
 		ExecutorService exec = new ThreadPoolExecutor(1,1,1L,TimeUnit.SECONDS,new SynchronousQueue<Runnable>());

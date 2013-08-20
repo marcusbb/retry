@@ -1,6 +1,7 @@
 package ies.retry.spi.hazelcast.jmx;
 
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
+import ies.retry.spi.hazelcast.HzState;
 import ies.retry.spi.hazelcast.RetryStat;
 import ies.retry.spi.hazelcast.RetryStats;
 
@@ -110,5 +111,25 @@ public interface RetryManagementMBean extends ies.retry.jmx.RetryManagementMBean
 	public boolean isPersistenceOn();
 	
 	public void setPersistenceOn(boolean on);
+	
+	//monitoring purposes
+	public int getHzRunning();
+	
+	//gets number of instances in this classloader
+	public int getNumHzInstances();
+	
+	//Is hazelcast running
+	public boolean isHzRunning();
+	/**
+	 * String representation of {@link HzState}
+	 * @return
+	 */
+	public String getHzState();
+	//Start
+	public boolean startHz() throws IllegalStateException;
+	
+	//shuts down Hz in graceful state
+	public void shutdownHz() throws IllegalStateException;
+	
 	
 }

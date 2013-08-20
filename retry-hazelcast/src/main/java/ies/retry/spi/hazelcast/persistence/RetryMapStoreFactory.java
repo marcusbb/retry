@@ -6,6 +6,7 @@ import ies.retry.spi.hazelcast.config.PersistenceConfig;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -13,6 +14,7 @@ import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 
 import provision.services.logging.Logger;
+import provision.util.turbo.TurboThreadFactory;
 
 public class RetryMapStoreFactory {//implements MapStoreFactory<String, List<RetryHolder>>{
 	private static final String CALLER = RetryMapStoreFactory.class.getName();
@@ -20,7 +22,9 @@ public class RetryMapStoreFactory {//implements MapStoreFactory<String, List<Ret
 	private String pu = "retry";
 	private EntityManagerFactory emf = null;
 	private PersistenceConfig persistConfig;
-
+	private static String TFactoryName = "retry-mapstore";
+	private static String TFactoryPrefix = "rstore";
+	
 	private static RetryMapStoreFactory instance = null;
 	
 	ThreadPoolExecutor execService = null;
@@ -66,16 +70,16 @@ public class RetryMapStoreFactory {//implements MapStoreFactory<String, List<Ret
 		this.persistConfig = config.getPersistenceConfig();
 		
 		Logger.info(CALLER, "Retry_Map_Store_Init", "Loaded persistence configuration: " + persistConfig);
-		
+		ThreadFactory tFactory = new TurboThreadFactory(TFactoryName,TFactoryPrefix);
 		if (persistConfig.getQueuePolicy() == PersistenceConfig.ThreadQueuePolicy.LINKED) {
 			execService = new ThreadPoolExecutor(persistConfig.getCoreSize(), persistConfig.getMaxPoolSize(),
-				0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>() );
+				0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(),tFactory );
 		}else if (persistConfig.getQueuePolicy() == PersistenceConfig.ThreadQueuePolicy.ARRAY) {
 			execService = new ThreadPoolExecutor(persistConfig.getCoreSize(), persistConfig.getMaxPoolSize(),
-					0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(persistConfig.getBoundedQueueSize()) );
+					0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(persistConfig.getBoundedQueueSize()),tFactory );
 		}else if (persistConfig.getQueuePolicy() == PersistenceConfig.ThreadQueuePolicy.SYNC) {
 			execService = new ThreadPoolExecutor(persistConfig.getCoreSize(), persistConfig.getMaxPoolSize(),
-					0L, TimeUnit.MILLISECONDS, new SynchronousQueue<Runnable>() );
+					0L, TimeUnit.MILLISECONDS, new SynchronousQueue<Runnable>(),tFactory );
 		}
 		
 		long start = System.currentTimeMillis();
@@ -103,4 +107,6 @@ public class RetryMapStoreFactory {//implements MapStoreFactory<String, List<Ret
 	public ThreadPoolExecutor getTPE() {
 		return execService;
 	}
+	
+	
 }
