@@ -139,8 +139,15 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 		RetryHolder retry = retryList.get(0);
 		HazelcastInstance h1 = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1();
 		IMap<String,List<RetryHolder>> distMap = h1.getMap(retry.getType());
+		boolean lockAquired = false;
 		try {
-			distMap.lock(retry.getId());
+			HazelcastConfigManager configMgr = (HazelcastConfigManager)((HazelcastRetryImpl)Retry.getRetryManager()).getConfigManager();
+			
+			lockAquired = distMap.tryLock(retry.getId(), configMgr.getHzConfig().getRetryAddLockTimeout(), TimeUnit.MILLISECONDS);
+			if ( ! lockAquired ) {
+				Logger.warn(CALLER, "Add_Retry_Task_Call_LockTimeout","Lock timeout","retry",retry);
+				throw new RuntimeException("Unable to Aquire Lock: " + retry.toString());
+			}
 			long nextTs = System.currentTimeMillis() + backOffInterval;
 
 			//sync nextTs date
@@ -162,7 +169,7 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 			if (persist)
 				RetryMapStoreFactory.getInstance().newMapStore(retry.getType()).store(retryList, DBMergePolicy.OVERWRITE);
 		}finally {
-			if (distMap != null && retry != null)
+			if (distMap != null && retry != null && lockAquired)
 				distMap.unlock(retry.getId());
 		}
 		

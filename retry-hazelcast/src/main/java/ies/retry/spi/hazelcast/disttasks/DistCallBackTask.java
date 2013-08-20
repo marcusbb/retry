@@ -8,6 +8,7 @@ import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.CallbackStat;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 import ies.retry.spi.hazelcast.NoCallbackRegistered;
+import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
 import ies.retry.spi.hazelcast.persistence.DBMergePolicy;
 import ies.retry.spi.hazelcast.persistence.RetryMapStore;
 import ies.retry.spi.hazelcast.persistence.RetryMapStoreFactory;
@@ -17,6 +18,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
 import provision.services.logging.Logger;
 
@@ -24,10 +26,11 @@ import com.hazelcast.core.IMap;
 
 
 /**
- * Makes a distributed callback
+ * Makes a distributed callback to dequeue the retry holder list from the IMap.
+ * Also (potentially) removes the entry from storage 
  * 
- * TODO: more verbose logging.
- * 
+ * Locks for this particular retry are only established on 
+ * storage 
  * @author msimonsen
  *
  */
@@ -51,6 +54,7 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 		IMap<String,List<RetryHolder>> retryMap = null;
 		String id = listHolder.get(0).getId();
 		String type = listHolder.get(0).getType();
+		boolean lockAquired = false;
 		
 		if (id ==null && type ==null) {
 			Logger.error(CALLER, "Dist_Callback_Missing_Input", "id or type is null", "ID", id, "TYPE", type);
@@ -60,7 +64,9 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 		try {
 			
 			HazelcastRetryImpl retryImpl = ((HazelcastRetryImpl)Retry.getRetryManager());
-			RetryConfiguration config = retryImpl.getConfigManager().getConfiguration(type);
+			HazelcastConfigManager configMgr = (HazelcastConfigManager)retryImpl.getConfigManager();
+			
+			RetryConfiguration config = configMgr.getConfiguration(type);
 			RetryCallback callback = retryImpl.getCallbackManager().getCallbackMap().get(type);
 			retryMap = retryImpl.getH1().getMap(type);
 			if (callback == null){
@@ -120,7 +126,13 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 						
 						if (failedHolder.size() == 0) {
 							Logger.info(CALLER, "Retry_Callback_Sucess: ID=" + id);
-							retryMap.lock(id);
+							//potential that this locks for a much briefer time
+							lockAquired = retryMap.tryLock(id,configMgr.getHzConfig().getRetryAddLockTimeout(),TimeUnit.MILLISECONDS);
+							if ( ! lockAquired ) {
+								Logger.warn(CALLER, "DistCallBackTask_LockTimeout","Lock timeout","retry",id);
+								throw new RuntimeException("Unable to Aquire Lock: " + id.toString());
+							}
+							//retryMap.lock(id);
 							List<RetryHolder> latest = retryMap.get(id);
 							List<RetryHolder> mergedList = RetryUtil.merge(CALLER, listHolder, failedHolder, latest);
 							
@@ -145,7 +157,11 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 
 					
 				if (!stat.isSuccess() && exec) {
-						retryMap.lock(id);
+						lockAquired = retryMap.tryLock(id,configMgr.getHzConfig().getRetryAddLockTimeout(),TimeUnit.MILLISECONDS);
+						if ( ! lockAquired ) {
+							Logger.warn(CALLER, "DistCallBackTask_LockTimeout","Lock timeout","retry",id);
+							throw new RuntimeException("Unable to Aquire Lock: " + id.toString());
+						}
 						List<RetryHolder> latest = retryMap.get(id);
 						RetryMapStore mapStore = RetryMapStoreFactory.getInstance().newMapStore(type);
 						
@@ -203,7 +219,7 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 			stat.setSuccess(false);
 			Logger.error(CALLER, "Dist_Callback_Task_Call_Exception", "Exception Message: " + e.getMessage(), "ID", id, "TYPE", type, e);
 		} finally {
-			if (retryMap !=null) {
+			if (retryMap !=null && lockAquired) {
 				retryMap.unlock(id);
 			}
 		}
