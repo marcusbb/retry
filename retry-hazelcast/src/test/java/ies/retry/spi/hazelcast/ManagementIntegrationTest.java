@@ -9,6 +9,7 @@ import ies.retry.RetryHolder;
 import ies.retry.RetryManager;
 import ies.retry.RetryState;
 import ies.retry.spi.hazelcast.jmx.RetryManagement;
+import ies.retry.spi.hazelcast.util.HzUtil;
 import ies.retry.xml.XMLRetryConfigMgr;
 
 import java.io.IOException;
@@ -40,7 +41,7 @@ public class ManagementIntegrationTest {
 	public static void beforeClass() throws Exception {
 		HzIntegrationTestUtil.beforeClass();
 		XMLRetryConfigMgr.setXML_FILE("retry_config_single_type.xml");
-		HazelcastRetryImpl.HZ_CONFIG_FILE = "hz-mgmt-integration.xml";
+		HzUtil.HZ_CONFIG_FILE = "hz-mgmt-integration.xml";
 
 		retryManager = Retry.getRetryManager();
 		stateManager = ((HazelcastRetryImpl)retryManager).getStateMgr();

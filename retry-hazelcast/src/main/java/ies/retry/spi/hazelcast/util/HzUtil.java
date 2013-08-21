@@ -1,7 +1,5 @@
 package ies.retry.spi.hazelcast.util;
 
-import ies.retry.ConfigException;
-import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 import ies.retry.xml.XMLRetryConfigMgr;
 import provision.services.logging.Logger;
 
@@ -13,7 +11,10 @@ import com.hazelcast.core.HazelcastInstance;
 
 public class HzUtil {
 
-	static String HZ_CONFIG_FILE = HazelcastRetryImpl.HZ_CONFIG_FILE;
+	public static String HZ_CONFIG_FILE = "hazelcast.xml";
+	public static String HZ_PROP_FILE = "hz.properties";
+	
+	
 	static String CALLER = HzUtil.class.getName();
 	
 	public static HazelcastInstance loadHzConfiguration() {
@@ -28,6 +29,8 @@ public class HzUtil {
 				String xml = IOUtil.load(fileName);
 				xml = StringUtil.replace(xml, System.getProperties());
 				config = new InMemoryXmlConfig(xml); 
+				//load in the system parameters:
+				
 			}else {
 				config = new ClasspathXmlConfig(HZ_CONFIG_FILE);
 			}

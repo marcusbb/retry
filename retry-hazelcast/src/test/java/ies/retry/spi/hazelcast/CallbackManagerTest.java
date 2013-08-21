@@ -2,6 +2,7 @@ package ies.retry.spi.hazelcast;
 
 import ies.retry.Retry;
 import ies.retry.RetryHolder;
+import ies.retry.spi.hazelcast.util.HzUtil;
 import ies.retry.xml.XMLRetryConfigMgr;
 
 import java.util.List;
@@ -23,7 +24,7 @@ public class CallbackManagerTest {
 	public static void beforeClass() {
 
 		HzIntegrationTestUtil.beforeClass();
-		HazelcastRetryImpl.HZ_CONFIG_FILE = "hazelcast_statemgr.xml";
+		HzUtil.HZ_CONFIG_FILE = "hazelcast_statemgr.xml";
 		XMLRetryConfigMgr.setXML_FILE("retry_config_callback.xml");
 
 		retryManager = (HazelcastRetryImpl) Retry.getRetryManager();

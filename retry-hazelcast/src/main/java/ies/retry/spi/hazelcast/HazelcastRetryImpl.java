@@ -65,7 +65,7 @@ public class HazelcastRetryImpl implements RetryManager {
 
 	//static Logger logger = Logger.getLogger(HazelcastRetryImpl.class.getName()); 
 	private static String CALLER = HazelcastRetryImpl.class.getName();
-	public static String HZ_CONFIG_FILE = "hazelcast.xml";
+	
 	private final static StackTraceElement [] EMPTY_STACK_TRACE = new StackTraceElement [0];
 	
 	protected HazelcastInstance h1 = null;

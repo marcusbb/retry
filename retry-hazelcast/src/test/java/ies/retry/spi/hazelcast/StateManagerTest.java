@@ -3,6 +3,7 @@ package ies.retry.spi.hazelcast;
 import ies.retry.Retry;
 import ies.retry.RetryConfiguration;
 import ies.retry.RetryState;
+import ies.retry.spi.hazelcast.util.HzUtil;
 import ies.retry.xml.XMLRetryConfigMgr;
 
 import java.util.concurrent.CountDownLatch;
@@ -27,7 +28,7 @@ public class StateManagerTest {
 	@Before
 	public void beforeClass() throws Exception {
 		HzIntegrationTestUtil.beforeClass();
-		HazelcastRetryImpl.HZ_CONFIG_FILE = "hazelcast_statemgr.xml";
+		HzUtil.HZ_CONFIG_FILE = "hazelcast_statemgr.xml";
 		XMLRetryConfigMgr.setXML_FILE("retry_config.xml");
 		
 //		XMLRetryConfigMgr.setCONFIG_DIR
