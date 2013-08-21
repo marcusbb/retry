@@ -51,7 +51,7 @@ public class HzStateMachine implements LifecycleListener {
 			throw new IllegalStateException();
 		}
 		hzState = HzState.INACTIVE_STARTING;
-		HazelcastInstance inst = HzUtil.loadHzConfig();
+		HazelcastInstance inst = HzUtil.loadHzConfiguration();
 		//counld have checks in here to determine the size that the instance would have before
 		//a swap
 		//we should really block until hazelcast is fully up... 
