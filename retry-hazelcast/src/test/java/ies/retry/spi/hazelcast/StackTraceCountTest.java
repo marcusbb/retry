@@ -46,7 +46,7 @@ public class StackTraceCountTest {
 	@AfterClass
 	public static void afterClass() {
 		retryManager.shutdown();
-		//HzIntegrationTestUtil.afterClass();
+		HzIntegrationTestUtil.afterClass();
 	}
 	
 	@Test

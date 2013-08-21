@@ -53,6 +53,7 @@ public class QueryTest {
 	@AfterClass
 	public static void afterClass() {
 		((HazelcastRetryImpl)Retry.getRetryManager()).shutdown();
+		HzIntegrationTestUtil.afterClass();
 	}
 	//@Test
 	public void addAndQuery() {

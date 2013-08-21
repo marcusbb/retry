@@ -61,7 +61,7 @@ public class ManagementIntegrationTest {
 		MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
 		mbs.unregisterMBean( new ObjectName( "retry:retry=hazelcast-retry"));
 		retryManager.shutdown();
-		//HzIntegrationTestUtil.afterClass();
+		HzIntegrationTestUtil.afterClass();
 		
 	}
 	@Before
