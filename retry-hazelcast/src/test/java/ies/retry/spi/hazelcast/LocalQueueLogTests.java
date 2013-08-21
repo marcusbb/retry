@@ -64,9 +64,13 @@ public class LocalQueueLogTests {
 		log.queue(holder2);
 		
 		log.moveTakeMarker();
-		log.moveTakeMarker();
+		Assert.assertEquals(b1.length + LocalQueueLog.INT_BYTE_SIZE, log.getTakeMarker());
+		log.queue(holder1);
+		Assert.assertEquals(b1.length + LocalQueueLog.INT_BYTE_SIZE, log.getTakeMarker());
 		
+		log.moveTakeMarker();
 		Assert.assertEquals(b1.length + b2.length + 8, log.getTakeMarker());
+		
 		
 		log.close();
 	}
@@ -90,22 +94,27 @@ public class LocalQueueLogTests {
 		//Simulate new process that replays
 		LocalQueueLog log2 = new LocalQueueLog(dir);
 		
-		Collection<RetryHolder> collection = log2.replayFromFile();
+		Collection<RetryHolder> collection = log2.replay();
 		
 		Assert.assertEquals(2, collection.size());
-		
-		collection = log2.replayFromFile();
-		
-		Assert.assertEquals(0, collection.size());
+		//marker was NOT incremented
+		collection = log2.replay();
+		Assert.assertEquals(2, collection.size());
+		//dequeue them
+		log2.moveTakeMarker();
+		log2.moveTakeMarker();
 		
 		for (int i=0;i<10;i++) {
 			RetryHolder holder1 = new RetryHolder("id", "type",new Exception(),new byte[rand.nextInt(2000)]);
 			
 			log2.queue(holder1);
 		}
-		collection = log2.replayFromFile();
+		collection = log2.replay();
 		Assert.assertEquals(10, collection.size());
-		
+		log2.close();
 	}
 	
+	public void testRoll() {
+		
+	}
 }
