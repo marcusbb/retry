@@ -38,7 +38,7 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 
 	private static String CALLER = RetryManagement.class.toString();
 	private HazelcastRetryImpl coordinator;
-	private StateManager stateMgr;
+	
 	
 	public static String topic ="jmxTopic";
 	private ITopic<ConfigBroadcast> hzTopic = null;
@@ -49,7 +49,7 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 	}
 	public RetryManagement(HazelcastRetryImpl coordinator,StateManager stateMgr) {
 		this.coordinator = coordinator;
-		this.stateMgr = stateMgr;
+		
 		hzTopic =  coordinator.getH1().getTopic(topic);
 		hzTopic.addMessageListener(this);
 		
@@ -57,7 +57,7 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 	
 	public void init(HazelcastRetryImpl impl) {
 		this.coordinator = impl;
-		this.stateMgr = impl.getStateMgr();
+		
 		hzTopic =  impl.getH1().getTopic(topic);
 		hzTopic.addMessageListener(this);
 	}
@@ -79,13 +79,13 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 	@Override
 	public void shutdown() {
 		coordinator.shutdown();
-		
+		this.coordinator = null;
 		
 	}
 	public void suspend() throws IllegalStateException {
-		Collection<String> types = stateMgr.getAllStates().keySet();
+		Collection<String> types = coordinator.getStateMgr().getAllStates().keySet();
 		for (String type:types) {
-			stateMgr.suspend(type);
+			coordinator.getStateMgr().suspend(type);
 		}
 		
 		
@@ -95,27 +95,27 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 	
 	public String[] getRetryTypes() {
 		
-		return stateMgr.getAllStates().keySet().toArray(new String[]{});
+		return coordinator.getStateMgr().getAllStates().keySet().toArray(new String[]{});
 		
 	}
 	public void suspend(String type) throws IllegalStateException {
 		Logger.info(CALLER, "Suspend_Retries_By_Type", "Suspending retry type=" + type);
-		stateMgr.suspend(type);
+		coordinator.getStateMgr().suspend(type);
 		
 	}
 
 	
 	public void resume(String type) throws IllegalStateException {
 		Logger.info(CALLER, "Resume_Retries_By_Type", "Resuming retry type=" + type);
-		stateMgr.resume(type);
+		coordinator.getStateMgr().resume(type);
 		
 	}
 
 	
 	public void resume() throws IllegalStateException {
-		Collection<String> types = stateMgr.getAllStates().keySet();
+		Collection<String> types = coordinator.getStateMgr().getAllStates().keySet();
 		for (String type:types) {
-			stateMgr.resume(type);
+			coordinator.getStateMgr().resume(type);
 		}
 		
 		
@@ -171,7 +171,7 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 	 */
 	public Long getGridCount() {
 		long count = 0;
-		for (String key:stateMgr.getAllStates().keySet()) {
+		for (String key:coordinator.getStateMgr().getAllStates().keySet()) {
 			count += getGridCount(key);
 		}
 		return count;
@@ -179,7 +179,7 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 
 	
 	public Long getGridCount(String type) {
-		if (stateMgr.getAllStates().get(type)!= null) {
+		if (coordinator.getStateMgr().getAllStates().get(type)!= null) {
 			return (long)((HazelcastRetryImpl)Retry.getRetryManager()).getH1().getMap(type).size();
 		}
 		return 0L;
@@ -217,7 +217,7 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 		return coordinator.getStats().toString();
 	}
 	public String getState(String type) {
-		RetryState state =  stateMgr.getState(type);
+		RetryState state =  coordinator.getStateMgr().getState(type);
 		
 		if (state != null)
 			return state.toString();
@@ -310,7 +310,7 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 	 */
 	@Override
 	public long getStoreCount(String type) {
-		if(stateMgr.isMaster()) 
+		if(coordinator.getStateMgr().isMaster()) 
 			return RetryMapStoreFactory.getInstance().newMapStore(type).count();
 		else 
 			return Long.MIN_VALUE;
@@ -321,7 +321,7 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 	 */
 	@Override
 	public long getStoreCount() {
-		if (stateMgr.isMaster()) {
+		if (coordinator.getStateMgr().isMaster()) {
 			XMLRetryConfigMgr configMgr = ((XMLRetryConfigMgr)coordinator.getConfigManager());
 			long count = 0;
 			for (String type:configMgr.getConfigMap().keySet()) {
@@ -401,14 +401,25 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 	public String getHzState() {
 		return coordinator.getHzStateMachine().getHzState().toString();
 	}
-	@Override
+	//@Override
 	public boolean startHz() throws IllegalStateException {
 		coordinator.getHzStateMachine().startHz();
 		return true;
 	}
-	@Override
+	//@Override
 	public void shutdownHz() {
 		coordinator.getHzStateMachine().stopHz();
+		
+	}
+	//I can't restart retry because all the dynamic callbacks registrations will have been lost
+	//@Override
+	public void startup() {
+		if (coordinator != null)
+			throw new IllegalStateException("coordinator is not null: shut it down first");
+		
+		this.coordinator = new HazelcastRetryImpl();
+		Retry.setRetryManager(coordinator);
+		
 		
 	}
 	public HazelcastRetryImpl getOrchestrator() {
@@ -418,10 +429,10 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 		this.coordinator = orchestrator;
 	}
 	public StateManager getStateMgr() {
-		return stateMgr;
+		return coordinator.getStateMgr();
 	}
 	public void setStateMgr(StateManager stateMgr) {
-		this.stateMgr = stateMgr;
+		coordinator.setStateMgr(stateMgr);
 	}
 	
 	

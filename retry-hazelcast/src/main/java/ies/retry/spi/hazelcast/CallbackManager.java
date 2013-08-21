@@ -444,6 +444,14 @@ public class CallbackManager  {
 	public void setCallbackMap(Map<String, RetryCallback> callbackMap) {
 		this.callbackMap = callbackMap;
 	}
+
+	public HazelcastInstance getH1() {
+		return h1;
+	}
+
+	public void setH1(HazelcastInstance h1) {
+		this.h1 = h1;
+	}
 	
 	
 	

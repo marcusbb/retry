@@ -57,7 +57,7 @@ public class HzStateMachine implements LifecycleListener {
 		//we should really block until hazelcast is fully up... 
 		//have to figure out the way through the life cycle listener signal
 		//until we have that we shouldn't put it in running state.
-		coordinator.setH1(inst);
+		coordinator.setH1AndInit(inst);
 		hzState = HzState.RUNNING;
 		//retry.setH1( HzUtil.loadHzConfig() );
 	}

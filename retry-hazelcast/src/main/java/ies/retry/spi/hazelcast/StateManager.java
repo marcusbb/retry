@@ -527,6 +527,14 @@ public class StateManager implements  MembershipListener{
 
 	
 
+	public HazelcastInstance getH1() {
+		return h1;
+	}
+
+	public void setH1(HazelcastInstance h1) {
+		this.h1 = h1;
+	}
+
 	public XMLRetryConfigMgr getConfigMgr() {
 		return configMgr;
 	}

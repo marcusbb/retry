@@ -579,6 +579,15 @@ public class HazelcastRetryImpl implements RetryManager {
 	public void setH1(HazelcastInstance h1) {
 		this.h1 = h1;
 	}
+	//This does NOT work, as state is initialized on
+	//constructors - this is a larger TODO
+	public void setH1AndInit(HazelcastInstance h1) {
+		this.h1 = h1;
+		this.callbackManager.setH1(h1);
+		this.stateMgr.setH1(h1);
+		this.stateMgr.init();
+		
+	}
 	@Override
 	public RetryState getState(String type) {
 		return stateMgr.getState(type);
