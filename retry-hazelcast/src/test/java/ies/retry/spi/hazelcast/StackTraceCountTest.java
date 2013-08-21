@@ -54,7 +54,7 @@ public class StackTraceCountTest {
 
 
 		try{
-			new Exception();
+			throw new Exception();
 			
 		}catch (Exception e) {
 				
@@ -83,8 +83,7 @@ public class StackTraceCountTest {
 	public void startAndCountStackTrace() throws Exception{
 
 		try{
-			XMLRetryConfigMgr.setXML_FILE("retry_config_FAKE.xml");
-			Retry.getRetryManager();
+			throw new Exception();
 			
 		}catch (Exception e) {
 			RetryHolder retry2 = new RetryHolder("1", "ARCHIVE_ON", e);
@@ -103,8 +102,7 @@ public class StackTraceCountTest {
 	@Test
 	public void startAndCountStackTraceAndCause() throws Exception{
 		try{
-			XMLRetryConfigMgr.setXML_FILE("retry_config_FAKE.xml");
-			Retry.getRetryManager();
+			throw new Exception();
 			
 		}catch (Exception e) {
 			RetryHolder retry3 = new RetryHolder("1", "ARCHIVE_OFF", e);
