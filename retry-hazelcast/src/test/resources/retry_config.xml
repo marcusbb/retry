@@ -32,6 +32,42 @@
 		</batchConfig>
 		<stackTraceLinesCount>3</stackTraceLinesCount>
 	</typeConfig>
-	
+	<typeConfig>
+		<archiveExpired>true</archiveExpired>
+		<type>ARCHIVE_ON</type>
+		<listBacked>true</listBacked>
+		<queueStrategy>UNORDERED</queueStrategy>
+		<backOff>
+			<interval>5000</interval>
+			<intervalMultiplier>1.0</intervalMultiplier>
+			<maxAttempts>1000</maxAttempts>
+			<maxAttempts>1</maxAttempts>
+		</backOff>
+		<batchConfig>
+			<batchHeartBeat>5050</batchHeartBeat>
+			<batchSize>1000</batchSize>
+			<intervalMultiplier>1</intervalMultiplier>
+		</batchConfig>
+		<exceptionLevel>5</exceptionLevel>
+		<stackTraceLinesCount>3</stackTraceLinesCount>
+	</typeConfig>
+	<typeConfig>
+		<archiveExpired>false</archiveExpired>
+		<type>ARCHIVE_OFF</type>
+		<listBacked>true</listBacked>
+		<queueStrategy>UNORDERED</queueStrategy>
+		<backOff>
+			<interval>5000</interval>
+			<intervalMultiplier>1.0</intervalMultiplier>
+			<maxAttempts>2</maxAttempts>
+		</backOff>
+		<batchConfig>
+			<batchHeartBeat>5050</batchHeartBeat>
+			<batchSize>1000</batchSize>
+			<intervalMultiplier>1</intervalMultiplier>
+		</batchConfig>
+		<exceptionLevel>-3</exceptionLevel>
+		<stackTraceLinesCount>-7</stackTraceLinesCount>
+	</typeConfig>
 	
 </retry>
