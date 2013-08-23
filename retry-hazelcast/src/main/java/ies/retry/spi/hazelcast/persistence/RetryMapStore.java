@@ -5,12 +5,10 @@ import ies.retry.spi.hazelcast.StoreTimeoutException;
 import ies.retry.spi.hazelcast.config.PersistenceConfig;
 import ies.retry.spi.hazelcast.persistence.ops.ArchiveOp;
 import ies.retry.spi.hazelcast.persistence.ops.DelOp;
-import ies.retry.spi.hazelcast.persistence.ops.OpResult;
 import ies.retry.spi.hazelcast.persistence.ops.StoreAllOp;
 import ies.retry.spi.hazelcast.persistence.ops.StoreOp;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -294,7 +292,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		Logger.info(CALLER, "Retry_Map_Store_Key", "store  key " + key, "Type",
 				mapName);
 
-		Future<OpResult<Void>> future = execService.submit(new StoreOp(emf, value,
+		Future<Void> future = execService.submit(new StoreOp(emf, value,
 				mergePolicy));
 		handleWriteSync(future);
 	}
@@ -303,7 +301,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		Logger.info(CALLER, "Retry_Map_Store_Keys",
 				"store  all " + map.keySet(), "Type", mapName);
 
-		Future<OpResult<Void>> future = execService.submit(new StoreAllOp(emf, map));
+		Future<Void> future = execService.submit(new StoreAllOp(emf, map));
 		handleWriteSync(future);
 
 	}
@@ -315,7 +313,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		Logger.info(CALLER, "Retry_Map_Archive_Key_Partial", "archive  key " + list.get(0).getId(), "Type",
 				mapName, "Remove", removeEntity);
 
-		Future<OpResult<Void>> future = execService.submit(new ArchiveOp(emf, list, removeEntity));
+		Future<Void> future = execService.submit(new ArchiveOp(emf, list, removeEntity));
 		handleWriteSync(future);
 	}
 	
@@ -323,17 +321,17 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		Logger.info(CALLER, "Retry_Map_Delete_Key", "delete " + key, "Type",
 				mapName);
 
-		Future<OpResult<Void>> future = execService.submit(new DelOp(emf, mapName, key));
+		Future<Void> future = execService.submit(new DelOp(emf, mapName, key));
 		handleWriteSync(future);
 	}
 
 	public void deleteByType() {
 		Logger.info(CALLER, "Retry_Map_Delete_By_Type", "delete by type: "
 				+ mapName);
-		Future<OpResult<Void>> future = execService.submit(new Callable<OpResult<Void>>() {
+		Future<Void> future = execService.submit(new Callable<Void>() {
 
 			@Override
-			public OpResult<Void> call() throws Exception {
+			public Void call() throws Exception {
 				EntityManager em = emf.createEntityManager();
 				em.getTransaction().begin();
 
@@ -349,7 +347,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		handleWriteSync(future);
 	}
 
-	private void handleWriteSync(Future<OpResult<Void>> future) throws RuntimeException {
+	private void handleWriteSync(Future<Void> future) throws RuntimeException {
 		if (writeSync) {
 			try {
 				future.get(timeOut,TimeUnit.MILLISECONDS);					
@@ -399,10 +397,10 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 
 	private static class FutureTimeoutTask implements Callable<Boolean> {
 
-		Future<OpResult<Void>> future;
+		Future<Void> future;
 		long timeout;
 		
-		FutureTimeoutTask(Future<OpResult<Void>> future,long timeout) {
+		FutureTimeoutTask(Future<Void> future,long timeout) {
 			this.future = future;
 			this.timeout = timeout;
 		}
