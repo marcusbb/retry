@@ -58,7 +58,7 @@ public class LocalQueuerTest {
 	public void testAddLocalQueueAndProcess() throws Exception {
 		
 		@SuppressWarnings("static-access")
-		LocalQueuer queuer = new LocalQueuerImpl(retryManager.getH1(), retryManager.configMgr);
+		LocalQueuerImpl queuer = new LocalQueuerImpl(retryManager.getH1(), retryManager.configMgr);
 		CountDownLatch latch = new CountDownLatch(1);
 		retryManager.registerCallback(new LatchCallback(latch, true), "FAST_PROCESS");
 		
@@ -80,10 +80,12 @@ public class LocalQueuerTest {
 				
 		Assert.assertEquals( 0, retryManager.getH1().getMap("FAST_PROCESS").size());
 		
+		queuer.getQueueLog().close();
+		LocalQueueLogTests.deleteFiles();
 	}
 	
 	/**
-	 * 
+	 * This doesn't actually test it, but the converse in an integration style test
 	 */
 	@Test
 	public void addNormalConcurrentTP10_1000() throws Exception {
