@@ -26,15 +26,15 @@ public class RetryTransitionEvent implements Serializable {
 	private static final long serialVersionUID = 1226377412695765614L;
 	
 	
-	public RetryTransitionEvent(){
-		
-	}
-	public RetryTransitionEvent(RetryState type,String retryType) {
-		this.retryState = type;
+	
+	public RetryTransitionEvent(RetryState oldState, RetryState state,String retryType) {
+		this.retryState = state;
+		this.oldState = oldState;
 		this.retryType = retryType;
 	}
 	
-	RetryState retryState = RetryState.DRAINED;
+	final RetryState retryState;
+	final RetryState oldState;
 	
 	String retryType;
 
@@ -48,9 +48,6 @@ public class RetryTransitionEvent implements Serializable {
 	}
 	public RetryState getRetryState() {
 		return retryState;
-	}
-	public void setRetryState(RetryState retryState) {
-		this.retryState = retryState;
 	}
 	
 	
