@@ -33,6 +33,7 @@ import org.hibernate.Session;
 import org.hibernate.StatelessSession;
 
 import provision.services.logging.Logger;
+import provision.util.turbo.TurboThreadFactory;
 
 /**
  * Allows for synchronous write behind for all store methods.
@@ -48,12 +49,6 @@ import provision.services.logging.Logger;
  * Moving all operations to be stateless - single operation capable only - except for
  * loading.
  * 
-<<<<<<< HEAD
-=======
- * Moving all operations to be stateless - single operation capable only - except for
- * loading.
- * 
->>>>>>> v1.1.0-nonstatic-hz
  * @author msimonsen
  * 
  */
@@ -86,7 +81,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		this.sync_emf = emf.createEntityManager();
 		this.writeSync = config.isWriteSync();
 		this.timeOut = config.getTimeoutInms();
-		asyncTimeoutService = Executors.newCachedThreadPool();
+		asyncTimeoutService = Executors.newFixedThreadPool(10, new TurboThreadFactory("retry-rstoretimeout", "retry-rstt") );
 	}
 
 	public RetryEntity getEntity(String key) {
@@ -409,12 +404,12 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		@Override
 		public Boolean call() throws Exception {
 			try {
-				future.get(timeout, TimeUnit.MILLISECONDS);
-			}catch (TimeoutException e) {
-				future.cancel(true);
-				Logger.error(CALLER, "DB_ASYNC_TIMEOUT_EX","msg",e.getMessage(),e);
-				return false;
-				
+				//Timing out this is bad simply because 
+				//we want to close the connection
+				//but may result in a "hung" thread.
+				future.get().getEM().close();
+			}finally {
+				//place holder if indeed we want to timeout on a DB connection failure.
 			}
 			return true;
 		}
