@@ -215,9 +215,9 @@ public class CallbackManager  {
 		boolean dequeued = true;
 		if (stateMgr.getState(type) == RetryState.SUSPENDED) {
 			Logger.info(CALLER, "Try_Dequeue_Suspended", "Suspended, no dequeuing for type.", "Type", type);
-			//we don't have to schedule the next run
-			//because the resume is a distrubuted operation
-			//that SHOULD inform all members
+			//TODO: become a listener to the global state changes
+			//until that time schedule next run
+			scheduleNextRun(type);
 			return false;
 		}
 		boolean locked =false;
