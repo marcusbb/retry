@@ -213,13 +213,7 @@ public class CallbackManager  {
 	protected boolean tryDequeue(String type) {
 		
 		boolean dequeued = true;
-		if (stateMgr.getState(type) == RetryState.SUSPENDED) {
-			Logger.info(CALLER, "Try_Dequeue_Suspended", "Suspended, no dequeuing for type.", "Type", type);
-			//TODO: become a listener to the global state changes
-			//until that time schedule next run
-			scheduleNextRun(type);
-			return false;
-		}
+		
 		boolean locked =false;
 		try {
 			//is released in finally
@@ -306,6 +300,10 @@ public class CallbackManager  {
 						
 					}
 					setBatchSize(type,successForBatch);
+				}
+				if (stateMgr.getState(type) == RetryState.SUSPENDED) {
+					Logger.info(CALLER, "Try_Dequeue_Suspended", "Suspended, no dequeuing for type.", "Type", type);
+					break;
 				}
 				
 			}
