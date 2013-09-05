@@ -195,8 +195,6 @@ public class HazelcastRetryImpl implements RetryManager {
 		
 		if (null != retry.getException()) truncateStackTrace(retry, config);
 		
-		//inform state manager
-		stateMgr.retryAddedEvent(retry.getType(),true);
 				
 		//queue locally if we have a local queue buffer
 		if (localQueuer.addIfNotEmpty(retry)) {
@@ -204,6 +202,9 @@ public class HazelcastRetryImpl implements RetryManager {
 			return;
 		}
 		try {
+			//inform state manager
+			stateMgr.retryAddedEvent(retry.getType(),true);
+			
 			// first determine the partition key, add to owning member
 			DistributedTask<Void> distTask = new DistributedTask<Void>(new AddRetryCallable(retry, config), retry.getId());
 			

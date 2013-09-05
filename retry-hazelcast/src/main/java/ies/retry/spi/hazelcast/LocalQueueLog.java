@@ -68,6 +68,8 @@ public class LocalQueueLog {
 	public LocalQueueLog(String dirName) throws FileNotFoundException,IOException {
 		this.workingDir = dirName;
 		File dir = new File(dirName);
+		if (!dir.exists())
+			dir.mkdir();
 		if (dir.isDirectory()) {
 
 			File commitLog = new File(dir, curFile);
