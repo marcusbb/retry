@@ -5,6 +5,7 @@ import ies.retry.spi.hazelcast.StoreTimeoutException;
 import ies.retry.spi.hazelcast.config.PersistenceConfig;
 import ies.retry.spi.hazelcast.persistence.ops.ArchiveOp;
 import ies.retry.spi.hazelcast.persistence.ops.DelOp;
+import ies.retry.spi.hazelcast.persistence.ops.OpResult;
 import ies.retry.spi.hazelcast.persistence.ops.StoreAllOp;
 import ies.retry.spi.hazelcast.persistence.ops.StoreOp;
 
@@ -18,6 +19,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -32,6 +34,7 @@ import org.hibernate.Session;
 import org.hibernate.StatelessSession;
 
 import provision.services.logging.Logger;
+import provision.util.turbo.TurboThreadFactory;
 
 /**
  * Allows for synchronous write behind for all store methods.
@@ -47,12 +50,6 @@ import provision.services.logging.Logger;
  * Moving all operations to be stateless - single operation capable only - except for
  * loading.
  * 
-<<<<<<< HEAD
-=======
- * Moving all operations to be stateless - single operation capable only - except for
- * loading.
- * 
->>>>>>> v1.1.0-nonstatic-hz
  * @author msimonsen
  * 
  */
@@ -70,11 +67,13 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 	private long timeOut;
 	
 	// Provided
-	ExecutorService execService = null;
+	ThreadPoolExecutor execService = null;
 	//A cached threadpool to timeout the main tasks from the thread pool above
 	ExecutorService asyncTimeoutService = null;
 	private boolean writeSync = false;
-
+	private PersistenceConfig config;
+	
+	
 	protected RetryMapStore() {
 	}
 
@@ -85,7 +84,8 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		this.sync_emf = emf.createEntityManager();
 		this.writeSync = config.isWriteSync();
 		this.timeOut = config.getTimeoutInms();
-		asyncTimeoutService = Executors.newCachedThreadPool();
+		asyncTimeoutService = Executors.newFixedThreadPool(10, new TurboThreadFactory("retry-rstoretimeout", "retry-rstt") );
+		this.config = config;
 	}
 
 	public RetryEntity getEntity(String key) {
@@ -292,8 +292,16 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 			final DBMergePolicy mergePolicy) {
 		Logger.info(CALLER, "Retry_Map_Store_Key", "store  key " + key, "Type",
 				mapName);
-
-		Future<Void> future = execService.submit(new StoreOp(emf, value,
+		
+		if (execService.getQueue().size() >=  config.getDropOnQueueSize()) {
+			Logger.error(CALLER, "DB_QUEUE_MAX_REACHED","Reached queue size: " + execService.getQueue().size());
+			//decided to drop it based on results of 
+			//code review and possiblility of hitting the upper bound
+			//and blocking on the persistence ops
+			return;
+						
+		}
+		Future<OpResult<Void>> future = execService.submit(new StoreOp(emf, value,
 				mergePolicy));
 		handleWriteSync(future);
 	}
@@ -302,7 +310,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		Logger.info(CALLER, "Retry_Map_Store_Keys",
 				"store  all " + map.keySet(), "Type", mapName);
 
-		Future<Void> future = execService.submit(new StoreAllOp(emf, map));
+		Future<OpResult<Void>> future = execService.submit(new StoreAllOp(emf, map));
 		handleWriteSync(future);
 
 	}
@@ -314,7 +322,15 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		Logger.info(CALLER, "Retry_Map_Archive_Key_Partial", "archive  key " + list.get(0).getId(), "Type",
 				mapName, "Remove", removeEntity);
 
-		Future<Void> future = execService.submit(new ArchiveOp(emf, list, removeEntity));
+		if (execService.getQueue().size() >=  config.getDropOnQueueSize()) {
+			Logger.error(CALLER, "DB_QUEUE_MAX_REACHED","Reached queue size: " + execService.getQueue().size());
+			//decided to drop it based on results of 
+			//code review and possiblility of hitting the upper bound
+			//and blocking on the persistence ops
+			return;
+						
+		}
+		Future<OpResult<Void>> future = execService.submit(new ArchiveOp(emf, list, removeEntity));
 		handleWriteSync(future);
 	}
 	
@@ -322,17 +338,25 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		Logger.info(CALLER, "Retry_Map_Delete_Key", "delete " + key, "Type",
 				mapName);
 
-		Future<Void> future = execService.submit(new DelOp(emf, mapName, key));
+		if (execService.getQueue().size() >=  config.getDropOnQueueSize()) {
+			Logger.error(CALLER, "DB_QUEUE_MAX_REACHED","Reached queue size: " + execService.getQueue().size());
+			//decided to drop it based on results of 
+			//code review and possiblility of hitting the upper bound
+			//and blocking on the persistence ops
+			return;
+						
+		}
+		Future<OpResult<Void>> future = execService.submit(new DelOp(emf, mapName, key));
 		handleWriteSync(future);
 	}
 
 	public void deleteByType() {
 		Logger.info(CALLER, "Retry_Map_Delete_By_Type", "delete by type: "
 				+ mapName);
-		Future<Void> future = execService.submit(new Callable<Void>() {
+		Future<OpResult<Void>> future = execService.submit(new Callable<OpResult<Void>>() {
 
 			@Override
-			public Void call() throws Exception {
+			public OpResult<Void> call() throws Exception {
 				EntityManager em = emf.createEntityManager();
 				em.getTransaction().begin();
 
@@ -348,7 +372,8 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		handleWriteSync(future);
 	}
 
-	private void handleWriteSync(Future<Void> future) throws RuntimeException {
+	private void handleWriteSync(Future<OpResult<Void>> future) throws RuntimeException {
+		
 		if (writeSync) {
 			try {
 				future.get(timeOut,TimeUnit.MILLISECONDS);					
@@ -368,7 +393,8 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		//Dispatch the timeout to a separate TP specific for processing timeouts
 		//but there is no need as it will be bounded by the thread pool above.
 		else {
-			asyncTimeoutService.submit(new FutureTimeoutTask(future, timeOut));
+			//asyncTimeoutService.submit(new FutureTimeoutTask(future, timeOut));
+			
 		}
 	}
 
@@ -384,7 +410,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		return execService;
 	}
 
-	public void setExecService(ExecutorService execService) {
+	public void setExecService(ThreadPoolExecutor execService) {
 		this.execService = execService;
 	}
 
@@ -398,22 +424,22 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 
 	private static class FutureTimeoutTask implements Callable<Boolean> {
 
-		Future<Void> future;
+		Future<OpResult<Void>> future;
 		long timeout;
 		
-		FutureTimeoutTask(Future<Void> future,long timeout) {
+		FutureTimeoutTask(Future<OpResult<Void>> future,long timeout) {
 			this.future = future;
 			this.timeout = timeout;
 		}
 		@Override
 		public Boolean call() throws Exception {
 			try {
-				future.get(timeout, TimeUnit.MILLISECONDS);
-			}catch (TimeoutException e) {
-				future.cancel(true);
-				Logger.error(CALLER, "DB_ASYNC_TIMEOUT_EX","msg",e.getMessage(),e);
-				return false;
-				
+				//Timing out this is bad simply because 
+				//we want to close the connection
+				//but may result in a "hung" thread.
+				future.get();
+			}finally {
+				//place holder if indeed we want to timeout on a DB connection failure.
 			}
 			return true;
 		}
