@@ -74,7 +74,7 @@ public class RetryEntity implements Serializable{
 		for (RetryHolder th:holderList) {			
 			
 			if (th.getException() != null)
-				Logger.warn(CALLER, "Dropped_exception", th.getException());
+				//Logger.warn(CALLER, "Dropped_exception", th.getException());
 			
 			exceptionBackup[count++] = th.getException();
 			th.setException(null);
