@@ -11,13 +11,14 @@ import java.util.Random;
 import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.util.IOUtil;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 public class LocalQueueLogTests {
 
-	static String dir = ".";
+	static String dir = "/var/log/retry";
 	
 	
 	@Before
@@ -25,8 +26,11 @@ public class LocalQueueLogTests {
 		
 	}
 	
-	
-	public void deleteFiles() throws IOException {
+	@After
+	public void after() throws IOException {
+		deleteFiles();
+	}
+	public static void deleteFiles() throws IOException {
 		File commitLog = new File(dir, LocalQueueLog.curFile);
 		commitLog.delete();
 		

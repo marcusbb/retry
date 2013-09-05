@@ -20,7 +20,7 @@ import provision.services.logging.Logger;
  *
  * @param <T>
  */
-public abstract class AbstractOp<T> implements Callable<OpResult<T>>,OpResult<T>{
+public abstract class AbstractOp<T> implements Callable<T>{
 	
 	private String caller = this.getClass().getName();
 
@@ -72,7 +72,7 @@ public abstract class AbstractOp<T> implements Callable<OpResult<T>>,OpResult<T>
 	}
 	
 	@Override
-	public OpResult<T> call() throws Exception {
+	public T call() throws Exception {
 		EntityManager em = emf.createEntityManager();
 		
 		long maxTimes = 5; // we try to re-run operation maxTimes if primary key of retries tables was violated
@@ -80,11 +80,10 @@ public abstract class AbstractOp<T> implements Callable<OpResult<T>>,OpResult<T>
 		for (int i = 0; i < maxTimes; i++) {
 			try {
 				em.getTransaction().begin();
-				//T ret =
-				exec(em);
+				T ret = exec(em);
 				em.flush();
 				em.getTransaction().commit();
-				return this;  // success, going out of the loop
+				return ret;  // success, going out of the loop
 			}
 			catch (ConstraintViolationException e) {
 				if(i == maxTimes-1){ // log error if we failed to execute Op maxTimes
@@ -110,12 +109,6 @@ public abstract class AbstractOp<T> implements Callable<OpResult<T>>,OpResult<T>
 	}
 	
 	public abstract T exec(EntityManager em) throws Exception;
-	@Override
-	public EntityManager getEM() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 	
 
 }
