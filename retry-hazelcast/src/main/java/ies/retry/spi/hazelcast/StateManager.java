@@ -140,7 +140,7 @@ public class StateManager implements  MembershipListener{
 		Logger.info(CALLER, "StateManager_Init","","TYPE",config.getType());
 		//does a state already exist, just notify listener
 		if(globalStateMap.get(config.getType()) != null){
-			notifyStateListeners(new RetryTransitionEvent(globalStateMap.get(config.getType()), config.getType()));
+			notifyStateListeners(null, new RetryTransitionEvent(RetryState.DRAINED, globalStateMap.get(config.getType()), config.getType()));
 			Logger.warn(CALLER, "StateManager_Init","State_determined","TYPE",config.getType(),"state",globalStateMap.get(config.getType()));
 			//return;
 		} else {
@@ -388,11 +388,11 @@ public class StateManager implements  MembershipListener{
 		
 		RetryState t = globalStateMap.get(type);
 		if ( t == null) {
-			publish(new RetryTransitionEvent(RetryState.DRAINED,type));
+			publish(new RetryTransitionEvent(t, RetryState.DRAINED,type));
 		}
 		if (t== RetryState.DRAINED) {
 			//Logger.info(CALLER, "Retry_Added_Event", "Publishing message: type=[" + type + "]" + ", state=" + RetryState.QUEUED);
-			publish(new RetryTransitionEvent(RetryState.QUEUED,type));
+			publish(new RetryTransitionEvent(t, RetryState.QUEUED,type));
 					
 		}
 		//if QUEUED or SUSPENDED there is no need to 
@@ -433,7 +433,7 @@ public class StateManager implements  MembershipListener{
 			
 			storedRetry =storedRetry(type);
 			if ( !storedRetry ) {
-				publish(new RetryTransitionEvent(RetryState.DRAINED,type));
+				publish(new RetryTransitionEvent(t, RetryState.DRAINED,type));
 					Logger.info(CALLER, "SYNC_GRID_DB_SYNCED","","TYPE",type);
 				//finally flip the member lost event off,
 				//as we're  synchronized persistence
@@ -478,10 +478,10 @@ public class StateManager implements  MembershipListener{
 		
 	}
 	
-	public void notifyStateListeners(RetryTransitionEvent event) {
+	public void notifyStateListeners(RetryState oldState, RetryTransitionEvent event) {
 		
 		String retryType = event.getRetryType();
-		Logger.info(CALLER, "Notify_State_Listeners", "State Transition [" +retryType +"]" + globalStateMap.get(retryType)+ "->" + event.getRetryState());
+		Logger.info(CALLER, "Notify_State_Listeners", "State Transition [" +retryType +"]" + oldState + "->" + event.getRetryState());
 		
 		//could have our own thread dispatch policy
 		//inform all listeners
@@ -507,7 +507,7 @@ public class StateManager implements  MembershipListener{
 		if ( t == null) {
 			throw new StateTransitionException();
 		}
-		publish(new RetryTransitionEvent(RetryState.SUSPENDED,type));
+		publish(new RetryTransitionEvent(t, RetryState.SUSPENDED,type));
 		 
 	}
 	
@@ -519,7 +519,7 @@ public class StateManager implements  MembershipListener{
 		}
 		//will move to drained state - if it doesn't have 
 		if (t == RetryState.SUSPENDED)
-			publish(new RetryTransitionEvent(RetryState.QUEUED,type));
+			publish(new RetryTransitionEvent(t, RetryState.QUEUED,type));
 		 
 	}
 
@@ -613,7 +613,7 @@ class StateMapEntryListener implements EntryListener<String,RetryState> {
 			Logger.info(CALLER, "entryAdded","Discarding notification");
 			return;
 		}
-		stateMgr.notifyStateListeners(new RetryTransitionEvent(event.getValue(),event.getKey()) );
+		stateMgr.notifyStateListeners( event.getOldValue(), new RetryTransitionEvent(event.getOldValue(),event.getValue(),event.getKey()) );
 	}
 
 	@Override
@@ -629,7 +629,7 @@ class StateMapEntryListener implements EntryListener<String,RetryState> {
 			Logger.info(CALLER, "entryUpdated","Discarding notification");
 			return;
 		}
-		stateMgr.notifyStateListeners(new RetryTransitionEvent(event.getValue(),event.getKey()) );
+		stateMgr.notifyStateListeners(event.getOldValue(), new RetryTransitionEvent(event.getOldValue(),event.getValue(),event.getKey()) );
 	}
 
 	@Override

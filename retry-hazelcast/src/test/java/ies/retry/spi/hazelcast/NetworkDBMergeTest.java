@@ -21,6 +21,7 @@ import junit.framework.Assert;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import test.util.PersistenceUtil;
@@ -34,6 +35,7 @@ import com.hazelcast.nio.IOUtil;
  * 
  *
  */
+@Ignore
 public class NetworkDBMergeTest {
 
 	// Original hazelcast instance which is used inside NetworkMerge object
