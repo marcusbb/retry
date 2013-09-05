@@ -19,6 +19,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -66,11 +67,13 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 	private long timeOut;
 	
 	// Provided
-	ExecutorService execService = null;
+	ThreadPoolExecutor execService = null;
 	//A cached threadpool to timeout the main tasks from the thread pool above
 	ExecutorService asyncTimeoutService = null;
 	private boolean writeSync = false;
-
+	private PersistenceConfig config;
+	
+	
 	protected RetryMapStore() {
 	}
 
@@ -82,6 +85,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		this.writeSync = config.isWriteSync();
 		this.timeOut = config.getTimeoutInms();
 		asyncTimeoutService = Executors.newFixedThreadPool(10, new TurboThreadFactory("retry-rstoretimeout", "retry-rstt") );
+		this.config = config;
 	}
 
 	public RetryEntity getEntity(String key) {
@@ -288,7 +292,15 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 			final DBMergePolicy mergePolicy) {
 		Logger.info(CALLER, "Retry_Map_Store_Key", "store  key " + key, "Type",
 				mapName);
-
+		
+		if (execService.getQueue().size() >=  config.getDropOnQueueSize()) {
+			Logger.error(CALLER, "DB_QUEUE_MAX_REACHED","Reached queue size: " + execService.getQueue().size());
+			//decided to drop it based on results of 
+			//code review and possiblility of hitting the upper bound
+			//and blocking on the persistence ops
+			return;
+						
+		}
 		Future<OpResult<Void>> future = execService.submit(new StoreOp(emf, value,
 				mergePolicy));
 		handleWriteSync(future);
@@ -310,6 +322,14 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		Logger.info(CALLER, "Retry_Map_Archive_Key_Partial", "archive  key " + list.get(0).getId(), "Type",
 				mapName, "Remove", removeEntity);
 
+		if (execService.getQueue().size() >=  config.getDropOnQueueSize()) {
+			Logger.error(CALLER, "DB_QUEUE_MAX_REACHED","Reached queue size: " + execService.getQueue().size());
+			//decided to drop it based on results of 
+			//code review and possiblility of hitting the upper bound
+			//and blocking on the persistence ops
+			return;
+						
+		}
 		Future<OpResult<Void>> future = execService.submit(new ArchiveOp(emf, list, removeEntity));
 		handleWriteSync(future);
 	}
@@ -318,6 +338,14 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		Logger.info(CALLER, "Retry_Map_Delete_Key", "delete " + key, "Type",
 				mapName);
 
+		if (execService.getQueue().size() >=  config.getDropOnQueueSize()) {
+			Logger.error(CALLER, "DB_QUEUE_MAX_REACHED","Reached queue size: " + execService.getQueue().size());
+			//decided to drop it based on results of 
+			//code review and possiblility of hitting the upper bound
+			//and blocking on the persistence ops
+			return;
+						
+		}
 		Future<OpResult<Void>> future = execService.submit(new DelOp(emf, mapName, key));
 		handleWriteSync(future);
 	}
@@ -345,6 +373,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 	}
 
 	private void handleWriteSync(Future<OpResult<Void>> future) throws RuntimeException {
+		
 		if (writeSync) {
 			try {
 				future.get(timeOut,TimeUnit.MILLISECONDS);					
@@ -364,7 +393,8 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		//Dispatch the timeout to a separate TP specific for processing timeouts
 		//but there is no need as it will be bounded by the thread pool above.
 		else {
-			asyncTimeoutService.submit(new FutureTimeoutTask(future, timeOut));
+			//asyncTimeoutService.submit(new FutureTimeoutTask(future, timeOut));
+			
 		}
 	}
 
@@ -380,7 +410,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		return execService;
 	}
 
-	public void setExecService(ExecutorService execService) {
+	public void setExecService(ThreadPoolExecutor execService) {
 		this.execService = execService;
 	}
 
@@ -407,7 +437,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 				//Timing out this is bad simply because 
 				//we want to close the connection
 				//but may result in a "hung" thread.
-				future.get().getEM().close();
+				future.get();
 			}finally {
 				//place holder if indeed we want to timeout on a DB connection failure.
 			}

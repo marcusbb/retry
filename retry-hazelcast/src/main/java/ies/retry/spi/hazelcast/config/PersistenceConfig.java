@@ -20,10 +20,15 @@ public class PersistenceConfig implements Serializable {
 	private int maxPoolSize = 50;
 	private int coreSize = 50;
 	private int boundedQueueSize = Integer.MAX_VALUE;
+	//when the bounded queue size gets to this size drop 
+	//tasks on the floor.
+	private int dropOnQueueSize = 10000;
 	
 	private long timeoutInms = 5 * 1000;
 	
 	private boolean pagedLoading = true;
+	
+	
 	
 	public enum ThreadQueuePolicy {
 		SYNC,ARRAY,LINKED;
@@ -113,18 +118,27 @@ public class PersistenceConfig implements Serializable {
 		this.timeoutInms = timeoutInms;
 	}
 
+	
+	public int getDropOnQueueSize() {
+		return dropOnQueueSize;
+	}
+
+	public void setDropOnQueueSize(int dropOnQueueSize) {
+		this.dropOnQueueSize = dropOnQueueSize;
+	}
+
 	@Override
 	public String toString() {
 		return "PersistenceConfig [ON=" + ON + ", writeSync=" + writeSync
 				+ ", jpaPU=" + jpaPU + ", loadFetchSize=" + loadFetchSize
 				+ ", queuePolicy=" + queuePolicy + ", maxPoolSize="
 				+ maxPoolSize + ", coreSize=" + coreSize
-				+ ", boundedQueueSize=" + boundedQueueSize + ", timeoutInms="
+				+ ", boundedQueueSize=" + boundedQueueSize
+				+ ", dropOnQueueSize=" + dropOnQueueSize + ", timeoutInms="
 				+ timeoutInms + ", pagedLoading=" + pagedLoading + "]";
 	}
 
-	
-		
+			
 	
 	
 }
