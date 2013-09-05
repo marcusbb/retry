@@ -5,7 +5,7 @@
 	<groupId>ies</groupId>
 	<artifactId>retry</artifactId>
 	<packaging>pom</packaging>
-	<version>1.1.1-SNAPSHOT</version>
+	<version>1.1.22-SNAPSHOT</version>
 	<name>RETRY ALL</name>
 	<description>
 		Retry specification + implementation.
@@ -16,7 +16,7 @@
 		<module>retry-api</module>
 		<!-- <module>retry-infinispan</module> -->
 		<module>retry-hazelcast</module>
-		<!-- <module>retry-war</module> -->
+		<module>tools</module>
 	</modules>
 	
 	

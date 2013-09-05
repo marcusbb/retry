@@ -1,0 +1,120 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                      http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	
+	<artifactId>hazelcast-retry-tool</artifactId>
+	<packaging>jar</packaging>
+	
+	<name>Tools for hazelcast retry</name>
+	<description>
+	 
+	</description>
+	
+	<parent>
+		<groupId>ies</groupId>
+		<artifactId>retry</artifactId>
+		<version>1.1.1-SNAPSHOT</version>
+	</parent>
+	
+	<repositories>
+		 <repository>
+     	 	<id>main</id>
+		<url>http://repo1.maven.org/maven2/</url>
+		</repository>
+	</repositories>
+	<dependencies>
+		
+		<dependency>
+			<groupId>ies</groupId>
+			<artifactId>hazelcast-retry</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		
+	
+	</dependencies>
+	
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>2.3.2</version>				
+				<configuration>
+					<source>1.6</source>
+					<target>1.6</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>cobertura-maven-plugin</artifactId>
+				<version>2.5.1</version>
+				<configuration>
+				  <instrumentation>
+				    <excludes>
+						<exclude>ies/retry/spi/hazelcast/disttasks/BroadcastState.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/disttasks/CallbackRegistration.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/disttasks/TryDequeueEvent.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/query/QueryException.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/query/ClusterQueryResults.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/persistence/RetryMapNoStore.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/jmx/ConfigBroadcast.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/config/PubConfig.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/config/PersistenceConfig.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/config/HealthCheckConfig.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/config/HazelcastXmlConfig.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/config/HazelcastXmlConfFactory.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/VersionedRetryHolder.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/StateTransitionException.*</exclude>
+						<exclude>ies/retry/spi/hazelcast/util/TSHolderComparator.*</exclude>
+				    </excludes>
+				  </instrumentation>
+				</configuration>
+				<executions>
+				  <execution>
+				    <goals>
+				      <goal>cobertura</goal>
+				    </goals>
+				  </execution>
+				</executions>
+			</plugin>		
+		</plugins>
+	</build>
+	
+	<reporting>
+	    <plugins>
+	    	<plugin>
+	      		<groupId>org.codehaus.mojo</groupId>
+	      		<artifactId>cobertura-maven-plugin</artifactId>
+	      		<version>2.5.1</version>
+	    	</plugin>
+	  	</plugins>
+	</reporting>
+	
+	<distributionManagement>
+	    <repository>
+	      <id>staging</id>
+	      <name>Rim Internal Releases</name>
+	      <url>http://upload-maven.rim.net/nexus/service/local/staging/deploy/maven2</url>
+	    </repository>
+	    <snapshotRepository>
+	      <id>ies-snapshots</id>
+	      <name>Rim Internal Snapshots</name>
+	      <url>http://upload-maven.rim.net/nexus/content/repositories/ies-snapshots</url>
+	    </snapshotRepository>
+	    <site>
+	      <id>site</id>
+	      <name>Rim Internal Site</name>
+	      <url>dav:http://upload-maven.rim.net/nexus/content/sites/rim-dev-site/ies</url>
+	    </site>
+	 </distributionManagement> 
+	
+	<scm>
+	    <connection>scm:perforce:${env.P4_USERNAME}@perforce02:1668://depot/dev/cardhu/IES/retry/retry-hazelcast/</connection>
+	    <developerConnection>scm:perforce:${env.P4_USERNAME}@perforce02:1668://depot/dev/cardhu/IES/retry/retry-hazelcast/</developerConnection>
+	     <url>//depot/dev/cardhu/${env.P4_USERNAME}/IES/retry/retry-hazelcast/</url>
+	</scm>
+	
+</project>
+
+
