@@ -5,7 +5,7 @@
 	<groupId>ies</groupId>
 	<artifactId>retry</artifactId>
 	<packaging>pom</packaging>
-	<version>1.1.22-SNAPSHOT</version>
+	<version>1.1.2-SNAPSHOT</version>
 	<name>RETRY ALL</name>
 	<description>
 		Retry specification + implementation.
@@ -19,7 +19,26 @@
 		<module>tools</module>
 	</modules>
 	
+	<build>
+		<plugins>
+			<plugin>
+		        <groupId>org.apache.maven.plugins</groupId>
+		        <artifactId>maven-source-plugin</artifactId>
+		        <version>2.2.1</version>
+		        <executions>
+		          <execution>
+		            <id>attach-sources</id>
+		            <phase>verify</phase>
+		            <goals>
+		              <goal>jar-no-fork</goal>
+		            </goals>
+		          </execution>
+		        </executions>
+		    </plugin>
+		</plugins>
+	</build>
 	
+	<!-- Moving to public github: we'll need some changes here  -->
 	<distributionManagement>
 	    <repository>
 	      <id>staging</id>
@@ -38,10 +57,11 @@
 	    </site>
 	 </distributionManagement> 
 	
+	<!-- Going to see if we need to have a separate pom for public consumption -->
 	<scm>
-	    <connection>scm:perforce:${env.P4_USERNAME}@perforce02:1668://depot/dev/cardhu/IES/retry/</connection>
-	    <developerConnection>scm:perforce:${env.P4_USERNAME}@perforce02:1668://depot/dev/cardhu/IES/retry/</developerConnection>
-	     <url>//depot/dev/cardhu/${env.P4_USERNAME}/IES/retry/</url>
+	    <connection>TBD</connection>
+	    <developerConnection>TBD</developerConnection>
+	     <url>TBD</url>
 	</scm>
 	
 </project>
