@@ -44,7 +44,7 @@ public class RetryMapStoreFactory {//implements MapStoreFactory<String, List<Ret
 		instance = inst;
 	}
 	/**
-	 * TODO: make this configurable
+	 * 
 	 * @param mapName
 	 * @param properties
 	 * @return
@@ -83,8 +83,16 @@ public class RetryMapStoreFactory {//implements MapStoreFactory<String, List<Ret
 		}
 		
 		long start = System.currentTimeMillis();
-		if (persistConfig.isON()) {
+		
+		//Start the entity manager regardless of the configuration
+		//allows toggling of persistence on and off
+		//and switching implementations at runtime
+		//although this is very dangerous from data integrity perspective
+		try {
 			emf = Persistence.createEntityManagerFactory(pu);
+		}catch (Exception e) {
+			Logger.error(CALLER, "Retry_Map_Store_Exception", "","msg",e.getMessage(),e);
+			//let the client continue to get exceptions on newMapStore
 		}
 
 		Logger.info(CALLER, "Retry_Map_Store_Init", "created exec service, EMF creation time:" + (System.currentTimeMillis()-start));
