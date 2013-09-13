@@ -409,7 +409,7 @@ public class StateManager implements  MembershipListener{
 	
 	/**
 	 * Local event, called from callback (or de-queue) event
-	 * Will also inform transition listeners of this  
+	 * Will also inform transition listeners of this retry type 
 	 * 
 	 * @param type
 	 * @return if storage had items that grid did not
@@ -424,29 +424,31 @@ public class StateManager implements  MembershipListener{
 		//that the cluster + storage is drained - let's make sure
 		boolean storedRetry = false;
 		
-		//first check we're QUEUED
-		//then that the grid is empty
-		//finally synchronize with DB
-		//if (t == RetryState.QUEUED) {
-			Logger.debug(CALLER, "SYNC_GRID_QUEUED","","TYPE",type);
-			if (gridEmpty(type)) {
+		
+		Logger.debug(CALLER, "SYNC_GRID_QUEUED","","TYPE",type);
+		int storeCount = ((RetryMapStore)RetryMapStoreFactory.getInstance().newMapStore(type)).count();
+		int gridCount = h1.getMap(type).size();
+		
+		//we've lost some items in the grid - master will load them
+		//in a split situation we probably do not want this - but not much choice
+		if ( gridCount < storeCount && master) {
 			
-			storedRetry =storedRetry(type);
-			if ( !storedRetry ) {
-				publish(new RetryTransitionEvent(t, RetryState.DRAINED,type));
-					Logger.info(CALLER, "SYNC_GRID_DB_SYNCED","","TYPE",type);
-				//finally flip the member lost event off,
-				//as we're  synchronized persistence
-				memberLostEvent = false;
-			} else if(master) {
-				//actively load
-					//as for some reason the 
-					//DB has records that the grid does not
-					Logger.warn(CALLER, "SYNC_GRID_DB_ERROR", "Found retries in store, loading...", "Type", type);
-					loadData(type, configMgr.getConfiguration(type),false);
-			}
+			Logger.warn(CALLER, "SYNC_DB_GRID_ISSUE","","gridCount",gridCount,"storeCount",storeCount);			
+			//actively load
+			//as for some reason the 
+			//DB has records that the grid does not
+			Logger.warn(CALLER, "SYNC_GRID_DB_ERROR", "Found retries in store, loading...", "Type", type);
+			loadData(type, configMgr.getConfiguration(type),false);
+			
 		} 
-		//} 
+		if ( storeCount == 0 && gridCount ==0 ) {
+			Logger.info(CALLER, "SYNC_GRID_DB_ZERO","","TYPE",type);
+			publish(new RetryTransitionEvent(t, RetryState.DRAINED,type));
+			//finally flip the member lost event off,
+			//as we're  synchronized persistence
+			memberLostEvent = false;
+		}
+		
 		return storedRetry;
 	}
 	
