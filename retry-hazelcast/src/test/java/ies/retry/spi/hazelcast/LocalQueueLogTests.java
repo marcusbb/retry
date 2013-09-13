@@ -18,7 +18,7 @@ import org.junit.Test;
 
 public class LocalQueueLogTests {
 
-	static String dir = "/var/log/retry";
+	static String dir = ".";
 	
 	
 	@Before

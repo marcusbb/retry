@@ -3,6 +3,7 @@ package ies.retry.spi.hazelcast;
 import ies.retry.Retry;
 import ies.retry.RetryCallback;
 import ies.retry.RetryHolder;
+import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
 import ies.retry.xml.XMLRetryConfigMgr;
 
 import java.util.concurrent.CountDownLatch;
@@ -26,7 +27,9 @@ public class LocalQueuerTest {
 	public static void before() {
 		XMLRetryConfigMgr.setXML_FILE("config_local_queue.xml");
 		retryManager = (HazelcastRetryImpl) Retry.getRetryManager();
-		
+		HazelcastConfigManager confMgr = (HazelcastConfigManager)retryManager.getConfigManager();
+		//not sure if this will work, depends on env
+		confMgr.getHzConfig().setLocalQueueLogDir(".");
 	}
 	@AfterClass
 	public static void after() {
