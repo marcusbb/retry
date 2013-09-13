@@ -47,6 +47,7 @@ import com.hazelcast.core.MultiTask;
  * 
  * Manages cluster master detection and state.
  * 
+ * TODO: split off the persistence loading features
  * 
  * @author msimonsen
  *
@@ -475,11 +476,7 @@ public class StateManager implements  MembershipListener{
 		
 	}
 	
-	private boolean storedRetry(String type) {
-		RetryMapStore store = (RetryMapStore)RetryMapStoreFactory.getInstance().newMapStore(type);
-		return store.count() > 0;
-		
-	}
+	
 	
 	public void notifyStateListeners(RetryState oldState, RetryTransitionEvent event) {
 		
