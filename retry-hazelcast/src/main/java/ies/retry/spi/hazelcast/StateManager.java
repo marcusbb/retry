@@ -457,6 +457,7 @@ public class StateManager implements  MembershipListener{
 		return true;
 	}
 	
+	//This method may be completely redundant to an IMap.size function: consider removing it.
 	private Collection<Integer> getLocalKeySetSizes(String type) {
 		HazelcastInstance h1 = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1();
 		
