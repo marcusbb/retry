@@ -432,6 +432,9 @@ public class StateManager implements  MembershipListener{
 		
 		//we've lost some items in the grid - master will load them
 		//in a split situation we probably do not want this - but not much choice
+		//there is a couple of more checks that can go in here
+		//1. That there is no storedQueueCount - meaning the DB is behind in writes
+		//2. That there is some check that we have started evicting due to HZ cache sizing policies
 		if ( gridCount < storeCount && master) {
 			
 			Logger.warn(CALLER, "SYNC_DB_GRID_ISSUE","","gridCount",gridCount,"storeCount",storeCount);			
