@@ -11,6 +11,19 @@
 		Retry specification + implementation.
 	</description>
 		
+	<developers>
+	   
+	    <developer>
+	      <id>msimonsen</id>
+	      <name>Marcus Simonsen</name>
+	      <email>msimonsen@blackberry.com</email>
+	    </developer>
+	    <developer>
+	    	<id>akharchuk</id>
+	    	<name>Andriy Kharchuk</name>
+	    	<email>akharchuk@blackberry.com</email>
+	    </developer>
+	</developers>
 	
 	<modules>
 		<module>retry-api</module>
