@@ -16,13 +16,7 @@
 		<artifactId>retry</artifactId>
 		<version>1.1.2-SNAPSHOT</version>
 	</parent>
-	<!-- for some reason rim maven mirror hasn't mirrored hazelcast latest jars. -->
-	<repositories>
-		 <repository>
-     	 	<id>main</id>
-		<url>http://repo1.maven.org/maven2/</url>
-		</repository>
-	</repositories>
+	
 	<dependencies>
 		
 		<dependency>
