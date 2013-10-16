@@ -67,8 +67,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 	
 	// Provided
 	ThreadPoolExecutor execService = null;
-	//A cached threadpool to timeout the main tasks from the thread pool above
-	ExecutorService asyncTimeoutService = null;
+	
 	private boolean writeSync = false;
 	private PersistenceConfig config;
 	
@@ -83,7 +82,6 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		this.sync_emf = emf.createEntityManager();
 		this.writeSync = config.isWriteSync();
 		this.timeOut = config.getTimeoutInms();
-		asyncTimeoutService = Executors.newFixedThreadPool(10, new TurboThreadFactory("retry-rstoretimeout", "retry-rstt") );
 		this.config = config;
 	}
 
