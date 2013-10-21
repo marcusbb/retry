@@ -3,8 +3,9 @@
 	<provider>ies.retry.spi.hazelcast.HazelcastRetryImpl</provider>
 	<!-- persistence config -->
 	<persistenceConfig>
-		<ON>false</ON>
+		<ON>true</ON>
 		<jpaPU>retryPool</jpaPU>
+		<writeSync>false</writeSync>
 	</persistenceConfig>
 	
 	<!-- health check config -->
