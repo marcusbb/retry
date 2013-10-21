@@ -20,6 +20,7 @@ import ies.retry.spi.hazelcast.util.IOUtil;
 import ies.retry.spi.hazelcast.util.RetryUtil;
 import ies.retry.spi.hazelcast.util.StringUtil;
 import ies.retry.xml.XMLRetryConfigMgr;
+import ies.retry.xml.XmlRetryConfig;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -113,8 +114,8 @@ public class HazelcastRetryImpl implements RetryManager {
 		}
 		
 		Logger.info(CALLER, "Constructor", "Initializing Persistence");
-		RetryMapStoreFactory.getInstance().init(((HazelcastXmlConfig)xmlconfigMgr.getConfig()));
-		
+		RetryMapStoreFactory.getInstance().init(configMgr.getHzConfig());
+		configMgr.addListener(RetryMapStoreFactory.getInstance() );
 		Logger.info(CALLER, "Constructor", "Initializing State and Callback");
 		//Stats might need to be augmented by state manager as well.
 		stats = initStats();
