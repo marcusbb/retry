@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ OOOOOO                 OOO                      OOOOO  OO   OO 
+ O OO O                  OO                     OO   OO OO   OO 
+   OO                    OO                     OO   OO OOO  OO 
+   OO   OO  OO  OO OOO   OOOOO   OOOOO          OO   OO OOO  OO 
+   OO   OO  OO   OO  OO  OO  OO OO   OO         OO   OO OOOO OO 
+   OO   OO  OO   OO      OO  OO OO   OO OOOOOOO OO   OO OO OOOO 
+   OO   OO  OO   OO      OO  OO OO   OO         OO   OO OO  OOO 
+   OO   OO  OO   OO      OO  OO OO   OO         OO   OO OO  OOO 
+   OO   OO  OO   OO      OO  OO OO   OO         OO   OO OO   OO 
+  OOOO   OOO OO OOOO    OOOOOO   OOOOO           OOOOO  OO   OO 
+   
+ Logging configuration for the "Turbo-ON" switch of the TurboPrv REQ527.
+
+ ROOT
+ |===== TurboAppender
+        |===== PrvFileAppender
+        |===== PrvSyslogAppender
+
+ $Id: //depot/dev/cardhu/Provisioning5.0.2/configuration/prvlog4j.xml#6 $
+ $Author: ivlasov $ $DateTime: 2009/08/06 19:41:17 $ $Change: 2280191 $
+-->
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/" threshold="all" debug="true">
+
+   
+    <!--
+        This is a backup appender in case "PrvFileAppender" fails.
+        Replace its definition if writing to console is not appropriate.       
+     -->
+    <appender name="PrvBackupAppender" class="org.apache.log4j.ConsoleAppender">
+        <layout class="provision.services.logging.PSPatternLayout">
+            <param name="conversionPattern" value="%d %D %S %-5p 
+             [%-17c{5} %T] %m%n" />
+        </layout>
+    </appender>
+
+    <!--
+        To simulate errors and test the failover mechanism, use these settings:
+        <appender name="PrvFileAppender" class="provision.services.logging.UnreliableSlowAppender">
+            <errorHandler class="provision.services.logging.TurboErrorHandler">
+                ....
+            </errorHandler>
+            <param name="maxEvents" value="..." />
+            <param name="delay" value="...." />
+            ....
+     -->
+    <appender name="PrvFileAppender" class="org.apache.log4j.RollingFileAppender">
+        <errorHandler class="provision.services.logging.TurboErrorHandler">
+            <param name="attachable" value="TurboAppender" />
+            <root-ref />
+            
+            <appender-ref ref="PrvBackupAppender" />
+        </errorHandler>
+        <param name="File" value="icrs.log" />
+        <param name="Append" value="true" />
+        <param name="MaxFileSize" value="100MB" />
+        <param name="MaxBackupIndex" value="10" />
+	<layout class="provision.services.logging.PSPatternLayout">
+            <param name="conversionPattern" 
+            value="%d pid=%e %-5p:[%t] %m%n" />
+        </layout>
+
+    </appender>
+ 	<appender name="PrvJMSAppender" class="provision.services.logging.JMSAppender">
+        <errorHandler class="org.apache.log4j.varia.FallbackErrorHandler">
+            <appender-ref ref="PrvFileAppender" />
+        </errorHandler>
+    
+        <param name="connectionFactoryName" value="weblogic.jms.ConnectionFactory" />
+        <param name="destinationName" value="LogMessageQueue" />
+    
+        <layout class="provision.services.logging.PSPatternLayout">
+           
+        </layout>
+    </appender>
+    <!-- 
+    <appender name="PrvSyslogAppender" class="org.apache.log4j.net.SyslogAppender">
+        <param name="SyslogHost" value="log1001.prov.prod.on.blackberry" />
+        <param name="Facility" value="LOCAL7" />
+        <layout class="provision.services.logging.PSPatternLayout">
+            <param name="conversionPattern" value="%D %-5p {%P} %#: [%-17c{5} %T] %m\n" />
+        </layout>
+    </appender>
+	 -->
+    <appender name="TurboAppender" class="provision.services.logging.TurboAppender">
+        <param name="bufferSize" value="8192" />
+        <param name="locationInfo" value="false" />
+
+        <appender-ref ref="PrvBackupAppender" /> 
+		<!-- <appender-ref ref="PrvFileAppender" /> -->
+        <!-- <appender-ref ref="PrvSyslogAppender" /> -->
+    </appender>
+
+    
+
+    <logger name="OffSwitch" additivity="false">
+        <level value="INFO" />
+    </logger>
+
+    <root>
+        <level value="INFO" />
+        <appender-ref ref="TurboAppender" />
+    </root>
+    <logger name="ies.retry" >
+        <level value="INFO" />
+    </logger>
+    
+<!--
+    <logger name="OffSwitch" additivity="false">
+        <level value="DEBUG" />
+        <appender-ref ref="PrvJMSAppender" />
+    </logger>
+-->
+    
+    
+   
+</log4j:configuration>
