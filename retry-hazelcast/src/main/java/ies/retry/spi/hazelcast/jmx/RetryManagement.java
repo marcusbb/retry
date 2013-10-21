@@ -62,9 +62,11 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 		hzTopic.addMessageListener(this);
 	}
 	
-	public void onMessage(Message<ConfigBroadcast> message) {
+	public synchronized void onMessage(Message<ConfigBroadcast> message) {
 		ConfigBroadcast event = message.getMessageObject();
-		((XMLRetryConfigMgr)this.coordinator.getConfigManager()).setConfig(event.getXmlConfig());
+		HazelcastConfigManager configMgr = ((HazelcastConfigManager)this.coordinator.getConfigManager());
+		configMgr.setConfig(event.getXmlConfig());
+		configMgr.notifyListeners();
 		
 	}
 	

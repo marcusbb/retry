@@ -1,5 +1,6 @@
 package ies.retry.spi.hazelcast.persistence;
 
+import ies.retry.spi.hazelcast.config.ConfigListener;
 import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
 import ies.retry.spi.hazelcast.config.PersistenceConfig;
 
@@ -16,7 +17,9 @@ import javax.persistence.Persistence;
 import provision.services.logging.Logger;
 import provision.util.turbo.TurboThreadFactory;
 
-public class RetryMapStoreFactory {//implements MapStoreFactory<String, List<RetryHolder>>{
+public class RetryMapStoreFactory implements ConfigListener {//implements MapStoreFactory<String, List<RetryHolder>>{
+	
+
 	private static final String CALLER = RetryMapStoreFactory.class.getName();
 	
 	private String pu = "retry";
@@ -66,6 +69,7 @@ public class RetryMapStoreFactory {//implements MapStoreFactory<String, List<Ret
 	 * @param config
 	 */
 	public void init(HazelcastXmlConfig config) {
+		
 		this.pu = config.getPersistenceConfig().getJpaPU();
 		this.persistConfig = config.getPersistenceConfig();
 		
@@ -116,5 +120,12 @@ public class RetryMapStoreFactory {//implements MapStoreFactory<String, List<Ret
 		return execService;
 	}
 	
+	@Override
+	public void onConfigChange(HazelcastXmlConfig config) {
+		//we can't refresh the thread pool, without complications
+		//so we'll focus on the ON/OFF flag for now.
+		this.persistConfig = config.getPersistenceConfig();
+		
+	}
 	
 }

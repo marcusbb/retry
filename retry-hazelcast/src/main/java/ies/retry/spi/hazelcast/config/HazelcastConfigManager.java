@@ -5,14 +5,19 @@ import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 import ies.retry.xml.XMLRetryConfigMgr;
 import ies.retry.xml.XmlRetryConfig;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class HazelcastConfigManager extends XMLRetryConfigMgr {
 
 	HazelcastRetryImpl retryImpl;
 	
+	Set<ConfigListener> listenerSet;
+	
 	public HazelcastConfigManager(HazelcastRetryImpl retryImpl) {
 		this.retryImpl = retryImpl;
+		this.listenerSet = new HashSet<ConfigListener>();
 	}
 	
 	@Override
@@ -43,6 +48,18 @@ public class HazelcastConfigManager extends XMLRetryConfigMgr {
 	
 	public HazelcastXmlConfig getHzConfig() {
 		return (HazelcastXmlConfig)getConfig();
+	}
+	
+	public void addListener(ConfigListener listener) {
+		listenerSet.add(listener);
+	}
+	public void removeListener(ConfigListener listener) {
+		listenerSet.remove(listener);
+	}
+	public void notifyListeners() {
+		for (ConfigListener listener:listenerSet) {
+			listener.onConfigChange(getHzConfig());
+		}
 	}
 	
 	
