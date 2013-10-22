@@ -245,34 +245,6 @@ public class StateManager implements  MembershipListener{
 			}
 		});
 	}
-	private void loadData(String type) {
-		RetryConfiguration config = configMgr.getConfiguration(type);
-		// initialize loading state null -> loading
-		loadingStateMap.put(config.getType(), LoadingState.LOADING);
-		Logger.info(CALLER, "Load_Data_Async", "Update loading State -> LOADING", "Type", config.getType());
-		loadData(config.getType(),config,true);
-		
-		
-		if(loadingStateMap.tryLock(config.getType())) {
-			if(loadingStateMap.get(config.getType()) == null) {
-				// initialize loading state null -> loading
-				loadingStateMap.put(config.getType(), LoadingState.LOADING);
-				Logger.info(CALLER, "Load_Data_Async", "Update loading State -> LOADING", "Type", config.getType());
-				
-				//scrolling or paging loading?
-				if (configMgr.getRetryHzConfig().getPersistenceConfig().isPagedLoading())
-					loadData(config.getType(), config);
-				else
-					loadData(config.getType(),config,true);
-				
-				loadingStateMap.put(config.getType(), LoadingState.READY);
-				Logger.info(CALLER, "Load_Data_Async", "Update loading State -> READY", "Type", config.getType());
-			}
-			loadingStateMap.put(config.getType(), LoadingState.READY);
-			Logger.info(CALLER, "Load_Data_Async", "Update loading State -> READY", "Type", config.getType());
-			
-		}
-	}
 	
 	
 	/**
