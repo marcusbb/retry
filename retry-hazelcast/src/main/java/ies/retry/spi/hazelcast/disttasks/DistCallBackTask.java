@@ -127,7 +127,7 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 						if (failedHolder.size() == 0) {
 							Logger.info(CALLER, "Retry_Callback_Sucess: ID=" + id);
 							//potential that this locks for a much briefer time
-							lockAquired = retryMap.tryLock(id,configMgr.getHzConfig().getRetryAddLockTimeout(),TimeUnit.MILLISECONDS);
+							lockAquired = retryMap.tryLock(id,configMgr.getRetryHzConfig().getRetryAddLockTimeout(),TimeUnit.MILLISECONDS);
 							if ( ! lockAquired ) {
 								Logger.warn(CALLER, "DistCallBackTask_LockTimeout","Lock timeout","retry",id);
 								throw new RuntimeException("Unable to Aquire Lock: " + id.toString());
@@ -157,7 +157,7 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 
 					
 				if (!stat.isSuccess() && exec) {
-						lockAquired = retryMap.tryLock(id,configMgr.getHzConfig().getRetryAddLockTimeout(),TimeUnit.MILLISECONDS);
+						lockAquired = retryMap.tryLock(id,configMgr.getRetryHzConfig().getRetryAddLockTimeout(),TimeUnit.MILLISECONDS);
 						if ( ! lockAquired ) {
 							Logger.warn(CALLER, "DistCallBackTask_LockTimeout","Lock timeout","retry",id);
 							throw new RuntimeException("Unable to Aquire Lock: " + id.toString());

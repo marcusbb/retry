@@ -376,7 +376,7 @@ public class CallbackManager  {
 	}
 	
 	private Member pickMember(String type) throws NoCallbackMember {
-		HazelcastXmlConfig config = configMgr.getHzConfig();
+		HazelcastXmlConfig config = configMgr.getRetryHzConfig();
 		if (config.isPickLocalCallback())
 			return pickLocalMember();
 		//if a local registered listener is available, callbackMap will 

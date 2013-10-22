@@ -224,7 +224,7 @@ public class StateManager implements  MembershipListener{
 							Logger.info(CALLER, "Load_Data_Async", "Update loading State -> LOADING", "Type", config.getType());
 							
 							//scrolling or paging loading?
-							if (configMgr.getHzConfig().getPersistenceConfig().isPagedLoading())
+							if (configMgr.getRetryHzConfig().getPersistenceConfig().isPagedLoading())
 								loadData(config.getType(), config);
 							else
 								loadData(config.getType(),config,true);
@@ -260,7 +260,7 @@ public class StateManager implements  MembershipListener{
 				Logger.info(CALLER, "Load_Data_Async", "Update loading State -> LOADING", "Type", config.getType());
 				
 				//scrolling or paging loading?
-				if (configMgr.getHzConfig().getPersistenceConfig().isPagedLoading())
+				if (configMgr.getRetryHzConfig().getPersistenceConfig().isPagedLoading())
 					loadData(config.getType(), config);
 				else
 					loadData(config.getType(),config,true);
@@ -335,7 +335,7 @@ public class StateManager implements  MembershipListener{
 			Logger.info(CALLER, "I_Am_Master", "I am the master: "+ masterMember);
 			master = true;
 			//
-			long queueCheckPeriod = configMgr.getHzConfig().getQueueCheckPeriod();
+			long queueCheckPeriod = configMgr.getRetryHzConfig().getQueueCheckPeriod();
 			stpe.scheduleAtFixedRate(
 					new SyncGridStorageTask(this), 
 					queueCheckPeriod, queueCheckPeriod, TimeUnit.MILLISECONDS);
@@ -429,13 +429,19 @@ public class StateManager implements  MembershipListener{
 		Logger.debug(CALLER, "SYNC_GRID_QUEUED","","TYPE",type);
 		int storeCount = ((RetryMapStore)RetryMapStoreFactory.getInstance().newMapStore(type)).count();
 		int gridCount = h1.getMap(type).size();
+		int maxSize = configMgr.getHzConfiguration().getMapConfig(type).getMaxSizeConfig().getSize();
+		int avgSizePerNode = gridCount / h1.getCluster().getMembers().size();
 		
-		//we've lost some items in the grid - master will load them
+		//define over capacity as this average node map size exceeding the max size
+		//we don't want to trigger a load if cache has evicted
+		boolean overCapacity = avgSizePerNode >= maxSize;
+		
+		//we've lost some items in the grid OR the grid has evicted from cache
 		//in a split situation we probably do not want this - but not much choice
 		//there is a couple of more checks that can go in here
 		//1. That there is no storedQueueCount - meaning the DB is behind in writes
-		//2. That there is some check that we have started evicting due to HZ cache sizing policies
-		if ( gridCount < storeCount && master) {
+		// 
+		if ( (gridCount < storeCount) && !overCapacity && master) {
 			
 			Logger.warn(CALLER, "SYNC_DB_GRID_ISSUE","","gridCount",gridCount,"storeCount",storeCount);			
 			//actively load

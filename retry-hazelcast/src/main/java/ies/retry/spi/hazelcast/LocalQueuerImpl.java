@@ -56,14 +56,14 @@ public class LocalQueuerImpl implements LocalQueuer {
 	public LocalQueuerImpl(HazelcastInstance inst,HazelcastConfigManager configMgr) {
 		this.hz = inst;
 		this.configMgr = configMgr;
-		this.config = configMgr.getHzConfig();
+		this.config = configMgr.getRetryHzConfig();
 		queueMap = new ConcurrentHashMap<String, Queue<RetryHolder>>();
 		queueExec = new HashMap<String, ExecutorService>();
 		pollQueueMap = new HashMap<String, PollQueue>();
 		//may end up putting this in another method
 		//so that it can be replayed
 		try {
-			queueLog = new LocalQueueLog(configMgr.getHzConfig().getLocalQueueLogDir());
+			queueLog = new LocalQueueLog(configMgr.getRetryHzConfig().getLocalQueueLogDir());
 			replayLogAndQueue();
 		}catch (IOException e) {
 			Logger.error(getClass().getName(), "LocalQueuerImpl_init","No_local_log","msg",e.getMessage(),e);

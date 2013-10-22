@@ -1,17 +1,23 @@
 package ies.retry.spi.hazelcast.util;
 
+import ies.retry.xml.XMLRetryConfigMgr;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.Properties;
 
-import ies.retry.xml.XMLRetryConfigMgr;
 import provision.services.logging.Logger;
 
 import com.hazelcast.config.ClasspathXmlConfig;
 import com.hazelcast.config.Config;
 import com.hazelcast.config.InMemoryXmlConfig;
+import com.hazelcast.config.MapConfig;
+import com.hazelcast.config.MaxSizeConfig;
+import com.hazelcast.core.Cluster;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.impl.CMap;
+
 
 public class HzUtil {
 
@@ -64,5 +70,115 @@ public class HzUtil {
 		return h1;
 	}
 
+	public int maxMapSize(MapConfig mapConfig,Cluster cluster) {
+		MaxSizeConfig maxSizeConfig = mapConfig.getMaxSizeConfig();
+		MapMaxSizePolicy maxSizePolicy = null;
+		
+		if (MaxSizeConfig.POLICY_MAP_SIZE_PER_JVM.equals(maxSizeConfig.getMaxSizePolicy())) {
+            maxSizePolicy = new MaxSizePerJVMPolicy(maxSizeConfig);
+        } else if (MaxSizeConfig.POLICY_CLUSTER_WIDE_MAP_SIZE.equals(maxSizeConfig.getMaxSizePolicy())) {
+            maxSizePolicy = new MaxSizeClusterWidePolicy(maxSizeConfig,cluster);
+        } else if (MaxSizeConfig.POLICY_PARTITIONS_WIDE_MAP_SIZE.equals(maxSizeConfig.getMaxSizePolicy())) {
+            maxSizePolicy = new MaxSizePartitionsWidePolicy(maxSizeConfig);
+        } else if (MaxSizeConfig.POLICY_USED_HEAP_SIZE.equals(maxSizeConfig.getMaxSizePolicy())) {
+            maxSizePolicy = new MaxSizeHeapPolicy(maxSizeConfig);
+        } else if (MaxSizeConfig.POLICY_USED_HEAP_PERCENTAGE.equals(maxSizeConfig.getMaxSizePolicy())) {
+            maxSizePolicy = new MaxSizeHeapPercentagePolicy(maxSizeConfig);
+        } else {
+        	// protected against this?
+            maxSizePolicy = null;
+        }
+		return maxSizePolicy.getMaxSize();
+		
+	}
 	
+	
+	/**
+	 * Following class definitions ripped from {@link CMap}
+	 * 
+	 *
+	 */
+	public interface MapMaxSizePolicy {
+
+	    //boolean overCapacity();
+
+	    //MaxSizeConfig getMaxSizeConfig();
+	    
+	    int getMaxSize();
+
+	}
+	 class MaxSizePerJVMPolicy implements MapMaxSizePolicy {
+	        protected final MaxSizeConfig maxSizeConfig;
+
+	        MaxSizePerJVMPolicy(MaxSizeConfig maxSizeConfig) {
+	            this.maxSizeConfig = maxSizeConfig;
+	        }
+
+	        public int getMaxSize() {
+	            return maxSizeConfig.getSize();
+	        }
+
+	        public boolean overCapacity() {
+	           throw new UnsupportedOperationException("");
+	        }
+
+	        public MaxSizeConfig getMaxSizeConfig() {
+	            return maxSizeConfig;
+	        }
+	    }
+
+	    class MaxSizeHeapPolicy extends MaxSizePerJVMPolicy {
+	        final long memoryLimit;
+
+	        MaxSizeHeapPolicy(MaxSizeConfig maxSizeConfig) {
+	            super(maxSizeConfig);
+	            memoryLimit = maxSizeConfig.getSize() * 1024L * 1024L; // MB to byte
+	        }
+
+	        public boolean overCapacity() {
+	        	throw new UnsupportedOperationException("");
+	        }
+	    }
+
+	    class MaxSizeHeapPercentagePolicy extends MaxSizePerJVMPolicy {
+	        final int maxPercentage;
+
+	        MaxSizeHeapPercentagePolicy(MaxSizeConfig maxSizeConfig) {
+	            super(maxSizeConfig);
+	            maxPercentage = maxSizeConfig.getSize();
+	        }
+
+	        public boolean overCapacity() {
+	        	throw new UnsupportedOperationException("");
+	        }
+	    }
+
+	    class MaxSizeClusterWidePolicy extends MaxSizePerJVMPolicy {
+	    	Cluster cluster;
+	    	
+	        MaxSizeClusterWidePolicy(MaxSizeConfig maxSizeConfig,Cluster cluster) {
+	            super(maxSizeConfig);
+	        }
+
+	        @Override
+	        public int getMaxSize() {
+	            final int maxSize = maxSizeConfig.getSize();
+	            final int clusterMemberSize = cluster.getMembers().size();
+	            final int memberCount = (clusterMemberSize == 0) ? 1 : clusterMemberSize;
+	            return maxSize / memberCount;
+	        }
+	    }
+
+	    class MaxSizePartitionsWidePolicy extends MaxSizePerJVMPolicy {
+
+	        MaxSizePartitionsWidePolicy(MaxSizeConfig maxSizeConfig) {
+	            super(maxSizeConfig);
+	        }
+
+	        @Override
+	        public int getMaxSize() {
+	           throw new UnsupportedOperationException("");
+	        }
+	    }
+
 }

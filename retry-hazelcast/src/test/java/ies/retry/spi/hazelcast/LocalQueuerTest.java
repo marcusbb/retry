@@ -29,7 +29,7 @@ public class LocalQueuerTest {
 		retryManager = (HazelcastRetryImpl) Retry.getRetryManager();
 		HazelcastConfigManager confMgr = (HazelcastConfigManager)retryManager.getConfigManager();
 		//not sure if this will work, depends on env
-		confMgr.getHzConfig().setLocalQueueLogDir(".");
+		confMgr.getRetryHzConfig().setLocalQueueLogDir(".");
 	}
 	@AfterClass
 	public static void after() {

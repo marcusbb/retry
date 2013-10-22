@@ -9,11 +9,16 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.hazelcast.config.Config;
+
 public class HazelcastConfigManager extends XMLRetryConfigMgr {
 
 	HazelcastRetryImpl retryImpl;
 	
 	Set<ConfigListener> listenerSet;
+	
+	//Actual HZ configuration
+	private Config hzConfiguration;
 	
 	public HazelcastConfigManager(HazelcastRetryImpl retryImpl) {
 		this.retryImpl = retryImpl;
@@ -46,10 +51,13 @@ public class HazelcastConfigManager extends XMLRetryConfigMgr {
 		retryImpl.getCallbackManager().init(newConfig.getType());
 	}	
 	
-	public HazelcastXmlConfig getHzConfig() {
+	public HazelcastXmlConfig getRetryHzConfig() {
 		return (HazelcastXmlConfig)getConfig();
 	}
 	
+	public Config getHzConfiguration() {
+		return hzConfiguration;
+	}
 	public void addListener(ConfigListener listener) {
 		listenerSet.add(listener);
 	}
@@ -58,7 +66,7 @@ public class HazelcastConfigManager extends XMLRetryConfigMgr {
 	}
 	public void notifyListeners() {
 		for (ConfigListener listener:listenerSet) {
-			listener.onConfigChange(getHzConfig());
+			listener.onConfigChange(getRetryHzConfig());
 		}
 	}
 	

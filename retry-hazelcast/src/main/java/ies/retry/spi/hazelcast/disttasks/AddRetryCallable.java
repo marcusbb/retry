@@ -80,7 +80,7 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 			
 			distMap = h1.getMap(retry.getType());
 			//distMap.lock(retry.getId());
-			lockAquired = distMap.tryLock(retry.getId(), configMgr.getHzConfig().getRetryAddLockTimeout(), TimeUnit.MILLISECONDS);
+			lockAquired = distMap.tryLock(retry.getId(), configMgr.getRetryHzConfig().getRetryAddLockTimeout(), TimeUnit.MILLISECONDS);
 			if ( ! lockAquired ) {
 				Logger.warn(CALLER, "Add_Retry_Task_Call_LockTimeout","Lock timeout","retry",retry);
 				throw new RuntimeException("Unable to Aquire Lock: " + retry.toString());
@@ -143,7 +143,7 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 		try {
 			HazelcastConfigManager configMgr = (HazelcastConfigManager)((HazelcastRetryImpl)Retry.getRetryManager()).getConfigManager();
 			
-			lockAquired = distMap.tryLock(retry.getId(), configMgr.getHzConfig().getRetryAddLockTimeout(), TimeUnit.MILLISECONDS);
+			lockAquired = distMap.tryLock(retry.getId(), configMgr.getRetryHzConfig().getRetryAddLockTimeout(), TimeUnit.MILLISECONDS);
 			if ( ! lockAquired ) {
 				Logger.warn(CALLER, "Add_Retry_Task_Call_LockTimeout","Lock timeout","retry",retry);
 				throw new RuntimeException("Unable to Aquire Lock: " + retry.toString());

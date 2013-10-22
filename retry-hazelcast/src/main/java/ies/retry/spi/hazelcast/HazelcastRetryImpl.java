@@ -109,7 +109,7 @@ public class HazelcastRetryImpl implements RetryManager {
 		
 		
 		Logger.info(CALLER, "Constructor", "Initializing Persistence");
-		RetryMapStoreFactory.getInstance().init(configMgr.getHzConfig());
+		RetryMapStoreFactory.getInstance().init(configMgr.getRetryHzConfig());
 		configMgr.addListener(RetryMapStoreFactory.getInstance() );
 		Logger.info(CALLER, "Constructor", "Initializing State and Callback");
 		//Stats might need to be augmented by state manager as well.
@@ -222,7 +222,7 @@ public class HazelcastRetryImpl implements RetryManager {
 		catch (Exception e) {
 			//Unable to add retry
 			Logger.error(CALLER, "Add_Retry_Exception", "Exception Message: " + e.getMessage(), "ID", retry.getId(), "Type", e);
-			if (configMgr.getHzConfig().isThrowOnAddException())
+			if (configMgr.getRetryHzConfig().isThrowOnAddException())
 				throw new RuntimeException("Configured to Throw exception, deal with it");
 			else {
 				//Add to local queue for later consumption
@@ -236,7 +236,7 @@ public class HazelcastRetryImpl implements RetryManager {
 		try {
 			//right now its a global configuration, TODO: change by type
 			if (config.isSyncRetryAdd()) {
-				long timeout = configMgr.getHzConfig().getRetryAddLockTimeout();
+				long timeout = configMgr.getRetryHzConfig().getRetryAddLockTimeout();
 				distTask.get(timeout,TimeUnit.MILLISECONDS);
 							
 			}
@@ -345,7 +345,7 @@ public class HazelcastRetryImpl implements RetryManager {
 		}catch (Exception e) {
 			//Unable to add retry
 			Logger.error(CALLER, "Put_Retry_Exception", "Exception Message: " + e.getMessage(), "Type", (retry!=null)?retry.getType():null, e);
-			if (configMgr.getHzConfig().isThrowOnAddException())
+			if (configMgr.getRetryHzConfig().isThrowOnAddException())
 				throw new RuntimeException("Configured to Throw exception, deal with it");
 			else {
 				//Add to local queue for later consumption
