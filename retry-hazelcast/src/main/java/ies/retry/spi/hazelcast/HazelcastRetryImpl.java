@@ -105,13 +105,8 @@ public class HazelcastRetryImpl implements RetryManager {
 		
 		Logger.info(CALLER, "Constructor", "Loading HazelCast config from classpath");
 		
-		if (h1 == null) {
-			synchronized(HazelcastRetryImpl.class) {
-				
-				h1 = HzUtil.loadHzConfiguration();
-			
-			}
-		}
+		h1 = HzUtil.loadHzConfiguration();
+		
 		
 		Logger.info(CALLER, "Constructor", "Initializing Persistence");
 		RetryMapStoreFactory.getInstance().init(configMgr.getHzConfig());
