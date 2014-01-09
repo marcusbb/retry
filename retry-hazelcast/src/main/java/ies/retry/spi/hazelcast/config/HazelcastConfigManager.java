@@ -23,6 +23,8 @@ public class HazelcastConfigManager extends XMLRetryConfigMgr {
 	public HazelcastConfigManager(HazelcastRetryImpl retryImpl) {
 		this.retryImpl = retryImpl;
 		this.listenerSet = new HashSet<ConfigListener>();
+		
+		//this.hzConfiguration = retryImpl.getH1().getConfig();
 	}
 	
 	@Override
@@ -56,7 +58,10 @@ public class HazelcastConfigManager extends XMLRetryConfigMgr {
 	}
 	
 	public Config getHzConfiguration() {
-		return hzConfiguration;
+		if (retryImpl.getH1() != null) {
+			return retryImpl.getH1().getConfig();
+		}
+		throw new IllegalStateException("Retry Service is hasn't started hazelcast");
 	}
 	public void addListener(ConfigListener listener) {
 		listenerSet.add(listener);
