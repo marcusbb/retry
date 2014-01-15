@@ -39,6 +39,12 @@ import java.util.concurrent.TimeUnit;
  */
 public class BackOff implements Serializable {
 
+	public enum BackoffMode {
+		StaticIntervals,
+		Periodic,
+		Geometric
+	};	
+		
 	/**
 	 * 
 	 */
@@ -59,14 +65,26 @@ public class BackOff implements Serializable {
 	 * combined with the {@link #interval} will determine the actual backoff.
 	 * If < 1 then it will be shorter period - hence not a back off.
 	 */
-	@Deprecated
+//	@Deprecated
 	private float intervalMultiplier = 1;
-
+	
 	private List<Long> staticIntervals;
 
 	private TimeUnit timeUnit = TimeUnit.MILLISECONDS;
+		
+	private BackoffMode backoffMode = BackoffMode.Periodic;
+	
+
+	public void setBackoffMode(BackoffMode backoffMode) {
+		this.backoffMode = backoffMode;
+	}
+	
+	public BackoffMode getBackoffMode()	{	
+		return backoffMode;
+	}
 
 	public int getMaxAttempts() {
+		
 		return maxAttempts;
 	}
 
@@ -85,7 +103,7 @@ public class BackOff implements Serializable {
 		this.interval = interval;
 	}
 
-	@Deprecated
+//	@Deprecated
 	public float getIntervalMultiplier() {
 		return intervalMultiplier;
 	}

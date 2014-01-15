@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.hazelcast.core.HazelcastInstance;
@@ -67,7 +68,6 @@ public class CallbackManagerTest {
 		Assert.assertNull(holderList);
 
 	}
-
 	
 	@Test
 	public void addAndDequeueFail() throws Exception {

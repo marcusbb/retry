@@ -1,8 +1,10 @@
 package ies.retry.spi.hazelcast.disttasks;
 
+import ies.retry.BackOff;
 import ies.retry.Retry;
 import ies.retry.RetryConfiguration;
 import ies.retry.RetryHolder;
+import ies.retry.BackOff.BackoffMode;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 import ies.retry.spi.hazelcast.StateManager;
 import ies.retry.spi.hazelcast.StateManager.LoadingState;
@@ -36,32 +38,45 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 	private RetryHolder retry = null;
 	private List<RetryHolder> retryList = null;
 	private boolean appendList = true;
-	//private long nextTs = 0;
 	private boolean persist = true;
 
-	//private RetryConfiguration config;
 	private long backOffInterval;
 	
 	public AddRetryCallable() {}
 	
 	public AddRetryCallable(RetryHolder holder,RetryConfiguration config) {
-		//this.config = config;
 		this.retry = holder;
 		this.appendList = config.isListBacked();
-		//this.nextTs = System.currentTimeMillis() + config.getBackOff().getMilliInterval();
-		this.backOffInterval = config.getBackOff().getInterval();
+		backOffInterval = getFirstBackOffInterval(config.getBackOff());
 	}
 	
 	public AddRetryCallable(List<RetryHolder> listHolder,RetryConfiguration config) {
-		//this.config = config;
 		this.retryList = listHolder;
 		this.appendList = config.isListBacked();
-		//this.nextTs = System.currentTimeMillis() + config.getBackOff().getMilliInterval();
-		this.backOffInterval = config.getBackOff().getInterval();
+		backOffInterval = getFirstBackOffInterval(config.getBackOff());		
 	}
 	public AddRetryCallable(List<RetryHolder> listHolder,RetryConfiguration config,boolean persist) {
 		this(listHolder,config);
 		this.persist = persist;
+	}
+	
+	
+	private long getFirstBackOffInterval(BackOff backOff) {
+
+		long backOffInterval;
+		
+		switch (backOff.getBackoffMode()) {		
+		case StaticIntervals:			
+			backOffInterval = backOff.getStaticIntervals().get(0);
+			break;		
+		case Geometric:
+		case Periodic:
+		default:
+			backOffInterval = backOff.getInterval();
+			break;
+		}
+		
+		return backOffInterval;
 	}
 	
 	public Void call() throws Exception {
@@ -70,9 +85,7 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 		try {
 			if (retryList != null)
 				return callListPut();
-			
-
-			
+						
 			HazelcastConfigManager configMgr = (HazelcastConfigManager)((HazelcastRetryImpl)Retry.getRetryManager()).getConfigManager();
 			
 			RetryConfiguration curConfig = configMgr.getConfiguration(retry.getType());
@@ -88,7 +101,7 @@ public class AddRetryCallable implements Callable<Void>,Serializable {
 			long curTs = System.currentTimeMillis();
 			retry.setSystemTs(curTs);
 			retry.setNextAttempt(curTs + backOffInterval);
-					
+
 			List<RetryHolder> listHolder = distMap.get(retry.getId());
 			if (listHolder == null) {
 				listHolder = new ArrayList<RetryHolder>();
