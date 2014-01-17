@@ -185,11 +185,9 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 						}
 						List<RetryHolder> latest = retryMap.get(id);
 						RetryMapStore mapStore = RetryMapStoreFactory.getInstance().newMapStore(type);
-						
-						int maxCount = (backOff.getBackoffMode() == BackoffMode.StaticIntervals) ? backOff.getStaticIntervals().size() : backOff.getMaxAttempts();
-						
+												
 						firstHolder = failedHolder.get(0);
-						if (firstHolder.getCount()>= maxCount) {
+						if (firstHolder.getCount()>= backOff.getMaxAttempts()) {
 							failedHolder.remove(0);
 							List<RetryHolder> mergedList = RetryUtil.merge(CALLER, listHolder, failedHolder, latest);	
 							
