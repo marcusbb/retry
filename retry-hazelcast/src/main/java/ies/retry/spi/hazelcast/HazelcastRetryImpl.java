@@ -110,6 +110,7 @@ public class HazelcastRetryImpl implements RetryManager {
 		
 		Logger.info(CALLER, "Constructor", "Initializing Persistence");
 		RetryMapStoreFactory.getInstance().init(configMgr.getRetryHzConfig());
+
 		configMgr.addListener(RetryMapStoreFactory.getInstance() );
 		Logger.info(CALLER, "Constructor", "Initializing State and Callback");
 		//Stats might need to be augmented by state manager as well.

@@ -1,6 +1,7 @@
 package ies.retry.spi.hazelcast.disttasks;
 
 import ies.retry.BackOff;
+import ies.retry.BackOff.BackoffMode;
 import ies.retry.Retry;
 import ies.retry.RetryCallback;
 import ies.retry.RetryConfiguration;
@@ -48,6 +49,28 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 		this.archiveRetries = archiveRetries;
 		
 	}
+	
+	private long getNextDelayForRetry(BackOff backOff, int retryNum){
+
+		long nextDelay = 0;
+		
+		switch (backOff.getBackoffMode()){
+		case Geometric:
+			nextDelay = Math.round(Math.pow(backOff.getIntervalMultiplier(),retryNum)*backOff.getMilliInterval());
+			break;
+		case StaticIntervals:
+			if (retryNum < backOff.staticMillis().length-1)
+				nextDelay = backOff.staticMillis()[retryNum];
+			else
+				nextDelay = backOff.staticMillis()[backOff.staticMillis().length - 1];
+			break;
+		case Periodic:						
+			nextDelay = Math.round(backOff.getMilliInterval());
+			break;
+		}
+		return nextDelay;
+	}
+	
 	@Override
 	public CallbackStat call() throws Exception {
 		CallbackStat stat = new CallbackStat(true);
@@ -145,9 +168,7 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 							else{
 								retryMap.put(id, mergedList);
 								mapStore.store(mergedList, DBMergePolicy.FIND_OVERWRITE); // only new retries will be stored to DB, so it is OK to synchronize
-							}
-							
-							
+							}							
 						} 
 						else {
 							stat.setSuccess(false);
@@ -164,7 +185,7 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 						}
 						List<RetryHolder> latest = retryMap.get(id);
 						RetryMapStore mapStore = RetryMapStoreFactory.getInstance().newMapStore(type);
-						
+												
 						firstHolder = failedHolder.get(0);
 						if (firstHolder.getCount()>= backOff.getMaxAttempts()) {
 							failedHolder.remove(0);
@@ -194,10 +215,11 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 							//we separate the timer from the calculation of next
 							//set all of them to be safe (and help in query)
 							for (RetryHolder fh:failedHolder) {
-								int nextTs = Math.round( backOff.getMilliInterval()  );
-								fh.setNextAttempt(System.currentTimeMillis() + nextTs);
-								fh.incrementCount();
+									
+								long nextDelay = getNextDelayForRetry(backOff, fh.getCount());																
 								
+								fh.setNextAttempt(System.currentTimeMillis() + nextDelay);
+								fh.incrementCount();									
 							}
 							List<RetryHolder> mergedList = RetryUtil.merge(CALLER, listHolder, failedHolder, latest);
 							// nothing expired so only new item could have been potentially added to the list
