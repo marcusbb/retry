@@ -16,6 +16,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class LocalQueuerTest {
@@ -133,6 +134,7 @@ public class LocalQueuerTest {
 	}
 	
 	@Test
+	@Ignore
 	public void test10TPConcurrentAddFor1000() throws Exception {
 		
 		@SuppressWarnings("static-access")
@@ -153,6 +155,7 @@ public class LocalQueuerTest {
 		
 		
 		}
+		//this is fragile, so we're skipping
 		Thread.sleep(5000);
 		
 		for (int i=0;i<1000;i++  ) {
