@@ -17,7 +17,7 @@ import ies.retry.xml.XMLRetryConfigMgr;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
-
+import javax.persistence.Persistence;
 
 import static junit.framework.Assert.*;
 
@@ -62,7 +62,7 @@ public class RetryMapStoreTest {
 		assertFalse("ARCHIVE_OFF ", configMap.get(ARCHIVE_OFF_CONFIG)
 				.isArchiveExpired());
 
-		emf = PersistenceUtil.getEMFactory("retryPool");
+		emf = Persistence.createEntityManagerFactory("retryPool");
 		HazelcastXmlConfig config = new HazelcastXmlConfig();
 		config.getPersistenceConfig().setON(true);
 		

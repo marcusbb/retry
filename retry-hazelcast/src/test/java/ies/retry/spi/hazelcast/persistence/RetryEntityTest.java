@@ -1,6 +1,7 @@
 package ies.retry.spi.hazelcast.persistence;
 
 import ies.retry.RetryHolder;
+import ies.retry.spi.hazelcast.HzIntegrationTestUtil;
 import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
 import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
 import ies.retry.spi.hazelcast.persistence.DBMergePolicy;
@@ -9,6 +10,9 @@ import ies.retry.spi.hazelcast.persistence.RetryId;
 import ies.retry.spi.hazelcast.persistence.RetryMapStore;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -16,6 +20,7 @@ import java.util.Map;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 
 import junit.framework.Assert;
 
@@ -41,7 +46,10 @@ public class RetryEntityTest {
 	@BeforeClass
     public static void setUpBeforeClass() throws Throwable 
     {
-		emf = PersistenceUtil.getEMFactory("retryPool");
+		//emf = PersistenceUtil.getEMFactory("retryPool");
+		HzIntegrationTestUtil.beforeClass();
+        emf = Persistence.createEntityManagerFactory("retryPool");
+        
 		HazelcastXmlConfig config = new HazelcastXmlConfig();
 		config.getPersistenceConfig().setON(true);
 		RetryMapStoreFactory.getInstance().init(config);
@@ -52,6 +60,7 @@ public class RetryEntityTest {
 	public static void afterClass() {
 		mapStore.deleteByType();
 		RetryMapStoreFactory.getInstance().shutdown();
+		HzIntegrationTestUtil.afterClass();
 	}
 	@Before
 	public void before()

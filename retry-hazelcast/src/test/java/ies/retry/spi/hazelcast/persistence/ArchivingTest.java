@@ -3,6 +3,8 @@ package ies.retry.spi.hazelcast.persistence;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
 import ies.retry.RetryHolder;
+import ies.retry.spi.hazelcast.HzIntegrationTestUtil;
+import ies.retry.spi.hazelcast.util.HzUtil;
 import ies.retry.spi.hazelcast.util.IOUtil;
 
 import java.io.ByteArrayOutputStream;
@@ -13,6 +15,7 @@ import java.util.List;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 import javax.persistence.TemporalType;
 
 import org.hibernate.lob.SerializableBlob;
@@ -30,8 +33,8 @@ public class ArchivingTest {
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Throwable {
-
-		emf = PersistenceUtil.getEMFactory("retryPool");
+		HzIntegrationTestUtil.beforeClass();
+		emf = Persistence.createEntityManagerFactory("retryPool");
 	}
 
 	@AfterClass
@@ -41,6 +44,7 @@ public class ArchivingTest {
 		em.createNativeQuery("delete from RETRIES_ARCHIVE where NATURAL_IDENTIFIER='"+ TYPE+ "'").executeUpdate();
 		em.getTransaction().commit();
 		emf.close();
+		HzIntegrationTestUtil.afterClass();
 	}
 
 	@Test
@@ -80,6 +84,7 @@ public class ArchivingTest {
 			em.getTransaction().commit();
 			em.close();
 			em = emf.createEntityManager();
+			em.getTransaction().begin();
 			SerializableBlob blob = (SerializableBlob) em.createNativeQuery(
 					"SELECT PAYLOAD_DATA FROM RETRIES_ARCHIVE where retry_type='"
 							+ TYPE + "' and natural_identifier='" + id + "'")
@@ -97,7 +102,7 @@ public class ArchivingTest {
 			holdersCopy = (List<RetryHolder>) IOUtil.deserialize(bos
 					.toByteArray());
 		} catch (Exception e) {
-			em.getTransaction().rollback();
+			//em.getTransaction().rollback();
 			e.printStackTrace();
 			Logger.error(getClass().getName(), "Persistence_Op_Exception",
 					"Exception Message: " + e.getMessage(), e);

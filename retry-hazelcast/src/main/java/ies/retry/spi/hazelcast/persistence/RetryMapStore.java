@@ -252,11 +252,11 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 	public int count() {
 		try{
 			Query query = sync_emf
-					.createNativeQuery("SELECT count(*) FROM RETRIES WHERE RETRY_TYPE = :type");
+					.createQuery("SELECT count(r.id.id) FROM RetryEntity r WHERE r.id.type= :type");
 			query.setParameter("type", mapName);
 			query.setFirstResult(0);
 			query.setMaxResults(1);
-			BigDecimal count = (BigDecimal) query.getSingleResult();
+			Long count = (Long) query.getSingleResult();
 
 			return count.intValue();
 		}
