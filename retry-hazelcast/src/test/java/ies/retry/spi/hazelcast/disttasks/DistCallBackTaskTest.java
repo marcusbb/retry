@@ -23,6 +23,7 @@ import ies.retry.xml.XMLRetryConfigMgr;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 
 import static junit.framework.Assert.*;
 
@@ -39,7 +40,6 @@ import provision.services.logging.Logger;
 
 import com.hazelcast.core.IMap;
 
-import test.util.PersistenceUtil;
 
 /*
  * 
@@ -69,7 +69,7 @@ public class DistCallBackTaskTest {
 		XMLRetryConfigMgr.XML_FILE = XML_CONFIG;
 		// Retry.setRetryManager(null);
 		retryManager = Retry.getRetryManager();
-		emf = PersistenceUtil.getEMFactory("retryPool");
+		emf = Persistence.createEntityManagerFactory("retryPool");
 		HazelcastXmlConfig config = new HazelcastXmlConfig();
 		config.getPersistenceConfig().setON(true);
 

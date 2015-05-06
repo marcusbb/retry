@@ -2,17 +2,9 @@ package ies.retry.spi.hazelcast.persistence;
 
 import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.HzIntegrationTestUtil;
-import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
 import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
-import ies.retry.spi.hazelcast.persistence.DBMergePolicy;
-import ies.retry.spi.hazelcast.persistence.RetryEntity;
-import ies.retry.spi.hazelcast.persistence.RetryId;
-import ies.retry.spi.hazelcast.persistence.RetryMapStore;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,8 +21,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import test.util.PersistenceUtil;
 
 /**
  * This is really an persistence integration test.

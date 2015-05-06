@@ -132,12 +132,7 @@
 		  <version>10.2.0.4.0</version>
 		  <scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>ies.common.testutil</groupId>
-			<artifactId>ies-testutil</artifactId>
-			<version>1.0.3-SNAPSHOT</version>
-			<scope>test</scope>
-		</dependency>
+		
 		<dependency>
             <groupId>org.apache.derby</groupId>
             <artifactId>derby</artifactId>

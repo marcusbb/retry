@@ -16,6 +16,7 @@ import java.util.List;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -23,7 +24,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import provision.services.logging.Logger;
-import test.util.PersistenceUtil;
+
 
 public class DataLossUponLoadingFromDBTest {
 
@@ -38,7 +39,9 @@ public class DataLossUponLoadingFromDBTest {
 	@BeforeClass
 	public static void beforeClass() throws IOException {
 
-		EntityManagerFactory emf = PersistenceUtil.getEMFactory("retryPool");
+		HzIntegrationTestUtil.beforeClass();
+		EntityManagerFactory emf = Persistence.createEntityManagerFactory("retryPool");
+		//EntityManagerFactory emf = PersistenceUtil.getEMFactory("retryPool");
 		EntityManager em = emf.createEntityManager();
 		em.getTransaction().begin();
 		em.createNativeQuery(
@@ -72,13 +75,13 @@ public class DataLossUponLoadingFromDBTest {
 		em.getTransaction().commit();
 		em.close();
 
-		HzIntegrationTestUtil.beforeClass();
+		
 
 		ORIG_XML_FILE = XMLRetryConfigMgr.XML_FILE;
 		XMLRetryConfigMgr.XML_FILE = XML_CONFIG;
 		retryManager = (HazelcastRetryImpl) Retry.getRetryManager();
 		// Retry.setRetryManager(null);
-		emf = PersistenceUtil.getEMFactory("retryPool");
+		 emf = Persistence.createEntityManagerFactory("retryPool");
 		HazelcastXmlConfig config = new HazelcastXmlConfig();
 		config.getPersistenceConfig().setON(true);
 
