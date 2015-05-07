@@ -7,6 +7,8 @@ import java.util.concurrent.Executors;
 
 
 
+
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -14,6 +16,15 @@ import com.hazelcast.core.Hazelcast;
 
 public class ConcurrentRetryTest {
 
+	/**
+	 * leave a clean state after finishing the test
+	 */
+	@AfterClass
+	public static void tearDownClass(){
+		Retry.getRetryManager().shutdown();
+		Retry.setRetryManager(null);
+	}
+	
 	@Test
 	public void testInitOnceOnly() throws Exception {
 		ExecutorService exec = Executors.newCachedThreadPool();
