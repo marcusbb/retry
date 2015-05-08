@@ -626,18 +626,24 @@ class SyncGridStorageTask implements Runnable {
 	private StateManager stateMgr;
 	private static String CALLER = SyncGridStorageTask.class.getName();
 	
+	
 	public SyncGridStorageTask(StateManager stateMgr) {
 		this.stateMgr = stateMgr;
+		
 	}
 	
 	@Override
 	public void run() {
 		Logger.debug(CALLER,"Check_state_start");
+		IMap<String,StateManager.LoadingState> loadStateMap = stateMgr.getH1().getMap(StateManager.DB_LOADING_STATE);
+		
 		Map<String,RetryState> stateMap = stateMgr.getAllStates();
 		try {
 			for (String type:stateMap.keySet()) {
-						
-				stateMgr.syncGridAndStorage(type);
+				if (loadStateMap.get(type) == StateManager.LoadingState.READY)
+					stateMgr.syncGridAndStorage(type);
+				else
+					Logger.info(CALLER, "skip_sync_store_","skipped","type",type);
 				
 			}
 		}catch (Throwable e) {
