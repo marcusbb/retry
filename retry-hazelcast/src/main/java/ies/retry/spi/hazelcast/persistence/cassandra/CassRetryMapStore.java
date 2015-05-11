@@ -1,8 +1,6 @@
 package ies.retry.spi.hazelcast.persistence.cassandra;
 
-import ies.retry.Retry;
 import ies.retry.RetryHolder;
-import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 import ies.retry.spi.hazelcast.persistence.DBMergePolicy;
 import ies.retry.spi.hazelcast.persistence.RetryEntity;
 import ies.retry.spi.hazelcast.persistence.RetryMapStore;
@@ -16,10 +14,8 @@ import java.util.Map;
 import reader.ReaderConfig;
 
 import com.datastax.driver.core.Session;
-import com.hazelcast.core.HazelcastInstance;
 
 import driver.em.CUtils;
-import driver.em.CassConfig;
 import driver.em.DefaultEntityManager;
 
 /**
