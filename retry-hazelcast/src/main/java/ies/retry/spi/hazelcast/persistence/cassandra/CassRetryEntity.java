@@ -136,6 +136,8 @@ public class CassRetryEntity  {
 	
 	public List<RetryHolder> convertPayload() {
 		ByteBuffer bb = getRetryData();
+		if (bb == null)
+			return new ArrayList<RetryHolder>();
 		byte []b = new byte[bb.remaining()];
 		int i=0;
 		while (bb.remaining() >0)
