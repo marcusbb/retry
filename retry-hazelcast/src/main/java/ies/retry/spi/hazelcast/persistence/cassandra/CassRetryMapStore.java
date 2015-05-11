@@ -13,6 +13,8 @@ import java.util.Map;
 
 import reader.ReaderConfig;
 
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 
 import driver.em.CUtils;
@@ -98,10 +100,23 @@ public class CassRetryMapStore extends RetryMapStore {
 
 	@Override
 	public int count() {
-		//TODO: do implement
-		throw new UnsupportedOperationException();
+		return (int)longCount();
 	}
-
+	public long longCount() {
+		ResultSet rs = em.getSession().execute("select count from retry_counters where type = ?", mapName);
+		Row row = rs.one();
+		if (row !=null)
+			return (int)row.getLong(0);
+		return 0;
+	}
+	
+	
+	public void setCountTo(long count) {
+		long targetCount = longCount() - count;
+		
+		em.getSession().execute("update retry_counters set count = count - ? where type = ?", targetCount, mapName );
+		
+	}
 	@Override
 	public void store(List<RetryHolder> value, DBMergePolicy mergePolicy) {
 		
@@ -139,6 +154,7 @@ public class CassRetryMapStore extends RetryMapStore {
 	@Override
 	public void delete(String key) {
 		em.remove(new CassRetryEntity.Id(key,mapName) , CUtils.getDefaultParams());
+		em.getSession().execute("UPDATE retry_counters SET count = count -1 where type = ?",mapName);
 	}
 
 	@Override
