@@ -17,6 +17,7 @@ import java.util.List;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -25,8 +26,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import provision.services.logging.Logger;
-import test.util.PersistenceUtil;
-@Ignore
+
+//@Ignore
 public class StoreOpMergeTest {
 
 	private final static String CALLER = StoreOpMergeTest.class.getName();
@@ -49,14 +50,14 @@ public class StoreOpMergeTest {
 		XMLRetryConfigMgr.XML_FILE = XML_CONFIG;
 		// Retry.setRetryManager(null);
 		retryManager = (HazelcastRetryImpl) Retry.getRetryManager();
-		emf = PersistenceUtil.getEMFactory("retryPool");
+		emf = Persistence.createEntityManagerFactory("retryPool");
 		HazelcastXmlConfig config = new HazelcastXmlConfig();
 		config.getPersistenceConfig().setON(true);
 
 		RetryMapStoreFactory.getInstance().init(config);
 		RetryMapStoreFactory.getInstance().setEMF(emf);
 
-		EntityManagerFactory emf = PersistenceUtil.getEMFactory("retryPool");
+		EntityManagerFactory emf = Persistence.createEntityManagerFactory("retryPool");
 		EntityManager em = emf.createEntityManager();
 		em.getTransaction().begin();
 		em.createNativeQuery("delete from retries where type='" + type + "'");

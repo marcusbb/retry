@@ -4,7 +4,6 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
 import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.HzIntegrationTestUtil;
-import ies.retry.spi.hazelcast.util.HzUtil;
 import ies.retry.spi.hazelcast.util.IOUtil;
 
 import java.io.ByteArrayOutputStream;
@@ -24,7 +23,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import provision.services.logging.Logger;
-import test.util.PersistenceUtil;
 
 public class ArchivingTest {
 	private static EntityManagerFactory emf;

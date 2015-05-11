@@ -15,6 +15,7 @@ import java.util.List;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 
 import junit.framework.Assert;
 
@@ -24,7 +25,6 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import test.util.PersistenceUtil;
 
 import com.hazelcast.impl.base.DataRecordEntry;
 import com.hazelcast.nio.Data;
@@ -51,7 +51,7 @@ public class NetworkDBMergeTest {
 	public static void beforeClass() throws Exception{
 		HzIntegrationTestUtil.beforeClass();
 		
-		emf = PersistenceUtil.getEMFactory("retryPool");
+		emf = Persistence.createEntityManagerFactory("retryPool");
 		
 		XMLRetryConfigMgr.setXML_FILE("retry_config_persistence.xml");
 		retryManager = new HazelcastRetryImpl();
