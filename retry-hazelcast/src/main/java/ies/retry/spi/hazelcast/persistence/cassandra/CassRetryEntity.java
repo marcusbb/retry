@@ -99,7 +99,7 @@ public class CassRetryEntity  {
 	}
 	
 	@EmbeddedId
-	public Id id;
+	private Id id;
 	
 	@Column(name="PAYLOAD")
 	private ByteBuffer retryData;
