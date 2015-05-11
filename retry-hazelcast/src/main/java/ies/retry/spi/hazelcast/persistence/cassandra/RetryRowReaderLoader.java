@@ -11,7 +11,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import provision.services.logging.Logger;
 import reader.ReaderJob;
 import reader.RowReaderTask;
 
@@ -42,6 +44,9 @@ public class RetryRowReaderLoader extends ReaderJob<Void> {
 	
 	private RetryConfigManager configMgr = null;
 	
+	private AtomicInteger count = new AtomicInteger();
+
+	
 	public RetryRowReaderLoader(Session session) {
 		em = new DefaultEntityManager<>(session, CassRetryEntity.class);
 		
@@ -65,17 +70,20 @@ public class RetryRowReaderLoader extends ReaderJob<Void> {
 		@Override
 		public Void process(Row row,ColumnDefinitions meta, ExecutionInfo execInfo) {
 			
-			CassRetryEntity entity = em.getEntityConfig().get(row);
-			List<RetryHolder> list = entity.convertPayload();
-			
-			if (list != null && !list.isEmpty()) {
-				
-				DistributedTask<Void> distTask = new DistributedTask<Void>(
-						new AddRetryCallable(list, configMgr.getConfiguration(list.get(0).getType()),false), 
-						list.get(0).getId());
-				exec.submit(distTask);
+			try {
+				CassRetryEntity entity = em.getEntityConfig().get(row);
+				List<RetryHolder> list = entity.convertPayload();
+				if (list != null && !list.isEmpty()) {
+					
+					DistributedTask<Void> distTask = new DistributedTask<Void>(
+							new AddRetryCallable(list, configMgr.getConfiguration(list.get(0).getType()),false), 
+							list.get(0).getId());
+					exec.submit(distTask);
+				}
+			}catch (Exception e) {
+				Logger.error(getClass().getName(), "Add_Retry_StorageTimeout_Exception", "Exception Message: " + e.getMessage(), "ex", e);
 			}
-			
+			count.incrementAndGet();
 			
 			
 			return null;
@@ -115,8 +123,11 @@ public class RetryRowReaderLoader extends ReaderJob<Void> {
 
 	@Override
 	public void onReadComplete() {
-		// Possibly alter state here
+		Logger.info(getClass().getName(), "Complete_read","complete_read","size",getCount());
 		
+	}
+	public int getCount() {
+		return count.get();
 	}
 
 }
