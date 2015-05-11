@@ -16,6 +16,7 @@ import org.junit.Test;
 import reader.ReaderConfig;
 
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
 
 import driver.em.CUtils;
@@ -49,22 +50,21 @@ public class CassandraStoreTest {
 		for (CassRetryEntity entity:results) {
 			em.remove(entity.getId());
 		}
+		store.setCountTo(0);
 		
 	}
 		
 	protected List<RetryHolder> generateRetryList(int num) {
 		ArrayList<RetryHolder> holder = new ArrayList<>();
 		for (int i=0;i<num;i++)
-			holder.add(new RetryHolder("cass-id"+i, "cass-type",null,new String("Useful Serializable data")));
+			holder.add(new RetryHolder("cass-id"+i, "cass-type1",null,new String("Useful Serializable data")));
 		return holder;
 	}
 	
 	
 	@Test
 	public void storeAndRetrieveEntity() {
-		byte []kyro = new KryoSerializer().marshallToByte((Serializable)generateRetryList(1));
 		
-		List<RetryHolder> klist = (List<RetryHolder>)new KryoSerializer().marshallToObject(kyro);
 		
 		CassRetryMapStore store = new CassRetryMapStore("cass-type1",session);
 		
@@ -73,6 +73,18 @@ public class CassandraStoreTest {
 		List<RetryHolder> list = store.load("cass-id0");
 		Assert.assertNotNull(list);
 		
+		
+	}
+	
+	@Test
+	public void storeAndDeleteCount() {
+		CassRetryMapStore store = new CassRetryMapStore("cass-type1",session);
+		
+		store.store(generateRetryList(1), DBMergePolicy.OVERWRITE);
+		
+		store.delete("cass-id0");
+		
+		Assert.assertEquals(0,store.count());
 		
 	}
 	
