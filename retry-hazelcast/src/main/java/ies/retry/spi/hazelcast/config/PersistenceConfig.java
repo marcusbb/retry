@@ -2,6 +2,9 @@ package ies.retry.spi.hazelcast.config;
 
 import java.io.Serializable;
 
+import driver.em.CassConfig;
+import reader.ReaderConfig;
+
 public class PersistenceConfig implements Serializable {
 
 	/**
@@ -28,7 +31,12 @@ public class PersistenceConfig implements Serializable {
 	
 	private boolean pagedLoading = true;
 	
+	//Cassandra batch loading configuration
+	private ReaderConfig cqlReaderConfig;
 	
+	//Cassandra run time connection options
+	//it could borrow from above ReaderConfig
+	private CassConfig cassConfig;
 	
 	public enum ThreadQueuePolicy {
 		SYNC,ARRAY,LINKED;
@@ -127,6 +135,23 @@ public class PersistenceConfig implements Serializable {
 		this.dropOnQueueSize = dropOnQueueSize;
 	}
 
+	
+	public ReaderConfig getCqlReaderConfig() {
+		return cqlReaderConfig;
+	}
+
+	public void setCqlReaderConfig(ReaderConfig cqlReaderConfig) {
+		this.cqlReaderConfig = cqlReaderConfig;
+	}
+
+	public CassConfig getCassConfig() {
+		return cassConfig;
+	}
+
+	public void setCassConfig(CassConfig cassConfig) {
+		this.cassConfig = cassConfig;
+	}
+
 	@Override
 	public String toString() {
 		return "PersistenceConfig [ON=" + ON + ", writeSync=" + writeSync
@@ -135,8 +160,12 @@ public class PersistenceConfig implements Serializable {
 				+ maxPoolSize + ", coreSize=" + coreSize
 				+ ", boundedQueueSize=" + boundedQueueSize
 				+ ", dropOnQueueSize=" + dropOnQueueSize + ", timeoutInms="
-				+ timeoutInms + ", pagedLoading=" + pagedLoading + "]";
+				+ timeoutInms + ", pagedLoading=" + pagedLoading
+				+ ", cqlReaderConfig=" + cqlReaderConfig + ", cassConfig="
+				+ cassConfig + "]";
 	}
+
+	
 
 			
 	
