@@ -17,12 +17,12 @@ public class BatchLoadJob extends MTJobBootStrap {
 	
 	private Collection<CassRetryEntity> results = null;
 	
-	public BatchLoadJob(int nThreads) {
-		super(nThreads);
+	public BatchLoadJob() {
+		
 		
 	}
-	public BatchLoadJob(int nThreads,Collection<CassRetryEntity> results) {
-		super(nThreads);
+	public BatchLoadJob(Collection<CassRetryEntity> results) {
+		
 		this.results = results;
 	}
 

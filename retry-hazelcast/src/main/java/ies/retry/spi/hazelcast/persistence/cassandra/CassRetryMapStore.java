@@ -4,12 +4,18 @@ import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.persistence.DBMergePolicy;
 import ies.retry.spi.hazelcast.persistence.RetryEntity;
 import ies.retry.spi.hazelcast.persistence.RetryMapStore;
+import ies.retry.spi.hazelcast.persistence.ops.OpResult;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+
+import provision.services.logging.Logger;
 
 import reader.ReaderConfig;
 
@@ -33,18 +39,24 @@ public class CassRetryMapStore extends RetryMapStore {
 	
 	private String mapName = null;
 	
+	private int dropThreshold = Integer.MAX_VALUE;
 	
 	/**
-	 * It's terrible that the retry type is the map name, but keeps things the
-	 * way they are for now.
 	 * 
-	 * @param mapName
+	 * 
+	 * @param mapName - alias for retry type
 	 * @param session
 	 */
-	public CassRetryMapStore(String mapName,Session session) {
+	public CassRetryMapStore(String mapName,Session session,boolean writeSync) {
 		this.em = new DefaultEntityManager<>(session, CassRetryEntity.class);
 		this.archive_em = new DefaultEntityManager<>(session, CassArchiveRetryEntity.class);
 		this.mapName = mapName;
+		this.setExecService((ThreadPoolExecutor)Executors.newCachedThreadPool());
+		this.setWriteSync(writeSync);
+	}
+	public CassRetryMapStore(String mapName,Session session,ThreadPoolExecutor tpe,int dropThreshold) {
+		this.setExecService(tpe);
+		this.dropThreshold = dropThreshold;
 	}
 	
 	@Override
@@ -64,11 +76,11 @@ public class CassRetryMapStore extends RetryMapStore {
 		return null;
 	}
 
+	//Until we move the number of threads for MTJobBootstrap
 	public void loadIntoHZ(ReaderConfig config ) {
 		
 		
-		//TODO: move
-		BatchLoadJob loadJob = new BatchLoadJob(1);
+		BatchLoadJob loadJob = new BatchLoadJob();
 		
 				
 		loadJob.bootstrap(config);
@@ -80,7 +92,7 @@ public class CassRetryMapStore extends RetryMapStore {
 	
 	public Collection<CassRetryEntity> loadAll(ReaderConfig config ) {
 		Collection<CassRetryEntity> col = new ArrayList<>();
-		BatchLoadJob loadJob = new BatchLoadJob(1,col);
+		BatchLoadJob loadJob = new BatchLoadJob(col);
 		
 		
 		loadJob.bootstrap(config);
@@ -127,21 +139,37 @@ public class CassRetryMapStore extends RetryMapStore {
 	}
 
 	@Override
-	public void store(String key, List<RetryHolder> value,
+	public void store(final String key, final List<RetryHolder> value,
 			DBMergePolicy mergePolicy) {
-		try {
-			CassRetryEntity entity = new CassRetryEntity(value);
-			//always read just an id
-			Collection<CassRetryEntity> col = em.findBy("select id from retry where id = ?",new Object[]{key},CUtils.getDefaultParams());
-			if (col != null && col.isEmpty()) {
-				//bump counter
-				em.getSession().execute("UPDATE retry_counters SET count = count +1 where type = ?",mapName);
-			}
-			//TODO make parameters configurable
-			em.persist(entity, CUtils.getDefaultParams() );
-		}catch (ClassNotFoundException | IOException e) {
-			throw new IllegalArgumentException(e);
+		if (dropThreshold < execService.getQueue().size() ){
+			Logger.error(CassRetryMapStore.class.getName(), "DB_QUEUE_MAX_REACHED","Reached queue size: " + execService.getQueue().size());
+			return;
 		}
+		handleWriteSync(
+			execService.submit(new Callable<OpResult<Void>>() {
+	
+				@Override
+				public OpResult<Void> call() throws Exception {
+					try {
+						CassRetryEntity entity = new CassRetryEntity(value);
+						//always read just an id
+						Collection<CassRetryEntity> col = em.findBy("select id from retry where id = ?",new Object[]{key},CUtils.getDefaultParams());
+						if (col != null && col.isEmpty()) {
+							//bump counter
+							em.getSession().execute("UPDATE retry_counters SET count = count +1 where type = ?",mapName);
+						}
+						//TODO make parameters configurable
+						em.persist(entity, CUtils.getDefaultParams() );
+					}catch (ClassNotFoundException | IOException e) {
+						Logger.error(CassRetryMapStore.class.getName(), "ERR_DESERIZALATION_CASS",e.getMessage(),e);
+						
+					}
+					return null;
+				}
+			})
+		);
+		
+		
 	}
 
 	@Override
@@ -150,26 +178,39 @@ public class CassRetryMapStore extends RetryMapStore {
 	}
 
 	@Override
-	public void archive(List<RetryHolder> list, boolean removeEntity) {
+	public void archive(final List<RetryHolder> list, final boolean removeEntity) {
 		
-		try {
-			archive_em.persist(new CassArchiveRetryEntity(list));
-			if (removeEntity)
-				delete(list.get(0).getId());
-			
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		handleWriteSync(
+			execService.submit(new Callable<OpResult<Void>>() {
+				
+				@Override
+				public OpResult<Void> call() throws Exception {
+					try {
+						archive_em.persist(new CassArchiveRetryEntity(list));
+						if (removeEntity)
+							delete(list.get(0).getId());
+						
+					} catch (ClassNotFoundException| IOException e) {
+					}
+					return null;
+				}
+			}
+		));
 	}
 
 	@Override
-	public void delete(String key) {
-		em.remove(new CassRetryEntity.Id(key,mapName) , CUtils.getDefaultParams());
-		em.getSession().execute("UPDATE retry_counters SET count = count -1 where type = ?",mapName);
+	public void delete(final String key) {
+		handleWriteSync(execService.submit(new Callable<OpResult<Void>>() {
+
+			@Override
+			public OpResult<Void> call() throws Exception {
+				em.remove(new CassRetryEntity.Id(key, mapName),
+						CUtils.getDefaultParams());
+				em.getSession().execute("UPDATE retry_counters SET count = count -1 where type = ?",mapName);
+				return null;
+			}
+		}));
+
 	}
 
 	@Override
@@ -179,15 +220,7 @@ public class CassRetryMapStore extends RetryMapStore {
 
 	
 
-	@Override
-	public boolean isWriteSync() {
-		return true;
-	}
-
-	@Override
-	public void setWriteSync(boolean writeSync) {
-		throw new UnsupportedOperationException();
-	}
+	
 
 	
 

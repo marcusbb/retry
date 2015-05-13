@@ -63,10 +63,10 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 	private boolean hasData = true;
 	private ScrollableResults retryCursor;
 	private StatelessSession statelessSession;
-	private long timeOut;
+	private long timeOut = Long.MAX_VALUE;
 	
 	// Provided
-	ThreadPoolExecutor execService = null;
+	protected ThreadPoolExecutor execService = null;
 	
 	private boolean writeSync = false;
 	private PersistenceConfig config;
@@ -369,7 +369,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		handleWriteSync(future);
 	}
 
-	private void handleWriteSync(Future<OpResult<Void>> future) throws RuntimeException {
+	protected void handleWriteSync(Future<OpResult<Void>> future) throws RuntimeException {
 		
 		if (writeSync) {
 			try {

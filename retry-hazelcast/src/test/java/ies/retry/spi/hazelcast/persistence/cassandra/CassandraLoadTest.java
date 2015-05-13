@@ -61,7 +61,7 @@ public class CassandraLoadTest {
 	@After
 	public void after() {
 		
-		CassRetryMapStore store = new CassRetryMapStore("cass-type1",session);
+		CassRetryMapStore store = new CassRetryMapStore("cass-type1",session,true);
 		ReaderConfig readerConfig = new ReaderConfig();
 		readerConfig.setCassConfig(config);
 		readerConfig.setKeyspace("icrs");
@@ -114,7 +114,7 @@ public class CassandraLoadTest {
 		readerConfig.setOtherCols(new String[]{"payload"});
 		
 		
-		CassRetryMapStore store = new CassRetryMapStore("cass-type1",session);
+		CassRetryMapStore store = new CassRetryMapStore("cass-type1",session,true);
 		
 		loadRandomData(100);
 		
@@ -136,7 +136,7 @@ public class CassandraLoadTest {
 		//add
 		loadRandomData(10);
 		loadBadRow(10);
-		CassRetryMapStore store = new CassRetryMapStore("cass-type1",session);
+		CassRetryMapStore store = new CassRetryMapStore("cass-type1",session,true);
 		
 		store.loadIntoHZ(readerConfig);
 		

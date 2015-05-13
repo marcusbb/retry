@@ -7,6 +7,7 @@ import ies.retry.spi.hazelcast.util.KryoSerializer;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 
 import org.junit.Assert;
@@ -34,16 +35,18 @@ public class CassandraStoreTest {
 	static Cluster cluster = CUtils.createCluster(config);
 	static Session session = CUtils.createSession(cluster, "icrs");
 		
+	CassRetryMapStore store = null;
+	DefaultEntityManager<CassRetryEntity.Id, CassRetryEntity> em = null;
 	
 	@Before
 	public void before() {
-		DefaultEntityManager<CassRetryEntity.Id, CassRetryEntity> em = new DefaultEntityManager<>(session, CassRetryEntity.class);
+		em = new DefaultEntityManager<>(session, CassRetryEntity.class);
 		ReaderConfig readerConfig = new ReaderConfig();
 		readerConfig.setCassConfig(config);
 		readerConfig.setKeyspace("icrs");
 		readerConfig.setTable("retry");
 		
-		CassRetryMapStore store = new CassRetryMapStore("cass-type1",session);
+		store = new CassRetryMapStore("cass-type1",session,true);
 		
 		Collection<CassRetryEntity> results = store.loadAll(readerConfig);
 		
@@ -53,11 +56,11 @@ public class CassandraStoreTest {
 		store.setCountTo(0);
 		
 	}
-		
-	protected List<RetryHolder> generateRetryList(int num) {
+	
+	protected List<RetryHolder> generateRetryList(String idPrefix,int num) {
 		ArrayList<RetryHolder> holder = new ArrayList<>();
 		for (int i=0;i<num;i++) {
-			RetryHolder r  = new RetryHolder("cass-id"+i, "cass-type1",null,new String("Useful Serializable data"));
+			RetryHolder r  = new RetryHolder(idPrefix+i, "cass-type1",null,new String("Useful Serializable data"));
 			r.setSystemTs(System.currentTimeMillis());
 			holder.add(r);
 		}
@@ -65,13 +68,14 @@ public class CassandraStoreTest {
 			
 		return holder;
 	}
+	protected List<RetryHolder> generateRetryList(int num) {
+		return generateRetryList("cass-id", num);
+	}
 	
 	
 	@Test
 	public void storeAndRetrieveEntity() {
 		
-		
-		CassRetryMapStore store = new CassRetryMapStore("cass-type1",session);
 		
 		store.store(generateRetryList(1), DBMergePolicy.OVERWRITE);
 		
@@ -83,7 +87,6 @@ public class CassandraStoreTest {
 	
 	@Test
 	public void storeAndDeleteCount() {
-		CassRetryMapStore store = new CassRetryMapStore("cass-type1",session);
 		
 		store.store(generateRetryList(1), DBMergePolicy.OVERWRITE);
 		
@@ -95,12 +98,22 @@ public class CassandraStoreTest {
 	
 	@Test 
 	public void storeArchive() {
-		CassRetryMapStore store = new CassRetryMapStore("cass-type1",session);
 		
-		store.archive(generateRetryList(1),false);
+		DefaultEntityManager<CassArchiveRetryEntity.Id, CassArchiveRetryEntity> arcEM = new DefaultEntityManager<>(session, CassArchiveRetryEntity.class);
 		
+		List<RetryHolder> archive = generateRetryList("archived",1);
+		store.archive(archive,false);
+		CassArchiveRetryEntity arcEntity = arcEM.find(new CassArchiveRetryEntity.Id(archive.get(0).getId(), archive.get(0).getType(), new Date(archive.get(0).getSystemTs())));
+		Assert.assertNotNull(arcEntity);
 		
+		archive = generateRetryList("tobe-archive-del",1);
+		store.store(archive, DBMergePolicy.OVERWRITE);
 		
+		store.archive(archive, true);
+		
+		CassRetryEntity nentity = em.find(new CassRetryEntity.Id(archive.get(0).getId(), archive.get(0).getType()));
+		
+		Assert.assertNull(nentity);
 	}
 	
 	
