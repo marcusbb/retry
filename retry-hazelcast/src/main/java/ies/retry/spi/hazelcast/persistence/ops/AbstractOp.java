@@ -110,11 +110,7 @@ public abstract class AbstractOp<T> implements Callable<OpResult<T>>,OpResult<T>
 	}
 	
 	public abstract T exec(EntityManager em) throws Exception;
-	@Override
-	public EntityManager getEM() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+	
 	
 	
 
