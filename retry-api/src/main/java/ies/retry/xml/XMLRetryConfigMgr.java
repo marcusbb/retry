@@ -71,11 +71,13 @@ public class XMLRetryConfigMgr implements RetryConfigManager{
 			defConfig.setProvider(StubbedRetryManager.class.getName());
 			
 		}
+		//jc = JAXBContext.newInstance(jaxbConfigClass);
 		jc = JAXBContext.newInstance(jaxbConfigClass);
 		
 		Unmarshaller unmarshaller = jc.createUnmarshaller();
-		unmarshaller.setProperty(OBJ_FACTORY_PROP,factory);
-		JAXBElement<? extends XmlRetryConfig> jaxbElement = unmarshaller.unmarshal(new StreamSource(ins),jaxbConfigClass);
+		
+		
+		JAXBElement<? extends XmlRetryConfig> jaxbElement = (JAXBElement<? extends XmlRetryConfig>)unmarshaller.unmarshal(new StreamSource(ins),jaxbConfigClass);
 		config = jaxbElement.getValue();		
 		//System.out.println("Configuration class: " + jaxbElement.getValue().getClass());
 		for (RetryConfiguration retryConfig: config.getTypeConfig()) {
@@ -84,11 +86,12 @@ public class XMLRetryConfigMgr implements RetryConfigManager{
 		return config;
 	}
 	public synchronized void load(String xml) throws JAXBException{
-		jc = JAXBContext.newInstance(XmlRetryConfig.class);
+		jc = JAXBContext.newInstance(jaxbConfigClass);
 		StringReader reader = new StringReader(xml);
 		Unmarshaller unmarshaller = jc.createUnmarshaller();
-		unmarshaller.setProperty(OBJ_FACTORY_PROP,factory);
-		config = (XmlRetryConfig)unmarshaller.unmarshal(reader );
+		JAXBElement<? extends XmlRetryConfig> jaxbElement = (JAXBElement<? extends XmlRetryConfig>)unmarshaller.unmarshal(new StreamSource(reader),jaxbConfigClass);
+		config = jaxbElement.getValue();
+		
 		this.configMap.clear();
 		for (RetryConfiguration retryConfig: config.getTypeConfig()) {
 			configMap.put(retryConfig.getType(), retryConfig);
