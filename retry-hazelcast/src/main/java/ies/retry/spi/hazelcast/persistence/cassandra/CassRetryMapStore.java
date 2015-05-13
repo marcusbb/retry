@@ -29,6 +29,8 @@ public class CassRetryMapStore extends RetryMapStore {
 
 	
 	private DefaultEntityManager<CassRetryEntity.Id, CassRetryEntity> em = null;
+	private DefaultEntityManager<CassArchiveRetryEntity.Id, CassArchiveRetryEntity> archive_em = null;
+	
 	private String mapName = null;
 	
 	
@@ -41,6 +43,7 @@ public class CassRetryMapStore extends RetryMapStore {
 	 */
 	public CassRetryMapStore(String mapName,Session session) {
 		this.em = new DefaultEntityManager<>(session, CassRetryEntity.class);
+		this.archive_em = new DefaultEntityManager<>(session, CassArchiveRetryEntity.class);
 		this.mapName = mapName;
 	}
 	
@@ -148,7 +151,19 @@ public class CassRetryMapStore extends RetryMapStore {
 
 	@Override
 	public void archive(List<RetryHolder> list, boolean removeEntity) {
-		throw new UnsupportedOperationException();
+		
+		try {
+			archive_em.persist(new CassArchiveRetryEntity(list));
+			if (removeEntity)
+				delete(list.get(0).getId());
+			
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	@Override

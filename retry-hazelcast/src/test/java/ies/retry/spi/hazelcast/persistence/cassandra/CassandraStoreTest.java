@@ -56,8 +56,13 @@ public class CassandraStoreTest {
 		
 	protected List<RetryHolder> generateRetryList(int num) {
 		ArrayList<RetryHolder> holder = new ArrayList<>();
-		for (int i=0;i<num;i++)
-			holder.add(new RetryHolder("cass-id"+i, "cass-type1",null,new String("Useful Serializable data")));
+		for (int i=0;i<num;i++) {
+			RetryHolder r  = new RetryHolder("cass-id"+i, "cass-type1",null,new String("Useful Serializable data"));
+			r.setSystemTs(System.currentTimeMillis());
+			holder.add(r);
+		}
+			
+			
 		return holder;
 	}
 	
@@ -85,6 +90,16 @@ public class CassandraStoreTest {
 		store.delete("cass-id0");
 		
 		Assert.assertEquals(0,store.count());
+		
+	}
+	
+	@Test 
+	public void storeArchive() {
+		CassRetryMapStore store = new CassRetryMapStore("cass-type1",session);
+		
+		store.archive(generateRetryList(1),false);
+		
+		
 		
 	}
 	
