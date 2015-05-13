@@ -88,7 +88,7 @@ public class CassRetryEntity  {
 		@Override
 		public boolean equals(Object obj) {
 			boolean equals = false;
-			RetryId retryid = (RetryId)obj;
+			CassRetryEntity.Id retryid = (CassRetryEntity.Id)obj;
 			if (id.equals(retryid.getId()) && type.equals(retryid.getType()) )
 				equals = true;
 			return equals;
