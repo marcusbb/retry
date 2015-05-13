@@ -145,16 +145,7 @@ public class CassRetryEntity  {
 		
 		return (List<RetryHolder>)new KryoSerializer().marshallToObject(b);
 	}
-	public RetryHolder copyToHolder() {
-		RetryHolder holder = null;
-		if (id != null) {
-			holder = new RetryHolder(id.id,id.type);
-			//holder.setFailed(failed);
-			holder.setRetryData(retryData.array());
-			
-		}
-		return holder;
-	}
+	
 	
 	
 	public List<RetryHolder> getHolderList() {
