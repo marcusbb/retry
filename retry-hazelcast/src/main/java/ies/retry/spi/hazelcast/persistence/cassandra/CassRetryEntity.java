@@ -1,9 +1,7 @@
 package ies.retry.spi.hazelcast.persistence.cassandra;
 
 import ies.retry.RetryHolder;
-import ies.retry.spi.hazelcast.persistence.RetryEntity;
 import ies.retry.spi.hazelcast.persistence.RetryId;
-import ies.retry.spi.hazelcast.util.IOUtil;
 import ies.retry.spi.hazelcast.util.KryoSerializer;
 
 import java.io.IOException;
@@ -26,7 +24,7 @@ import javax.persistence.Version;
  * Have to replicate {@link ies.retry.spi.hazelcast.persistence.RetryEntity} as 
  * byte[] is not supported mapping type
  *
- * CREATE TABLE retry (id,type,payload,ver, primary_key (id,type))
+ * CREATE TABLE retry (id varchar,type varchar,payload blob, primary key (id,type))
  * 
  * CREATE TABLE retry_counters (type text, count counter, PRIMARY KEY ((type)))
  * 
