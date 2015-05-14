@@ -152,6 +152,12 @@ public class PersistenceConfig implements Serializable {
 		this.cassConfig = cassConfig;
 	}
 
+	public boolean isCassandra() {
+		if (cassConfig != null && cqlReaderConfig != null)
+			return true;
+		return false;
+					
+	}
 	@Override
 	public String toString() {
 		return "PersistenceConfig [ON=" + ON + ", writeSync=" + writeSync

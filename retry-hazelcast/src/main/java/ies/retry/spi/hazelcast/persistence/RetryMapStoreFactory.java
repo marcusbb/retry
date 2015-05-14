@@ -3,6 +3,7 @@ package ies.retry.spi.hazelcast.persistence;
 import ies.retry.spi.hazelcast.config.ConfigListener;
 import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
 import ies.retry.spi.hazelcast.config.PersistenceConfig;
+import ies.retry.spi.hazelcast.persistence.cassandra.CassRetryMapStore;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -14,6 +15,10 @@ import java.util.concurrent.TimeUnit;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Session;
+
+import driver.em.CUtils;
 import provision.services.logging.Logger;
 import provision.util.turbo.TurboThreadFactory;
 
@@ -31,6 +36,9 @@ public class RetryMapStoreFactory implements ConfigListener {//implements MapSto
 	private static RetryMapStoreFactory instance = null;
 	
 	ThreadPoolExecutor execService = null;
+	
+	private Cluster cluster = null;
+	private Session session = null;
 	
 	static {
 		instance = new RetryMapStoreFactory();
@@ -55,7 +63,15 @@ public class RetryMapStoreFactory implements ConfigListener {//implements MapSto
 	public RetryMapStore newMapStore(String mapName) {
 		//Logger.info(CALLER, "Getting store factory");
 		
-		
+		if (persistConfig.isCassandra()) {
+			if (cluster == null) {
+				synchronized(instance) {
+					cluster = CUtils.createCluster(persistConfig.getCassConfig());
+					session = cluster.connect(persistConfig.getCqlReaderConfig().getKeyspace()); 
+				}
+			}
+			return new CassRetryMapStore(mapName, session, persistConfig.isWriteSync());
+		}
 		if (persistConfig.isON()) {
 			EntityManagerFactory i_emf = getEMF();
 			RetryMapStore store =  new RetryMapStore(mapName,i_emf,persistConfig);

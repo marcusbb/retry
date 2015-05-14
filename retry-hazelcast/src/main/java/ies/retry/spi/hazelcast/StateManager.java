@@ -13,12 +13,14 @@ import ies.retry.spi.hazelcast.disttasks.AddRetryCallable;
 import ies.retry.spi.hazelcast.disttasks.KeySetSizeTask;
 import ies.retry.spi.hazelcast.persistence.RetryMapStore;
 import ies.retry.spi.hazelcast.persistence.RetryMapStoreFactory;
+import ies.retry.spi.hazelcast.persistence.cassandra.CassRetryMapStore;
 import ies.retry.xml.XMLRetryConfigMgr;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -207,43 +209,59 @@ public class StateManager implements  MembershipListener{
 	}
 
 	public void loadDataAsync(final List<String> types) {
-		publishExec.submit(new Runnable() {
-
-			@Override
-			public void run() {
-				for(String type: types) {
-					RetryConfiguration config = configMgr.getConfiguration(type);
-					if(config == null)
-						continue;
-					try {
+		
+		if (configMgr.getRetryHzConfig().getPersistenceConfig().isCassandra()) {
+			loadingStateMap.put("__any__", LoadingState.LOADING);
+			publishExec.submit(new Runnable() {
+				
+				@Override
+				public void run() {
+					//As the map store it should
+					if(loadingStateMap.get("__any__") != LoadingState.LOADING ) {
+						CassRetryMapStore cassStore = (CassRetryMapStore)RetryMapStoreFactory.getInstance().newMapStore("__any__");
+						//loadAll with types not specified will load all
+						cassStore.loadAll(configMgr.getRetryHzConfig().getPersistenceConfig().getCqlReaderConfig(),null);
+					}
 					
-						if(loadingStateMap.tryLock(config.getType(),0,TimeUnit.MILLISECONDS)) {
-							if(loadingStateMap.get(config.getType()) != LoadingState.LOADING) {
-							// initialize loading state null -> loading
-							loadingStateMap.put(config.getType(), LoadingState.LOADING);
-							Logger.info(CALLER, "Load_Data_Async", "Update loading State -> LOADING", "Type", config.getType());
-							
-							//scrolling or paging loading?
-							if (configMgr.getRetryHzConfig().getPersistenceConfig().isPagedLoading())
-								loadData(config.getType(), config);
-							else
-								loadData(config.getType(),config,true);
-							
-							loadingStateMap.put(config.getType(), LoadingState.READY);
-							Logger.info(CALLER, "Load_Data_Async", "Update loading State -> READY", "Type", config.getType());
-						}
-							else {
-								Logger.warn(CALLER, "UnableToLoad","","TYPE",config.getType());
-							}
-						} else {
-							Logger.warn(CALLER, "NoLockAquired","","TYPE",config.getType());
-						}
-					}finally {
-						loadingStateMap.unlock(config.getType());
-					}		
 				}
-			}
-		});
+			});
+		}
+		else
+			publishExec.submit(new Runnable() {
+	
+				@Override
+				public void run() {
+					for(String type: types) {
+						RetryConfiguration config = configMgr.getConfiguration(type);
+						if(config == null)
+							continue;
+						try {
+						
+							
+							if(loadingStateMap.get(config.getType()) != LoadingState.LOADING) {
+								// initialize loading state null -> loading
+								loadingStateMap.put(config.getType(), LoadingState.LOADING);
+								Logger.info(CALLER, "Load_Data_Async", "Update loading State -> LOADING", "Type", config.getType());
+								
+								//scrolling or paging loading?
+								if (configMgr.getRetryHzConfig().getPersistenceConfig().isPagedLoading())
+									loadData(config.getType(), config);
+								else
+									loadData(config.getType(),config,true);
+								
+								loadingStateMap.put(config.getType(), LoadingState.READY);
+								Logger.info(CALLER, "Load_Data_Async", "Update loading State -> READY", "Type", config.getType());
+							}
+								else {
+									Logger.warn(CALLER, "UnableToLoad","","TYPE",config.getType());
+								}
+							 
+						}finally {
+							loadingStateMap.unlock(config.getType());
+						}		
+					}
+				}
+			});
 	}
 	
 	
@@ -381,57 +399,57 @@ public class StateManager implements  MembershipListener{
 	}
 	
 	/**
-	 * Local event, called from callback (or de-queue) event
-	 * Will also inform transition listeners of this retry type 
-	 * 
-	 * @param type
-	 * @return if storage had items that grid did not
+	 * Cassandra sync grid and store mechanism
 	 */
-	public boolean syncGridAndStorage(String type) {
+	public void syncGridAndStore() {
 		
-		RetryState t = globalStateMap.get(type);
-		if ( t == null) {
-			throw new StateTransitionException();
-		}
-		//this doesn't ensure
-		//that the cluster + storage is drained - let's make sure
-		boolean storedRetry = false;
-		
-		
-		Logger.debug(CALLER, "SYNC_GRID_QUEUED","","TYPE",type);
-		int storeCount = ((RetryMapStore)RetryMapStoreFactory.getInstance().newMapStore(type)).count();
-		int gridCount = h1.getMap(type).size();
-		int maxSize = configMgr.getHzConfiguration().getMapConfig(type).getMaxSizeConfig().getSize();
-		int avgSizePerNode = gridCount / h1.getCluster().getMembers().size();
-		
-		//define over capacity as this average node map size exceeding the max size
-		//we don't want to trigger a load if cache has evicted
-		boolean overCapacity = avgSizePerNode >= maxSize;
-		
-		//we've lost some items in the grid OR the grid has evicted from cache
-		//in a split situation we probably do not want this - but not much choice
-		//there is a couple of more checks that can go in here
-		//1. That there is no storedQueueCount - meaning the DB is behind in writes
-		// 
-		if ( (gridCount < storeCount) && !overCapacity && master) {
+		HashSet<String> syncTypes = new HashSet<>();
+		for (String type:getAllStates().keySet()) {
+			RetryState t = globalStateMap.get(type);
+			if ( t == null) {
+				throw new StateTransitionException();
+			}
+			//this doesn't ensure
+			//that the cluster + storage is drained - let's make sure
+			boolean storedRetry = false;
 			
-			Logger.warn(CALLER, "SYNC_DB_GRID_ISSUE","","gridCount",gridCount,"storeCount",storeCount);			
-			//actively load
-			//as for some reason the 
-			//DB has records that the grid does not
-			Logger.warn(CALLER, "SYNC_GRID_DB_ERROR", "Found retries in store, loading...", "Type", type);
-			loadData(type, configMgr.getConfiguration(type),false);
 			
-		} 
-		if ( storeCount == 0 && gridCount ==0 ) {
-			Logger.info(CALLER, "SYNC_GRID_DB_ZERO","","TYPE",type);
-			publish(new RetryTransitionEvent(t, RetryState.DRAINED,type));
-			//finally flip the member lost event off,
-			//as we're  synchronized persistence
-			memberLostEvent = false;
+			Logger.debug(CALLER, "SYNC_GRID_QUEUED","","TYPE",type);
+			int storeCount = ((RetryMapStore)RetryMapStoreFactory.getInstance().newMapStore(type)).count();
+			int gridCount = h1.getMap(type).size();
+			int maxSize = configMgr.getHzConfiguration().getMapConfig(type).getMaxSizeConfig().getSize();
+			int avgSizePerNode = gridCount / h1.getCluster().getMembers().size();
+			
+			//define over capacity as this average node map size exceeding the max size
+			//we don't want to trigger a load if cache has evicted
+			boolean overCapacity = avgSizePerNode >= maxSize;
+			
+			//raw idea of the busy-ness of persistence: don't sync if anything in the queue
+			boolean pBusy = RetryMapStoreFactory.getInstance().getTPE().getQueue().size() >= 1;
+			
+			if ( (gridCount < storeCount) && !overCapacity && master ) {
+				
+				Logger.warn(CALLER, "SYNC_DB_GRID_ISSUE","","gridCount",gridCount,"storeCount",storeCount);			
+				syncTypes.add(type);
+			}
+			if ( storeCount == 0 && gridCount ==0 ) {
+				Logger.info(CALLER, "SYNC_GRID_DB_ZERO","","TYPE",type);
+				publish(new RetryTransitionEvent(t, RetryState.DRAINED,type));
+				//finally flip the member lost event off,
+				//as we're  synchronized persistence
+				memberLostEvent = false;
+			}
 		}
 		
-		return storedRetry;
+			if (configMgr.getRetryHzConfig().getPersistenceConfig().isCassandra()) {
+				((CassRetryMapStore)RetryMapStoreFactory.getInstance().newMapStore("__any__"))
+					.loadIntoHZ(configMgr.getRetryHzConfig().getPersistenceConfig().getCqlReaderConfig(), syncTypes);
+			}else {
+				for (String type:syncTypes) {
+					loadData(DB_LOADING_STATE, configMgr.getConfiguration(type), false);
+				}
+			}
+		
 	}
 	
 	public boolean gridEmpty(String type) {
@@ -635,17 +653,12 @@ class SyncGridStorageTask implements Runnable {
 	@Override
 	public void run() {
 		Logger.debug(CALLER,"Check_state_start");
-		IMap<String,StateManager.LoadingState> loadStateMap = stateMgr.getH1().getMap(StateManager.DB_LOADING_STATE);
 		
-		Map<String,RetryState> stateMap = stateMgr.getAllStates();
+		
 		try {
-			for (String type:stateMap.keySet()) {
-				if (loadStateMap.get(type) == StateManager.LoadingState.READY)
-					stateMgr.syncGridAndStorage(type);
-				else
-					Logger.info(CALLER, "skip_sync_store_","skipped","type",type);
+			stateMgr.syncGridAndStore();
 				
-			}
+			
 		}catch (Throwable e) {
 			Logger.error(CALLER,"Check_period_fail","","msg",e.getMessage(),e);
 		}
@@ -654,13 +667,5 @@ class SyncGridStorageTask implements Runnable {
 	
 }
 
-class HzInstCheckTask implements Callable<Boolean> {
 
-	@Override
-	public Boolean call() throws Exception {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-}
 
