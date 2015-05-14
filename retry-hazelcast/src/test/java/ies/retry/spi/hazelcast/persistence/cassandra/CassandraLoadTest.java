@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.nio.ByteBuffer;
 import java.util.Collection;
+import java.util.HashSet;
 
 import ies.retry.Retry;
 import ies.retry.RetryCallback;
@@ -33,9 +34,13 @@ import driver.em.DefaultEntityManager;
 public class CassandraLoadTest {
 
 	static CassConfig config = new CassConfig();
+	static HashSet<String> types = new HashSet<>();
+	
 	static {
 		config.setNativePort(9180);
 		config.setContactHostsName(new String[] { "marcus-v4.rim.net" });
+		
+		types.add("cass-type1");
 	}
 	static Cluster cluster = CUtils.createCluster(config);
 	static Session session = CUtils.createSession(cluster, "icrs");
@@ -66,7 +71,7 @@ public class CassandraLoadTest {
 		readerConfig.setCassConfig(config);
 		readerConfig.setKeyspace("icrs");
 		readerConfig.setTable("retry");
-		Collection<CassRetryEntity> results = store.loadAll(readerConfig);
+		Collection<CassRetryEntity> results = store.loadAll(readerConfig,null);
 		
 		for (CassRetryEntity entity:results) {
 			em.remove(entity.getId());
@@ -118,7 +123,7 @@ public class CassandraLoadTest {
 		
 		loadRandomData(100);
 		
-		store.loadIntoHZ(readerConfig);
+		store.loadIntoHZ(readerConfig,types);
 				
 		assertLoadedRows(100);
 		
@@ -138,7 +143,7 @@ public class CassandraLoadTest {
 		loadBadRow(10);
 		CassRetryMapStore store = new CassRetryMapStore("cass-type1",session,true);
 		
-		store.loadIntoHZ(readerConfig);
+		store.loadIntoHZ(readerConfig,types);
 		
 		assertLoadedRows(10);
 	}

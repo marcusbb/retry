@@ -9,6 +9,7 @@ import ies.retry.spi.hazelcast.persistence.ops.OpResult;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -16,7 +17,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import provision.services.logging.Logger;
-
 import reader.ReaderConfig;
 
 import com.datastax.driver.core.ResultSet;
@@ -77,10 +77,10 @@ public class CassRetryMapStore extends RetryMapStore {
 	}
 
 	//Until we move the number of threads for MTJobBootstrap
-	public void loadIntoHZ(ReaderConfig config ) {
+	public void loadIntoHZ(ReaderConfig config,HashSet<String> types ) {
 		
 		
-		BatchLoadJob loadJob = new BatchLoadJob();
+		BatchLoadJob loadJob = new BatchLoadJob(types);
 		
 				
 		loadJob.bootstrap(config);
@@ -90,9 +90,9 @@ public class CassRetryMapStore extends RetryMapStore {
 		
 	}
 	
-	public Collection<CassRetryEntity> loadAll(ReaderConfig config ) {
+	public Collection<CassRetryEntity> loadAll(ReaderConfig config,HashSet<String> types ) {
 		Collection<CassRetryEntity> col = new ArrayList<>();
-		BatchLoadJob loadJob = new BatchLoadJob(col);
+		BatchLoadJob loadJob = new BatchLoadJob(col,types);
 		
 		
 		loadJob.bootstrap(config);

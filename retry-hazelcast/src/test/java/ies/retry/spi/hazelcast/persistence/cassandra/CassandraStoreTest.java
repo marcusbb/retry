@@ -48,7 +48,7 @@ public class CassandraStoreTest {
 		
 		store = new CassRetryMapStore("cass-type1",session,true);
 		
-		Collection<CassRetryEntity> results = store.loadAll(readerConfig);
+		Collection<CassRetryEntity> results = store.loadAll(readerConfig,null);
 		
 		for (CassRetryEntity entity:results) {
 			em.remove(entity.getId());
