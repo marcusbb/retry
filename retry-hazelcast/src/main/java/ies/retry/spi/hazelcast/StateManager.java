@@ -330,6 +330,7 @@ public class StateManager implements  MembershipListener{
 					new SyncGridStorageTask(this), 
 					queueCheckPeriod, queueCheckPeriod, TimeUnit.MILLISECONDS);
 		} else {
+			master = false;
 			Logger.info(CALLER, "I_Am_Slave", "I am a slave: master=["+ masterMember + "] slave=" + h1.getCluster().getLocalMember());			
 		}		
 	}
@@ -403,6 +404,15 @@ public class StateManager implements  MembershipListener{
 	 */
 	public void syncGridAndStore() {
 		
+		if (!master) {
+			Logger.debug(StateManager.class.getName(),"SLAVE_MEMBER","dropping request");
+			return;
+		}
+		if (h1.getCluster().getMembers().size() < configMgr.getRetryHzConfig().getMinMembersToSyncStore()) {
+			Logger.warn(CALLER,"MIN_CLUSTER_SIZE_NOT_MET_STORE_SYNC","Not enough members to sync - to force sync use JMX operation");
+			return;
+			
+		}
 		HashSet<String> syncTypes = new HashSet<>();
 		for (String type:getAllStates().keySet()) {
 			RetryState t = globalStateMap.get(type);
@@ -427,7 +437,7 @@ public class StateManager implements  MembershipListener{
 			//raw idea of the busy-ness of persistence: don't sync if anything in the queue
 			boolean pBusy = RetryMapStoreFactory.getInstance().getTPE().getQueue().size() >= 1;
 			
-			if ( (gridCount < storeCount) && !overCapacity && master ) {
+			if ( (gridCount < storeCount) && !pBusy && !overCapacity && master ) {
 				
 				Logger.warn(CALLER, "SYNC_DB_GRID_ISSUE","","gridCount",gridCount,"storeCount",storeCount);			
 				syncTypes.add(type);
@@ -653,10 +663,10 @@ class SyncGridStorageTask implements Runnable {
 	@Override
 	public void run() {
 		Logger.debug(CALLER,"Check_state_start");
-		
-		
+				
 		try {
-			stateMgr.syncGridAndStore();
+			if(stateMgr.isMaster())
+				stateMgr.syncGridAndStore();
 				
 			
 		}catch (Throwable e) {
