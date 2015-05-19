@@ -28,7 +28,18 @@ public class HazelcastXmlConfig extends XmlRetryConfig {
 	
 	private PubConfig pubConfig = new PubConfig();
 	
+	/**
+	 * This should be named store sync check period
+	 */
 	private long queueCheckPeriod = 10 * 1000;
+	/**
+	 * This is the minimum number of HZ nodes that must be online
+	 * before a sync from storage - this should be changed in production
+	 * It makes sense that you achieve majority cluster size prior to 
+	 * storage sync
+	 */
+	private int minMembersToSyncStore = 1;
+	
 	/**
 	 * The time to wait for a lock to be tried on adding retry to the grid (and storage)
 	 */
@@ -39,6 +50,8 @@ public class HazelcastXmlConfig extends XmlRetryConfig {
 	private boolean throwOnAddException = true;
 	
 	private String localQueueLogDir = "/var/log/retry";
+	
+	
 			
 	
 	public PersistenceConfig getPersistenceConfig() {
@@ -138,6 +151,16 @@ public class HazelcastXmlConfig extends XmlRetryConfig {
 
 	public void setLocalQueueLogDir(String localQueueLogDir) {
 		this.localQueueLogDir = localQueueLogDir;
+	}
+
+
+	public int getMinMembersToSyncStore() {
+		return minMembersToSyncStore;
+	}
+
+
+	public void setMinMembersToSyncStore(int minMembersToSyncStore) {
+		this.minMembersToSyncStore = minMembersToSyncStore;
 	}
 	
 	
