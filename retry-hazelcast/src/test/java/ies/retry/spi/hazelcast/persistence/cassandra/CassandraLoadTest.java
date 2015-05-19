@@ -76,6 +76,7 @@ public class CassandraLoadTest {
 		for (CassRetryEntity entity:results) {
 			em.remove(entity.getId());
 		}
+		store.setCountTo(0);
 	}
 	@BeforeClass
 	public static void beforeClass() {
