@@ -144,4 +144,8 @@ public class RetryMapStoreFactory implements ConfigListener {//implements MapSto
 		
 	}
 	
+	public PersistenceConfig getConfig() {
+		return this.persistConfig;
+	}
+	
 }
