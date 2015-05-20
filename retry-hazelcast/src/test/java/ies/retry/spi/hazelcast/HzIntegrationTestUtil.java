@@ -9,13 +9,16 @@ import java.sql.SQLException;
 import com.hazelcast.core.HazelcastInstance;
 
 import ies.retry.Retry;
+import ies.retry.spi.hazelcast.util.HzUtil;
+import ies.retry.xml.XMLRetryConfigMgr;
 
 
 
 public abstract class HzIntegrationTestUtil {
 
 
-	
+	public static String ORIG_RETRY_XML = "retry_config.xml";
+	public static String ORIG_HZ_XML = "hazelcast.xml";
 	public static void beforeClass() {
 		/*HazelcastInstance inst = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1();
 		if (inst!= null) {
@@ -59,5 +62,8 @@ public abstract class HzIntegrationTestUtil {
 		}
 		((HazelcastRetryImpl)Retry.getRetryManager()).setH1(null);
 		Retry.setRetryManager(null);
+		XMLRetryConfigMgr.setXML_FILE(ORIG_RETRY_XML);
+		HzUtil.HZ_CONFIG_FILE = ORIG_HZ_XML;
+		
 	}
 }
