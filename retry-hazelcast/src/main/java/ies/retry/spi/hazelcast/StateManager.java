@@ -128,14 +128,9 @@ public class StateManager implements  MembershipListener{
 			types.add(config.getType());
 		}
 		//
-		//set master and load retry data
+		//set master 
 		setMaster();
-		if (master) {
-			
-			loadDataAsync(types);
-			//even if we have slaves coming on line, we should get informed of
-			//state changes via loading
-		}
+		//load data is deferred to syncGridAndStore
 	}
 	
 	/*To be called for when dynamic retry types register themselves later */
@@ -155,7 +150,8 @@ public class StateManager implements  MembershipListener{
 			Logger.info(CALLER, "Init_State","master_loading","TYPE",config.getType());
 			List<String> types = new ArrayList<String>();
 			types.add(config.getType());
-			loadDataAsync(types);
+			//this be deferred like above: 
+			//loadDataAsync(types);
 		}	
 	}
 	
@@ -400,7 +396,7 @@ public class StateManager implements  MembershipListener{
 	}
 	
 	/**
-	 * Cassandra sync grid and store mechanism
+	 * sync grid and store mechanism
 	 */
 	public void syncGridAndStore() {
 		
@@ -419,10 +415,7 @@ public class StateManager implements  MembershipListener{
 			if ( t == null) {
 				throw new StateTransitionException();
 			}
-			//this doesn't ensure
-			//that the cluster + storage is drained - let's make sure
-			boolean storedRetry = false;
-			
+						
 			
 			Logger.debug(CALLER, "SYNC_GRID_QUEUED","","TYPE",type);
 			int storeCount = ((RetryMapStore)RetryMapStoreFactory.getInstance().newMapStore(type)).count();
@@ -439,7 +432,7 @@ public class StateManager implements  MembershipListener{
 			
 			if ( (gridCount < storeCount) && !pBusy && !overCapacity && master ) {
 				
-				Logger.warn(CALLER, "SYNC_DB_GRID_ISSUE","","gridCount",gridCount,"storeCount",storeCount);			
+				Logger.warn(CALLER, "SYNC_DB_GRID","","gridCount",gridCount,"storeCount",storeCount);			
 				syncTypes.add(type);
 			}
 			if ( storeCount == 0 && gridCount ==0 ) {
