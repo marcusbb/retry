@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+	<appender name="console" class="org.apache.log4j.ConsoleAppender">
+		<param name="Target" value="System.out" />
+		
+		<layout class="provision.services.logging.PSPatternLayout">
+            <param name="conversionPattern"
+            value="%d %D %S %-5p: [%-17c{5} %T]  %m%n" />
+		</layout>
+	</appender>
+
+	<appender name="file" class="org.apache.log4j.FileAppender">
+
+		<param name="File" value="z-reader.log" />
+		<param name="Append" value="true" />
+		
+		<layout class="provision.services.logging.PSPatternLayout">
+            <param name="conversionPattern"
+            value="%d %D %S %-5p: [%-17c{5} %T]  %m%n" />
+		</layout>
+
+	</appender> 
+	<!-- 
+		For each keyspace you can get a cql file of all failed cql statements. Make sure each keyspace logger
+		points to the right keyspace appender. Create an appender and logger for each keyspace from the examples below
+		and replace every [add-keyspace-name-here] text with the name of the keyspace.
+	//-->
+	<!-- 
+	 <appender name="CQLAppender-[add-keyspace-name-here]" class="org.apache.log4j.FileAppender">
+        <param name="File" value="keyspace-[add-keyspace-name-here].cql" />
+        <param name="Append" value="false" />
+       <layout class="org.apache.log4j.PatternLayout">
+			<param name="conversionPattern" value="%m%n" />
+		</layout>
+    </appender>
+	<logger name="cql.keyspace.[add-keyspace-name-here]" additivity="false">
+        <level value="INFO" />
+        <appender-ref ref="CQLAppender-[add-keyspace-name-here]" />
+    </logger>
+	//-->
+	<root>
+		<priority value="debug" />
+		<appender-ref ref="console" />
+		<appender-ref ref="file" />
+	</root>
+
+
+</log4j:configuration>

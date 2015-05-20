@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<retry>
+	<provider>ies.retry.spi.hazelcast.HazelcastRetryImpl</provider>
+	
+	<!--  -->
+	<queueCheckPeriod>9999999999</queueCheckPeriod>
+	
+	<typeConfig>
+		<archiveExpired>false</archiveExpired>
+		<maxListSize>100</maxListSize>
+		<type>any</type>
+		<listBacked>true</listBacked>
+		<queueStrategy>UNORDERED</queueStrategy>
+		<backOff>
+			<interval>5000</interval>
+			<intervalMultiplier>1.0</intervalMultiplier>
+			<maxAttempts>2</maxAttempts>
+		</backOff>
+		<batchConfig>
+			<batchHeartBeat>9999999</batchHeartBeat>
+			<batchSize>1</batchSize>
+			<intervalMultiplier>1</intervalMultiplier>
+		</batchConfig>
+		
+	</typeConfig>
+
+	<!-- persistence config -->
+	<persistenceConfig>
+		<!-- true implies that DB storage is turned on  -->
+		<ON>true</ON>
+		
+		<writeSync>true</writeSync>
+		<queuePolicy>LINKED</queuePolicy>
+		<coreSize>10</coreSize>
+		<maxPoolSize>10</maxPoolSize>
+		
+		<boundedQueueSize>99999999999</boundedQueueSize>
+		
+		<cqlReaderConfig>
+			<cassConfig>
+				
+				<contactHostsName>marcus-v4.rim.net</contactHostsName>
+				
+				<nativePort>9180</nativePort>
+				
+			</cassConfig>
+			<keyspace>icrs</keyspace>
+			<table>retry</table>
+			<pageSize>1000</pageSize>
+			<numThreads>1</numThreads>
+		</cqlReaderConfig>
+		<cassConfig>
+					
+			<contactHostsName>marcus-v4.rim.net</contactHostsName>
+			<nativePort>9180</nativePort>
+			
+		</cassConfig>
+	</persistenceConfig>
+</retry>
