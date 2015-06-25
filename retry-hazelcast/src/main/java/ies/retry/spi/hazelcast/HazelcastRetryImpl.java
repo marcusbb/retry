@@ -178,9 +178,7 @@ public class HazelcastRetryImpl implements RetryManager {
 	public void addRetry(RetryHolder retry) throws NoCallbackException,
 			ConfigException {
 		
-		if (callbackManager.getCallbackMap().get(retry.getType()) == null) {
-			throw new NoCallbackException("No Callback defined for type: " + retry.getType());
-		}
+		
 		if (configMgr.getConfiguration(retry.getType()) == null) {
 			throw new ConfigException("No configuration set for type: " + retry.getType());
 		}
