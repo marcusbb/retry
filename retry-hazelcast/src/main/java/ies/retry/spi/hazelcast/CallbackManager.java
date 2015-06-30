@@ -30,6 +30,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import provision.services.logging.Logger;
 
+import com.hazelcast.client.ClientConfig;
+import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.core.DistributedTask;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
@@ -129,6 +131,10 @@ public class CallbackManager  {
 				
 	}
 		
+	public void registerRemoteClient(ClientConfig clientconfig) {
+		HazelcastClient client = HazelcastClient.newHazelcastClient(clientconfig);
+		
+	}
 	
 	/**
 	 * 

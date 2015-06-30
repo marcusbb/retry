@@ -1,7 +1,7 @@
 package ies.retry.spi.hazelcast.util;
 
 import ies.retry.RetryHolder;
-import ies.retry.RetryMarshaller;
+import ies.retry.RetrySerializer;
 
 import java.io.Serializable;
 
@@ -12,7 +12,7 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 
 
-public class KryoSerializer implements RetryMarshaller {
+public class KryoSerializer implements RetrySerializer {
 
 	private static final Kryo kryo = new Kryo();
 
@@ -35,14 +35,14 @@ public class KryoSerializer implements RetryMarshaller {
 	 }
 
 	@Override
-	public Serializable marshallToObject(byte[] b) {
+	public Serializable serializeToObject(byte[] b) {
 
 		Object o = kryo.readClassAndObject(new Input(b));
 		return (o instanceof Serializable) ? (Serializable) o : null;
 	}
 
 	@Override
-	public byte[] marshallToByte(Serializable t) {
+	public byte[] serializeToByte(Serializable t) {
 		Output output = new Output(1000 << 4, 1000 << 18); // buffer size of 16K and expanding to 256M as needed - throws exception if exceeded
 		kryo.writeClassAndObject(output, t);
 		return output.toBytes();

@@ -132,7 +132,7 @@ public class CassArchiveRetryEntity  {
 	}
 	
 	private byte[] toByte(List<RetryHolder> retryHolder) throws IOException {
-		return new KryoSerializer().marshallToByte((Serializable)retryHolder);
+		return new KryoSerializer().serializeToByte((Serializable)retryHolder);
 		
 	}
 	
@@ -150,7 +150,7 @@ public class CassArchiveRetryEntity  {
 		while (bb.remaining() >0)
 			b[i++] = bb.get();
 		
-		return (List<RetryHolder>)new KryoSerializer().marshallToObject(b);
+		return (List<RetryHolder>)new KryoSerializer().serializeToObject(b);
 	}
 	
 	

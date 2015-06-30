@@ -190,6 +190,8 @@ public class HazelcastRetryImpl implements RetryManager {
 		
 		if (null != retry.getException()) truncateStackTrace(retry, config);
 		
+		retry.setPayload(config.getSerializer().serializeToByte(retry.getRetryData()));
+				
 				
 		//queue locally if we have a local queue buffer
 		if (localQueuer.addIfNotEmpty(retry)) {
@@ -255,7 +257,7 @@ public class HazelcastRetryImpl implements RetryManager {
 		}
 		 
 		Logger.info(CALLER, "Archive_Retry_No_Dequeue", "Archiving Retry", "ID", retry.getId(), "Type", retry.getType());
-
+		retry.setPayload(configMgr.getConfiguration(retry.getType()).getSerializer().serializeToByte(retry.getRetryData()));
 		RetryMapStore store = (RetryMapStore)RetryMapStoreFactory.getInstance().newMapStore(retry.getType());
 		List<RetryHolder> retries = new ArrayList<RetryHolder>();
 		retries.add(retry);
@@ -336,7 +338,10 @@ public class HazelcastRetryImpl implements RetryManager {
 				
 				return;
 			}
-			
+			for (RetryHolder rh:retryList) {
+				if (rh.getRetryData() != null && rh.getPayload() == null)
+					rh.setPayload(config.getSerializer().serializeToByte(retry.getRetryData()));
+			}
 			DistributedTask<Void> distTask = new DistributedTask<Void>(new AddRetryCallable(retry, config), retry.getId());
 			
 			h1.getExecutorService(EXEC_SRV_NAME).submit(distTask);

@@ -124,6 +124,10 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 						boolean skipCallbackForRemainingItemsDueToException = false;
 						for (i=0;i<listHolder.size();i++) {
 							RetryHolder holder = listHolder.get(i);
+							
+							if (holder.getRetryData() == null && holder.getPayload() != null) {
+								holder.setRetryData(config.getSerializer().serializeToObject(holder.getPayload()));
+							}
 							try {
 								//this is the potentially VERY expensive operation
 								//the actual callback portion
