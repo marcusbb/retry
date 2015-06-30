@@ -2,6 +2,8 @@ package ies.retry;
 
 import java.io.Serializable;
 
+import javax.xml.bind.annotation.XmlTransient;
+
 
 /**
  * Retry configuration is broken down into type or category.
@@ -93,6 +95,19 @@ public class RetryConfiguration implements Serializable{
 	 *  Indicates which exception or cause exception in stack will be kept in RetryHolder
 	 */	
 	private int exceptionLevel;
+	
+	
+	/**
+	 *  Indicates how many stack trace line of Retry exception will be serialized
+	 */
+	private int stackTraceLinesCount;
+	
+	/**
+	 * RetryHolder Serializer - currently serializer will only be allowed to be set
+	 * programmatically TODO
+	 */
+	@XmlTransient
+	private RetrySerializer serializer = new RetrySerializer.JavaSerializer();
 
 	public int getExceptionLevel() {
 		return exceptionLevel;
@@ -101,12 +116,6 @@ public class RetryConfiguration implements Serializable{
 	public void setExceptionLevel(int exceptionLevel) {
 		this.exceptionLevel = exceptionLevel;
 	}
-
-	/**
-	 *  Indicates how many stack trace line of Retry exception will be serialized
-	 */
-	private int stackTraceLinesCount;
-	
 	public int getStackTraceLinesCount() {
 		return stackTraceLinesCount;
 	}
@@ -198,7 +207,18 @@ public class RetryConfiguration implements Serializable{
 	public void setSyncTimeoutInms(long syncTimeoutInms) {
 		this.syncTimeoutInms = syncTimeoutInms;
 	}
+	@XmlTransient
+	public RetrySerializer getSerializer() {
+		return serializer;
+	}
 
+	public void setSerializer(RetrySerializer serializer) {
+		this.serializer = serializer;
+	}
+
+	
+
+	
 	
 	
 }

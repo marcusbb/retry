@@ -2,7 +2,6 @@ package ies.retry;
 
 
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.Date;
 
 /**
@@ -24,7 +23,7 @@ public class RetryHolder implements Serializable {
 	/**
 	 * unique identifier for this retry
 	 * this will be identified by the client
-	 * adding to an already existing id will override the retry
+	 * adding to an already existing id will override the retry/add to the list of retry holders
 	 */
 	
 	String id;
@@ -42,7 +41,7 @@ public class RetryHolder implements Serializable {
 	
 	long nextAttempt;
 	
-	//Boolean failed; //??
+	
 	/**
 	 * The content of the data.
 	 * Depending on persistence concerns this may be 
@@ -50,8 +49,9 @@ public class RetryHolder implements Serializable {
 	 * of size.
 	 * 
 	 */
-	Serializable retryData;
+	transient Serializable retryData;
 	
+	private byte [] payload;
 	/**
 	 * the exception encountered
 	 * The entire stack may not be persisted due to memory
@@ -61,7 +61,9 @@ public class RetryHolder implements Serializable {
 	 * call a {@link Exception#getStackTrace()} operation
 	 * 
 	 */
-	Exception exception;
+	transient Exception exception;
+	
+	private byte [] exPayload;
 	
 	/**
 	 * Completely optional secondary index
@@ -77,14 +79,11 @@ public class RetryHolder implements Serializable {
 	int count;
 
 	public RetryHolder(String id,String type) {
-		this.id = id;
-		this.type = type;
+		this(id,type,null,null);
 	}
 	
 	public RetryHolder(String id,String type,Exception e) {
-		this.id = id;
-		this.type = type;
-		this.exception = e;
+		this(id,type,e,null);
 	}
 	
 	public RetryHolder(String id,String type,Exception e,Serializable retryData) {
@@ -92,7 +91,13 @@ public class RetryHolder implements Serializable {
 		this.type = type;
 		this.exception = e;
 		this.retryData = retryData;
+		
 	}
+	
+	public RetryHolder(String id,String type, Serializable retryData) {
+		this(id,type,null,retryData);
+	}
+	
 	
 
 
@@ -155,14 +160,14 @@ public class RetryHolder implements Serializable {
 		this.nextAttempt = nextAttempt;
 	}
 
-	/*public Boolean getFailed() {
-		return failed;
+	
+	public byte[] getPayload() {
+		return payload;
 	}
 
-	public void setFailed(Boolean failed) {
-		this.failed = failed;
-	}*/
-
+	public void setPayload(byte[] payload) {
+		this.payload = payload;
+	}
 
 	public String getSecondaryIndex() {
 		return secondaryIndex;
