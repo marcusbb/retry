@@ -3,7 +3,7 @@ package ies.retry.spi.hazelcast.util;
 import ies.retry.Retry;
 import ies.retry.RetryHolder;
 import ies.retry.RetryManager;
-import ies.retry.RetryMarshaller;
+import ies.retry.RetrySerializer;
 import ies.retry.xml.XMLRetryConfigMgr;
 
 import java.io.Serializable;
@@ -88,13 +88,13 @@ public class KryoSerializerTest {
 		 */
 		
 		
-		RetryMarshaller marshaller = new KryoSerializer();
+		RetrySerializer marshaller = new KryoSerializer();
 		
 		startTime = System.currentTimeMillis();
 		
-		holder = new RetryHolder("MAIN PROBLEM", "POKE", exception, marshaller.marshallToByte((Serializable) listOfRetryData));
+		holder = new RetryHolder("MAIN PROBLEM", "POKE", exception, marshaller.serializeToByte((Serializable) listOfRetryData));
 		
-		resultSerialized = marshaller.marshallToByte(holder);
+		resultSerialized = marshaller.serializeToByte(holder);
 		
 		endTime =  System.currentTimeMillis() - startTime;
 		
@@ -102,9 +102,9 @@ public class KryoSerializerTest {
 		
 		System.out.println("Kryo time to serialize " + endTime);
 		
-		holder = (RetryHolder)marshaller.marshallToObject(resultSerialized) ;
+		holder = (RetryHolder)marshaller.serializeToObject(resultSerialized) ;
 		
-	    listOfRetryData2 = (List<RetryHolder>) marshaller.marshallToObject((byte[]) holder.getRetryData());
+	    listOfRetryData2 = (List<RetryHolder>) marshaller.serializeToObject((byte[]) holder.getRetryData());
 	    
 	    Assert.assertEquals(listOfRetryData2.size(), 10000);
 		
