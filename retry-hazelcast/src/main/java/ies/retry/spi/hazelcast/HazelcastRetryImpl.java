@@ -511,6 +511,10 @@ public class HazelcastRetryImpl implements RetryManager {
 		callbackManager.addCallback(callback, type);
 	}
 	
+	//configure the remote cluster
+	public void registerRemoteCallback(RetryCallback remoteCallback) {
+		
+	}
 	
 	public RetryCallback registeredCallback(String type) {
 		return callbackManager.getCallbackMap().get(type);

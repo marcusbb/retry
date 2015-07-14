@@ -77,8 +77,8 @@ public class DataLossUponLoadingFromDBTest {
 
 		
 
-		ORIG_XML_FILE = XMLRetryConfigMgr.XML_FILE;
-		XMLRetryConfigMgr.XML_FILE = XML_CONFIG;
+		ORIG_XML_FILE = XMLRetryConfigMgr.DEFAULT_XML_FILE;
+		XMLRetryConfigMgr.DEFAULT_XML_FILE = XML_CONFIG;
 		retryManager = (HazelcastRetryImpl) Retry.getRetryManager();
 		// Retry.setRetryManager(null);
 		 emf = Persistence.createEntityManagerFactory("retryPool");

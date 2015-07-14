@@ -3,6 +3,7 @@ package ies.retry.xml;
 import ies.retry.RetryConfiguration;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlRootElement;
@@ -15,7 +16,7 @@ public class XmlRetryConfig implements Serializable {
 	 */
 	private static final long serialVersionUID = -7084739011201169886L;
 	private String provider;
-	private List<RetryConfiguration> typeConfig;
+	private List<RetryConfiguration> typeConfig = new ArrayList<RetryConfiguration>();
 	
 	
 	

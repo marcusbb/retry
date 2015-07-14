@@ -26,7 +26,7 @@ public class RetryJMXMain {
 			if (args[0] != null)
 				HzUtil.HZ_CONFIG_FILE = args[0];
 			if (args[1] != null)
-				XMLRetryConfigMgr.XML_FILE = args[1];
+				XMLRetryConfigMgr.DEFAULT_XML_FILE = args[1];
 		}
 		XMLRetryConfigMgr.setCONFIG_DIR(".");
 		

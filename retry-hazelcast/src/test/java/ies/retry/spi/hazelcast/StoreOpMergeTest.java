@@ -46,8 +46,8 @@ public class StoreOpMergeTest {
 	public void setUpBefore() throws Throwable {
 		HzIntegrationTestUtil.beforeClass();
 
-		ORIG_XML_FILE = XMLRetryConfigMgr.XML_FILE;
-		XMLRetryConfigMgr.XML_FILE = XML_CONFIG;
+		ORIG_XML_FILE = XMLRetryConfigMgr.DEFAULT_XML_FILE;
+		XMLRetryConfigMgr.DEFAULT_XML_FILE = XML_CONFIG;
 		// Retry.setRetryManager(null);
 		retryManager = (HazelcastRetryImpl) Retry.getRetryManager();
 		emf = Persistence.createEntityManagerFactory("retryPool");

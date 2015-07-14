@@ -30,7 +30,7 @@ import javax.xml.transform.stream.StreamSource;
 public class XMLRetryConfigMgr implements RetryConfigManager{
 
 	public static String OBJ_FACTORY_PROP = "com.sun.xml.bind.ObjectFactory";
-	public static String XML_FILE = "retry_config.xml";
+	public static String DEFAULT_XML_FILE = "retry_config.xml";
 	private Map<String,RetryConfiguration> configMap;
 	XmlRetryConfig config = null;
 	private Class<? extends XmlRetryConfig> jaxbConfigClass = XmlRetryConfig.class; 
@@ -54,13 +54,13 @@ public class XMLRetryConfigMgr implements RetryConfigManager{
 	 * 
 	 */
 	public  XmlRetryConfig load() throws IOException, JAXBException {
-		File file = new File(CONFIG_DIR + System.getProperty("file.separator") + XML_FILE);
+		File file = new File(CONFIG_DIR + System.getProperty("file.separator") + DEFAULT_XML_FILE);
 		InputStream ins = null;
 		if (file.exists()) {
 			ins = new FileInputStream(file);
 		}
 		else {
-			ins = Thread.currentThread().getContextClassLoader().getResourceAsStream(XML_FILE);
+			ins = Thread.currentThread().getContextClassLoader().getResourceAsStream(DEFAULT_XML_FILE);
 		}
 		if (ins == null) {
 			System.out.println("WARNING: ---------------------------------------------");
@@ -172,10 +172,10 @@ public class XMLRetryConfigMgr implements RetryConfigManager{
 		this.jaxbConfigClass = jaxbConfigClass;
 	}
 	public static String getXML_FILE() {
-		return XML_FILE;
+		return DEFAULT_XML_FILE;
 	}
 	public static void setXML_FILE(String xML_FILE) {
-		XML_FILE = xML_FILE;
+		DEFAULT_XML_FILE = xML_FILE;
 	}
 	public static String getCONFIG_DIR() {
 		return CONFIG_DIR;

@@ -1,12 +1,20 @@
 package ies.retry.spi.hazelcast.remote;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
+import provision.services.logging.Logger;
+
 import com.hazelcast.client.ClientConfig;
+import com.hazelcast.client.HazelcastClient;
+import com.hazelcast.config.GroupConfig;
+import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.Member;
 
 import ies.retry.ConfigException;
 import ies.retry.NoCallbackException;
@@ -16,16 +24,28 @@ import ies.retry.RetryHolder;
 import ies.retry.RetryManager;
 import ies.retry.RetryState;
 import ies.retry.RetryTransitionListener;
+import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
+import ies.retry.spi.hazelcast.remote.RemoteCallback.DefaultRemoteCallback;
 
 /**
- * Does everything a local RetryManager would do but with a remote hazelcast instance/cluster.
+ * This instance of Retrymanager exists purely as a client reference to the cluster.
+ * 
+ * For the purposes of callback, 
  * 
  * @author msimonsen
  *
  */
 public class RetryRemoteManagerImpl implements RetryManager {
 
-	HazelcastInstance hzClient = null;
+	/**
+	 * client to the target cluster
+	 */
+	HazelcastClient hzClient = null;
+	HazelcastInstance cluster = null;
+	
+	private Map<String,RetryCallback> callbackMap = new HashMap<String, RetryCallback>();
+	
+	private ClientConfigManager configMgr = null;
 	
 	/**
 	 * Discovers client configuration information through 
@@ -34,11 +54,41 @@ public class RetryRemoteManagerImpl implements RetryManager {
 	public RetryRemoteManagerImpl() {
 		//builds a client config from file - meaning a list of hz IPs.
 		//this could be bundled as part of retry (client)
+		configMgr = new ClientConfigManager();
+		try {
+			configMgr.load();
+			
+			HazelcastClient inst = HazelcastClient.newHazelcastClient(configMgr.getConfig().getRemoteClusterConfig().getClientConfig());
+			init(inst,configMgr.getConfig().getClusterName());
+		} catch (Exception e) {
+			throw new ConfigException(e);
+		} 
 		
 	}
-	public RetryRemoteManagerImpl(HazelcastInstance clientInstance) {
-		hzClient = clientInstance;
+	public RetryRemoteManagerImpl(HazelcastClient clientInstance,String clusterName) {
+		init(clientInstance, clusterName);
 	}
+	
+	/**
+	 * Reference the callback cluster by name
+	 * @param clientInstance - the client to the retry server
+	 * @param clusterName - the callback cluster (this cluster)
+	 */
+	protected void init(HazelcastClient clientInstance,String clusterName) {
+		
+		hzClient = clientInstance;
+		cluster = Hazelcast.getHazelcastInstanceByName(clusterName);
+		
+		GroupConfig gc = cluster.getConfig().getGroupConfig();
+		Set<Member> memberSet = cluster.getCluster().getMembers();
+		ClientConfig cc = new ClientConfig();
+		cc.setGroupConfig(gc);
+		for (Member member:memberSet)
+			cc.addInetSocketAddress(member.getInetSocketAddress());
+		
+		
+	}
+	
 	
 	private <T> T submitRPC(String method,Object...signature) {
 		try {
@@ -50,6 +100,21 @@ public class RetryRemoteManagerImpl implements RetryManager {
 		
 		}
 		
+	}
+	
+	public boolean onCallback(RetryHolder holder) throws Exception {
+		
+		RetryCallback localCallback = callbackMap.get(holder.getType());
+		
+		if (localCallback == null) {
+			throw new NoCallbackException();
+		}
+		try {
+			return localCallback.onEvent(holder);
+		}catch (Exception e) {
+			//TODO 
+		}
+		return false;
 	}
 	@Override
 	public void addRetry(RetryHolder retry) throws NoCallbackException,
@@ -105,12 +170,10 @@ public class RetryRemoteManagerImpl implements RetryManager {
 
 	@Override
 	public void registerCallback(RetryCallback callback, String type) {
-		if (! (callback instanceof RemoteCallback) )
-			throw new UnsupportedOperationException("");
-		
-		RemoteCallback rcb = (RemoteCallback)callback;
-		//this will register into the CallbackManager directly or through the server RPC
-		
+		callbackMap.put(type, callback);
+		//TODO come up with client config of this 
+		DefaultRemoteCallback remoteCallback = new DefaultRemoteCallback(null, callback);
+		submitRPC("registerRemoteCallback", remoteCallback);
 	}
 
 	@Override

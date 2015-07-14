@@ -45,7 +45,7 @@ public class RetryMapStoreTest {
 	@BeforeClass
 	public static void setUpBeforeClass() throws Throwable {
 		HzIntegrationTestUtil.beforeClass();
-		ORIG_XML_FILE = XMLRetryConfigMgr.XML_FILE;
+		ORIG_XML_FILE = XMLRetryConfigMgr.DEFAULT_XML_FILE;
 		Retry.setRetryManager(null);
 		XMLRetryConfigMgr.setXML_FILE(XML_CONFIG);
 		

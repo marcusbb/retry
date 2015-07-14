@@ -65,8 +65,8 @@ public class DistCallBackTaskTest {
 	public static void setUpBeforeClass() throws Throwable {
 		HzIntegrationTestUtil.beforeClass();
 
-		ORIG_XML_FILE = XMLRetryConfigMgr.XML_FILE;
-		XMLRetryConfigMgr.XML_FILE = XML_CONFIG;
+		ORIG_XML_FILE = XMLRetryConfigMgr.DEFAULT_XML_FILE;
+		XMLRetryConfigMgr.DEFAULT_XML_FILE = XML_CONFIG;
 		// Retry.setRetryManager(null);
 		retryManager = Retry.getRetryManager();
 		emf = Persistence.createEntityManagerFactory("retryPool");
