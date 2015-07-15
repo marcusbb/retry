@@ -1,5 +1,6 @@
 package ies.retry.spi.hazelcast;
 
+import ies.retry.BackOff;
 import ies.retry.BatchConfig;
 import ies.retry.Retry;
 import ies.retry.RetryCallback;
@@ -12,6 +13,7 @@ import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
 import ies.retry.spi.hazelcast.disttasks.CallbackRegistration;
 import ies.retry.spi.hazelcast.disttasks.CallbackSelectionTask;
 import ies.retry.spi.hazelcast.disttasks.DistCallBackTask;
+import ies.retry.spi.hazelcast.util.RetryUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,6 +28,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
 
 import provision.services.logging.Logger;
@@ -197,6 +200,26 @@ public class CallbackManager  {
 		if (lock != null && lock.isLocked())
 			lock.unlock();
 	}
+	protected void callBackTimeOut(String type, String id) {
+		IMap<String,List<RetryHolder>>  retryMap = h1.getMap(type);
+		boolean lockAquired = retryMap.tryLock(id,configMgr.getRetryHzConfig().getRetryAddLockTimeout(),TimeUnit.MILLISECONDS);
+		BackOff backOff = configMgr.getConfiguration(type).getBackOff();
+		try {
+			
+			for (RetryHolder fh:retryMap.get(id)) {
+				
+				long nextDelay = RetryUtil.getNextDelayForRetry(backOff, fh.getCount());																
+				
+				fh.setNextAttempt(System.currentTimeMillis() + nextDelay);
+				fh.incrementCount();									
+			}
+		}finally {
+			if (lockAquired)
+				retryMap.unlock(id);
+		}
+		
+		
+	}
 	/**
 	 * Completely in-memory retrieval. 
 	 *  The meat of the call back logic resides here.
@@ -244,7 +267,7 @@ public class CallbackManager  {
 			long failCount = 0;
 			while(keyIter.hasNext()) {
 				Integer batchSize = getBatchSize(type);
-				ArrayList<FutureTask<CallbackStat>> futureList = new ArrayList<FutureTask<CallbackStat>>(batchSize);
+				ArrayList<FutureTaskWrapper> futureList = new ArrayList<FutureTaskWrapper>(batchSize);
 								
 				
 				for (int i=0;keyIter.hasNext()&& i<batchSize;i++ ) {
@@ -266,16 +289,19 @@ public class CallbackManager  {
 					Callable<CallbackStat> callbackTask = new DistCallBackTask(listHolder, isArchiveExpired(type));			
 					task = new DistributedTask<CallbackStat>(callbackTask, execMember);
 					distCallBackExec.submit(task);
-					futureList.add(task);
+					futureList.add(new FutureTaskWrapper(task,type,id));
 					
 					
 				}
 				int successForBatch = 0;
-				for (FutureTask<CallbackStat> future:futureList) {
+				for (FutureTaskWrapper fw:futureList) {
 					boolean ret = false;
 					CallbackStat cbs = null;
 					try {
-						cbs = future.get();
+						//set timeout to the batch size heart-beat
+						//does this make sense?
+						long timeout = configMgr.getConfiguration(type).getBatchConfig().getBatchHeartBeat();
+						cbs = fw.getFutureTask().get(timeout,TimeUnit.MILLISECONDS);
 						ret = cbs.isSuccess();
 					}catch (ExecutionException e) {
 						if (e.getCause() instanceof NoCallbackRegistered){
@@ -284,6 +310,10 @@ public class CallbackManager  {
 						} else {
 							Logger.info(CALLER, "Try_Dequeue_ExecutionException", "Exception Message: " + e.getCause().getMessage(), "Type", type);
 						}
+					}catch(TimeoutException te) {
+						ret = false;
+						fw.getFutureTask().cancel(true);
+						callBackTimeOut(fw.getType(), fw.getId());
 					}
 					catch (Exception e) {
 						Logger.warn(CALLER, "Try_Dequeue_Exception", "Exception Message: " + e.getMessage(), "Type", type);
@@ -456,7 +486,35 @@ public class CallbackManager  {
 	
 	
 }
+/**
+ * 
+ * Wrapping future task with additional
+ *
+ */
+class FutureTaskWrapper {
+	private FutureTask<CallbackStat> futureTask;
+	private String type;
+	private String id;
+	
+	public FutureTaskWrapper(FutureTask<CallbackStat> futureTask,String type,String id) {
+		this.futureTask = futureTask;
+		this.type = type;
+		this.id = id;
+	}
 
+	public FutureTask<CallbackStat> getFutureTask() {
+		return futureTask;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public String getId() {
+		return id;
+	}
+	
+}
 class NoCallbackMember extends Exception {
 
 	/**

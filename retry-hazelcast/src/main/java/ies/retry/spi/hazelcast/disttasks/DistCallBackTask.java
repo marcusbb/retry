@@ -50,26 +50,7 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 		
 	}
 	
-	private long getNextDelayForRetry(BackOff backOff, int retryNum){
-
-		long nextDelay = 0;
-		
-		switch (backOff.getBackoffMode()){
-		case Geometric:
-			nextDelay = Math.round(Math.pow(backOff.getIntervalMultiplier(),retryNum)*backOff.getMilliInterval());
-			break;
-		case StaticIntervals:
-			if (retryNum < backOff.staticMillis().length-1)
-				nextDelay = backOff.staticMillis()[retryNum];
-			else
-				nextDelay = backOff.staticMillis()[backOff.staticMillis().length - 1];
-			break;
-		case Periodic:						
-			nextDelay = Math.round(backOff.getMilliInterval());
-			break;
-		}
-		return nextDelay;
-	}
+	
 	
 	@Override
 	public CallbackStat call() throws Exception {
@@ -217,7 +198,7 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 							//set all of them to be safe (and help in query)
 							for (RetryHolder fh:failedHolder) {
 									
-								long nextDelay = getNextDelayForRetry(backOff, fh.getCount());																
+								long nextDelay = RetryUtil.getNextDelayForRetry(backOff, fh.getCount());																
 								
 								fh.setNextAttempt(System.currentTimeMillis() + nextDelay);
 								fh.incrementCount();									
