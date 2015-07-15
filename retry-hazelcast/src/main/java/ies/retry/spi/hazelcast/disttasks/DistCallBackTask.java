@@ -196,11 +196,12 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 						} else {
 							//we separate the timer from the calculation of next
 							//set all of them to be safe (and help in query)
+							long ts = System.currentTimeMillis();
 							for (RetryHolder fh:failedHolder) {
 									
 								long nextDelay = RetryUtil.getNextDelayForRetry(backOff, fh.getCount());																
 								
-								fh.setNextAttempt(System.currentTimeMillis() + nextDelay);
+								fh.setNextAttempt(ts + nextDelay);
 								fh.incrementCount();									
 							}
 							List<RetryHolder> mergedList = RetryUtil.merge(CALLER, listHolder, failedHolder, latest);

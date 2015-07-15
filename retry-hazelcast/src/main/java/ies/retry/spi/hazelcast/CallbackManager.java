@@ -205,12 +205,12 @@ public class CallbackManager  {
 		boolean lockAquired = retryMap.tryLock(id,configMgr.getRetryHzConfig().getRetryAddLockTimeout(),TimeUnit.MILLISECONDS);
 		BackOff backOff = configMgr.getConfiguration(type).getBackOff();
 		try {
-			
+			long ts = System.currentTimeMillis();
 			for (RetryHolder fh:retryMap.get(id)) {
 				
 				long nextDelay = RetryUtil.getNextDelayForRetry(backOff, fh.getCount());																
 				
-				fh.setNextAttempt(System.currentTimeMillis() + nextDelay);
+				fh.setNextAttempt(ts + nextDelay);
 				fh.incrementCount();									
 			}
 		}finally {
