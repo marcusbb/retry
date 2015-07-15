@@ -129,6 +129,7 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 								//the actual callback portion
 								if(!skipCallbackForRemainingItemsDueToException){
 									//try the next holder in the list only if the callback didn't throw an exceptoin for the previously executed retries in the list. 
+									Logger.info(CALLER, "DistCallBackTask_PreCallback","precallback","retry",id);
 									stat.setSuccess(callback.onEvent(holder));
 								}
 								
