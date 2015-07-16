@@ -24,13 +24,13 @@ import driver.em.CUtils;
 import driver.em.CassConfig;
 import driver.em.DefaultEntityManager;
 
-public class CassandraStoreTest {
+public class CassandraStoreTest extends TestBase {
 
 	
 	static CassConfig config = new CassConfig();
 	static {
-		config.setNativePort(9180);
-		config.setContactHostsName(new String[] { "marcus-v4.rim.net" });
+		config.setNativePort(9142);
+		config.setContactHostsName(new String[] { "localhost" });
 	}
 	static Cluster cluster = CUtils.createCluster(config);
 	static Session session = CUtils.createSession(cluster, "icrs");
