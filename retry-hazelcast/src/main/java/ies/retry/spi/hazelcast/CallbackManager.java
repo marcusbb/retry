@@ -206,13 +206,15 @@ public class CallbackManager  {
 		BackOff backOff = configMgr.getConfiguration(type).getBackOff();
 		try {
 			long ts = System.currentTimeMillis();
-			for (RetryHolder fh:retryMap.get(id)) {
+			List<RetryHolder> listHolder = retryMap.get(id);
+			for (RetryHolder fh:listHolder) {
 				
 				long nextDelay = RetryUtil.getNextDelayForRetry(backOff, fh.getCount());																
 				
 				fh.setNextAttempt(ts + nextDelay);
 				fh.incrementCount();									
 			}
+			retryMap.put(id, listHolder);
 		}finally {
 			if (lockAquired)
 				retryMap.unlock(id);
@@ -300,7 +302,7 @@ public class CallbackManager  {
 					try {
 						//set timeout to the batch size heart-beat
 						//does this make sense?
-						long timeout = configMgr.getConfiguration(type).getBatchConfig().getBatchHeartBeat();
+						long timeout = configMgr.getConfiguration(type).getCallbackTimeoutMs();
 						cbs = fw.getFutureTask().get(timeout,TimeUnit.MILLISECONDS);
 						ret = cbs.isSuccess();
 					}catch (ExecutionException e) {
@@ -311,6 +313,7 @@ public class CallbackManager  {
 							Logger.info(CALLER, "Try_Dequeue_ExecutionException", "Exception Message: " + e.getCause().getMessage(), "Type", type);
 						}
 					}catch(TimeoutException te) {
+						Logger.warn(CALLER, "Try_Dequeue_TimeoutException", "msg: " + te.getMessage(), "Type", type,"id",fw.getId());
 						ret = false;
 						fw.getFutureTask().cancel(true);
 						callBackTimeOut(fw.getType(), fw.getId());
