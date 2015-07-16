@@ -37,13 +37,13 @@ public class CassandraLoadTest {
 	static HashSet<String> types = new HashSet<>();
 	
 	static {
-		config.setNativePort(9180);
-		config.setContactHostsName(new String[] { "marcus-v4.rim.net" });
+		config.setNativePort(9142);
+		config.setContactHostsName(new String[] { "localhost" });
 		
 		types.add("cass-type1");
 	}
-	static Cluster cluster = CUtils.createCluster(config);
-	static Session session = CUtils.createSession(cluster, "icrs");
+	static Cluster cluster;
+	static Session session;
 	
 	static HazelcastRetryImpl retry = null;
 	
@@ -79,7 +79,10 @@ public class CassandraLoadTest {
 		store.setCountTo(0);
 	}
 	@BeforeClass
-	public static void beforeClass() {
+	public static void beforeClass() throws Exception {
+		TestBase.beforeClass();
+		cluster = CUtils.createCluster(config);
+		session = CUtils.createSession(cluster, "icrs");
 		HzIntegrationTestUtil.beforeClass();
 		XMLRetryConfigMgr.setXML_FILE("retry_config.xml");
 		retry = (HazelcastRetryImpl)Retry.getRetryManager();
@@ -90,10 +93,12 @@ public class CassandraLoadTest {
 		retry.getConfigManager().addConfiguration(config);
 		retry.registerCallback(new CassandraLoadTest.FailCallback(), "cass-type1");
 		em = new DefaultEntityManager<CassRetryEntity.Id, CassRetryEntity>(session, CassRetryEntity.class);
+		
 	}
 	@AfterClass
 	public static void afterClass() {
 		HzIntegrationTestUtil.afterClass();
+		TestBase.afterClass();
 	}
 	protected void loadRandomData(int rows) throws Exception {
 		
