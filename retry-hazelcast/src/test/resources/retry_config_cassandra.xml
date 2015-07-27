@@ -39,9 +39,9 @@
 		<cqlReaderConfig>
 			<cassConfig>
 				
-				<contactHostsName>marcus-v4.rim.net</contactHostsName>
+				<contactHostsName>localhost</contactHostsName>
 				
-				<nativePort>9180</nativePort>
+				<nativePort>9142</nativePort>
 				
 			</cassConfig>
 			<keyspace>icrs</keyspace>
@@ -51,8 +51,8 @@
 		</cqlReaderConfig>
 		<cassConfig>
 					
-			<contactHostsName>marcus-v4.rim.net</contactHostsName>
-			<nativePort>9180</nativePort>
+			<contactHostsName>localhost</contactHostsName>
+			<nativePort>9142</nativePort>
 			
 		</cassConfig>
 	</persistenceConfig>
