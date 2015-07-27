@@ -9,6 +9,8 @@ import java.sql.SQLException;
 import com.hazelcast.core.HazelcastInstance;
 
 import ies.retry.Retry;
+import ies.retry.spi.hazelcast.util.HzUtil;
+import ies.retry.xml.XMLRetryConfigMgr;
 
 
 
@@ -35,6 +37,8 @@ public abstract class HzIntegrationTestUtil {
 		}catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+		XMLRetryConfigMgr.setXML_FILE( XMLRetryConfigMgr.XML_FILE );
+		HzUtil.HZ_CONFIG_FILE = "hazelcast.xml";
 	}
 	
 	private static void executeResource(Connection con, String resource) throws IOException,SQLException {
