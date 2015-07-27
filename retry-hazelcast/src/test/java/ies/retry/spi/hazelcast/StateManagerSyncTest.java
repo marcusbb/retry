@@ -8,6 +8,7 @@ import ies.retry.spi.hazelcast.persistence.RetryMapStore;
 import ies.retry.spi.hazelcast.persistence.RetryMapStoreFactory;
 import ies.retry.spi.hazelcast.persistence.cassandra.CassRetryEntity;
 import ies.retry.spi.hazelcast.persistence.cassandra.CassRetryMapStore;
+import ies.retry.spi.hazelcast.persistence.cassandra.TestBase;
 import ies.retry.spi.hazelcast.util.HzUtil;
 import ies.retry.xml.XMLRetryConfigMgr;
 
@@ -26,7 +27,7 @@ import com.hazelcast.core.HazelcastInstance;
 
 import driver.em.DefaultEntityManager;
 
-public class StateManagerSyncTest {
+public class StateManagerSyncTest extends TestBase {
 
 	static HazelcastRetryImpl retry = null;
 	
