@@ -37,9 +37,9 @@ public class RetryHolder implements Serializable {
 	 * the timestamp for this retry
 	 * it doesn't need to be set as it will be generated for the client
 	 */
-	long systemTs;
+	long systemTs = System.currentTimeMillis();
 	
-	long nextAttempt;
+	long nextAttempt = systemTs;
 	
 	
 	/**
@@ -76,7 +76,7 @@ public class RetryHolder implements Serializable {
 	 * zero for every retry except first queued.
 	 * 
 	 */
-	int count;
+	int count = 0;
 
 	public RetryHolder(String id,String type) {
 		this(id,type,null,null);
