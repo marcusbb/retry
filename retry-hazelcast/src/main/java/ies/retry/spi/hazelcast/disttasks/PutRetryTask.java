@@ -38,6 +38,7 @@ public class PutRetryTask implements Callable<Void>, DataSerializable {
 	//ready for over the wire
 	public PutRetryTask(List<RetryHolder> retryList,boolean persist) {
 		this.serializableHolder = new HzSerializableRetryHolder(retryList, new KryoSerializer());
+		this.retryList = retryList;
 		this.persist = persist;
 	}
 	@Override
@@ -51,6 +52,8 @@ public class PutRetryTask implements Callable<Void>, DataSerializable {
 	public void readData(DataInput in) throws IOException {
 		
 		this.serializableHolder = new HzSerializableRetryHolder();
+		this.serializableHolder.readData(in);
+		this.retryList = this.serializableHolder.getHolderList();
 		persist = in.readBoolean();
 		
 	}
