@@ -5,9 +5,8 @@ import ies.retry.RetryConfigManager;
 import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 import ies.retry.spi.hazelcast.StateManager;
-import ies.retry.spi.hazelcast.disttasks.AddRetryCallable;
+import ies.retry.spi.hazelcast.disttasks.PutRetryTask;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -88,7 +87,7 @@ public class RetryRowReaderLoader extends ReaderJob<Void> {
 				if (list != null && !list.isEmpty()) {
 					
 					DistributedTask<Void> distTask = new DistributedTask<Void>(
-							new AddRetryCallable(list, configMgr.getConfiguration(list.get(0).getType()),false), 
+							new PutRetryTask(list, false), 
 							list.get(0).getId());
 					exec.submit(distTask);
 				}

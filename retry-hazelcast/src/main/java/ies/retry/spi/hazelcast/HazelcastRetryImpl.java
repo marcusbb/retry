@@ -12,7 +12,8 @@ import ies.retry.RetryTransitionListener;
 import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
 import ies.retry.spi.hazelcast.config.HazelcastXmlConfFactory;
 import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
-import ies.retry.spi.hazelcast.disttasks.AddRetryCallable;
+import ies.retry.spi.hazelcast.disttasks.AddRetryTask;
+import ies.retry.spi.hazelcast.disttasks.PutRetryTask;
 import ies.retry.spi.hazelcast.persistence.RetryMapStore;
 import ies.retry.spi.hazelcast.persistence.RetryMapStoreFactory;
 import ies.retry.spi.hazelcast.util.HzUtil;
@@ -190,7 +191,8 @@ public class HazelcastRetryImpl implements RetryManager {
 		
 		if (null != retry.getException()) truncateStackTrace(retry, config);
 		
-		retry.setPayload(config.getSerializer().serializeToByte(retry.getRetryData()));
+//		if (retry.getRetryData() != null)
+//			retry.setPayload(config.getSerializer().serializeToByte(retry.getRetryData()));
 				
 				
 		//queue locally if we have a local queue buffer
@@ -203,7 +205,7 @@ public class HazelcastRetryImpl implements RetryManager {
 			stateMgr.retryAddedEvent(retry.getType(),true);
 			
 			// first determine the partition key, add to owning member
-			DistributedTask<Void> distTask = new DistributedTask<Void>(new AddRetryCallable(retry, config), retry.getId());
+			DistributedTask<Void> distTask = new DistributedTask<Void>(new AddRetryTask(retry), retry.getId());
 			
 			h1.getExecutorService(EXEC_SRV_NAME).submit(distTask);
 			
@@ -342,7 +344,7 @@ public class HazelcastRetryImpl implements RetryManager {
 				if (rh.getRetryData() != null && rh.getPayload() == null)
 					rh.setPayload(config.getSerializer().serializeToByte(retry.getRetryData()));
 			}
-			DistributedTask<Void> distTask = new DistributedTask<Void>(new AddRetryCallable(retry, config), retry.getId());
+			DistributedTask<Void> distTask = new DistributedTask<Void>(new PutRetryTask(retryList,true), retry.getId());
 			
 			h1.getExecutorService(EXEC_SRV_NAME).submit(distTask);
 			dealSync(distTask, config);

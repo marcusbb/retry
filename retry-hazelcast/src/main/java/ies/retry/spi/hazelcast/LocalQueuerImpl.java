@@ -4,9 +4,8 @@ import ies.retry.RetryConfiguration;
 import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
 import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
-import ies.retry.spi.hazelcast.disttasks.AddRetryCallable;
+import ies.retry.spi.hazelcast.disttasks.AddRetryTask;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
@@ -218,7 +217,7 @@ public class LocalQueuerImpl implements LocalQueuer {
 				}else {
 					
 					
-					DistributedTask<Void> distTask = new DistributedTask<Void>(new AddRetryCallable(retry, config), retry.getId());
+					DistributedTask<Void> distTask = new DistributedTask<Void>(new AddRetryTask(retry), retry.getId());
 					try {
 						//By future.get()  we ensure a FIFO processing
 						hz.getExecutorService(HazelcastRetryImpl.EXEC_SRV_NAME).submit(distTask).get(await,TimeUnit.SECONDS);

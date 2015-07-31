@@ -9,8 +9,9 @@ import ies.retry.RetryTransitionEvent;
 import ies.retry.RetryTransitionListener;
 import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
 import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
-import ies.retry.spi.hazelcast.disttasks.AddRetryCallable;
+import ies.retry.spi.hazelcast.disttasks.AddRetryTask;
 import ies.retry.spi.hazelcast.disttasks.KeySetSizeTask;
+import ies.retry.spi.hazelcast.disttasks.PutRetryTask;
 import ies.retry.spi.hazelcast.persistence.RetryMapStore;
 import ies.retry.spi.hazelcast.persistence.RetryMapStoreFactory;
 import ies.retry.spi.hazelcast.persistence.cassandra.CassRetryMapStore;
@@ -23,7 +24,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -190,7 +190,7 @@ public class StateManager implements  MembershipListener{
 			
 				for (List<RetryHolder> retries : map.values()) {
 					String retryId = retries.get(0).getId();
-					DistributedTask<Void> distTask = new DistributedTask<Void>(new AddRetryCallable(retries, config,false), retryId);
+					DistributedTask<Void> distTask = new DistributedTask<Void>(new PutRetryTask(retries, false), retryId);
 				
 					exec.submit(distTask);
 				}
@@ -291,7 +291,7 @@ public class StateManager implements  MembershipListener{
 			List<DistributedTask<Void>> tasks = new ArrayList<DistributedTask<Void>>();
 			for (List<RetryHolder> retry:map.values()) {
 				String retryId = retry.get(0).getId();
-				DistributedTask<Void> distTask = new DistributedTask<Void>(new AddRetryCallable(retry, config,false), retryId);
+				DistributedTask<Void> distTask = new DistributedTask<Void>(new PutRetryTask(retry, false), retryId);
 				
 				tasks.add(distTask);
 				exec.submit(distTask);

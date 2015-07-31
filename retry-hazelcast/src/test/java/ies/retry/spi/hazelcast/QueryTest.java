@@ -1,6 +1,7 @@
 package ies.retry.spi.hazelcast;
 
 import ies.retry.Retry;
+import ies.retry.RetryConfiguration;
 import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.query.BeanShellQuery;
 import ies.retry.spi.hazelcast.query.PropertyQuery;
@@ -34,19 +35,24 @@ public class QueryTest {
 	public static void beforeClass() {
 		HazelcastRetryImpl retryManager = ((HazelcastRetryImpl)Retry.getRetryManager());
 		h1 = retryManager.getHzInst();
-		
+		RetryConfiguration config = new RetryConfiguration();
+		config.setType("retry");
+		retryManager.getConfigManager().addConfiguration(config);
 		map = h1.getMap("retry");
 		Employee emp = new Employee("marcus", 30, "developer");
 		ArrayList<RetryHolder> list = new ArrayList<RetryHolder>();list.add(new RetryHolder("123", "retry",new Exception(),emp));
-		map.put("123",list );
+		//map.put("123",list );
+		retryManager.putRetry(list);
 		
 		Employee emp2 = new Employee("imtiyaz", 25, "developer");
 		list = new ArrayList<RetryHolder>();list.add(new RetryHolder("1234", "retry",new Exception(),emp2));
-		map.put("1234", list);
+		//map.put("1234", list);
+		retryManager.putRetry(list);
 		
 		Employee emp3 = new Employee("tran", 25, "developer");
 		list = new ArrayList<RetryHolder>();list.add(new RetryHolder("1235", "retry",new Exception(),emp3));
-		map.put("1235", list);
+		//map.put("1235", list);
+		retryManager.putRetry(list);
 		
 		
 	}

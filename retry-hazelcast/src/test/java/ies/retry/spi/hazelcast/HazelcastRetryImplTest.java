@@ -1,9 +1,7 @@
 package ies.retry.spi.hazelcast;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.*;
+
 import ies.retry.Retry;
 import ies.retry.RetryCallback;
 import ies.retry.RetryConfigManager;
@@ -94,6 +92,19 @@ public class HazelcastRetryImplTest {
 	public void after() {
 	}
 	
+	@Test
+	public void addAndRetrieveTest() {
+		RetryHolder holder = new RetryHolder("id_1", ARCHIVE_ON_CONFIG,new Employee("chuck", 99, "big kahuna"));
+		RetryManager retryManager = Retry.getRetryManager();
+		retryManager.addRetry(holder);
+		
+		List<RetryHolder> ret = retryManager.getRetry("id_1", ARCHIVE_ON_CONFIG);
+		
+		assertEquals(1,ret.size());
+		assertNotNull(ret.get(0).getRetryData());
+		
+		
+	}
 	@Test
 	public void archiveTest(){
 		String id = "OPOSSUM_BITES_" + System.currentTimeMillis();
