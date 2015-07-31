@@ -107,7 +107,7 @@ public class RetryConfiguration implements Serializable{
 	 * programmatically TODO
 	 */
 	@XmlTransient
-	private RetrySerializer serializer = new RetrySerializer.JavaSerializer();
+	private transient RetrySerializer serializer = new RetrySerializer.JavaSerializer();
 
 	public int getExceptionLevel() {
 		return exceptionLevel;
