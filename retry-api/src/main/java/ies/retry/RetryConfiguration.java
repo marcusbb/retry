@@ -106,9 +106,10 @@ public class RetryConfiguration implements Serializable{
 	 * RetryHolder Serializer - currently serializer will only be allowed to be set
 	 * programmatically TODO
 	 */
-	@XmlTransient
 	private transient RetrySerializer serializer = new RetrySerializer.JavaSerializer();
 
+	private String retrySerializerClassname = RetrySerializer.JavaSerializer.class.getName();
+	
 	public int getExceptionLevel() {
 		return exceptionLevel;
 	}
@@ -214,6 +215,14 @@ public class RetryConfiguration implements Serializable{
 
 	public void setSerializer(RetrySerializer serializer) {
 		this.serializer = serializer;
+	}
+
+	public String getRetrySerializerClassname() {
+		return retrySerializerClassname;
+	}
+
+	public void setRetrySerializerClassname(String retrySerializerClassname) {
+		this.retrySerializerClassname = retrySerializerClassname;
 	}
 
 	
