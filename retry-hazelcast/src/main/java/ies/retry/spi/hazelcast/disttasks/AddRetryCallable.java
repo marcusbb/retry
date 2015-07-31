@@ -31,6 +31,7 @@ import com.hazelcast.core.IMap;
  * @author msimonsen
  *
  */
+@Deprecated
 public class AddRetryCallable implements Callable<Void>,Serializable {
 	private static final String CALLER = AddRetryCallable.class.getName(); 
 	private static final long serialVersionUID = -5057315181594224793L;
