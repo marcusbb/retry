@@ -41,7 +41,7 @@ public class RetryConfiguration implements Serializable{
 	 * elements will be retried with this back off algorithm.
 	 * In this case the 
 	 */
-	private BackOff backOff;
+	private BackOff backOff = new BackOff();
 	
 	
 	/**
@@ -78,7 +78,7 @@ public class RetryConfiguration implements Serializable{
 	 * 
 	 * 
 	 */
-	private BatchConfig batchConfig;
+	private BatchConfig batchConfig = new BatchConfig();
 	
 	/**
 	 * Indicates that this retry type is permanently stored
