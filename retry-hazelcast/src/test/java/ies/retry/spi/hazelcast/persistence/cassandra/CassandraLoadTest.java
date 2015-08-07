@@ -117,7 +117,26 @@ public class CassandraLoadTest {
 		}
 	}
 	@Test
-	public void loadStandard() throws Exception {
+	public void loadStandard1Row() throws Exception {
+		ReaderConfig readerConfig = new ReaderConfig();
+		readerConfig.setCassConfig(config);
+		readerConfig.setKeyspace("icrs");
+		readerConfig.setTable("retry");
+		readerConfig.setOtherCols(new String[]{"payload"});
+		
+		
+		CassRetryMapStore store = new CassRetryMapStore("cass-type1",session,true);
+		
+		loadRandomData(1);
+		
+		store.loadIntoHZ(readerConfig,types);
+				
+		assertLoadedRows(1);
+		
+		
+	}
+	@Test
+	public void loadStandard100Row() throws Exception {
 		ReaderConfig readerConfig = new ReaderConfig();
 		readerConfig.setCassConfig(config);
 		readerConfig.setKeyspace("icrs");
