@@ -35,7 +35,7 @@ public interface RemoteCallback extends RetryCallback,Serializable {
 		@Override
 		public boolean onEvent(RetryHolder retry) throws Exception {
 			
-			client.getExecutorService().submit(new RemoteRPCTask<List<RetryHolder>>("getRetry", "id1","POKE" )).get();
+			//client.getExecutorService().submit(new RemoteRPCTask<List<RetryHolder>>("getRetry", "id1","POKE" )).get();
 			
 			return false;
 		}

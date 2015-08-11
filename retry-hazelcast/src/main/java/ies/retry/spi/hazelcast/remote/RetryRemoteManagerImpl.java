@@ -1,5 +1,7 @@
 package ies.retry.spi.hazelcast.remote;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -7,7 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
-import provision.services.logging.Logger;
+import javax.xml.bind.JAXBException;
 
 import com.hazelcast.client.ClientConfig;
 import com.hazelcast.client.HazelcastClient;
@@ -18,14 +20,19 @@ import com.hazelcast.core.Member;
 
 import ies.retry.ConfigException;
 import ies.retry.NoCallbackException;
+import ies.retry.Retry;
 import ies.retry.RetryCallback;
 import ies.retry.RetryConfigManager;
+import ies.retry.RetryConfiguration;
 import ies.retry.RetryHolder;
 import ies.retry.RetryManager;
 import ies.retry.RetryState;
 import ies.retry.RetryTransitionListener;
 import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
 import ies.retry.spi.hazelcast.remote.RemoteCallback.DefaultRemoteCallback;
+import ies.retry.spi.hazelcast.config.HazelcastXmlConfFactory;
+import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
+
 
 /**
  * This instance of Retrymanager exists purely as a client reference to the cluster.
@@ -35,7 +42,7 @@ import ies.retry.spi.hazelcast.remote.RemoteCallback.DefaultRemoteCallback;
  * @author msimonsen
  *
  */
-public class RetryRemoteManagerImpl implements RetryManager {
+public class RetryRemoteManagerImpl extends Remoteable implements RetryManager {
 
 	/**
 	 * client to the target cluster
@@ -47,27 +54,29 @@ public class RetryRemoteManagerImpl implements RetryManager {
 	
 	private ClientConfigManager configMgr = null;
 	
+
+		
+	RemoteConfigManager configManager = null;
+
 	/**
 	 * Discovers client configuration information through 
 	 * retry configuration. 
 	 */
 	public RetryRemoteManagerImpl() {
-		//builds a client config from file - meaning a list of hz IPs.
-		//this could be bundled as part of retry (client)
-		configMgr = new ClientConfigManager();
-		try {
-			configMgr.load();
-			
-			HazelcastClient inst = HazelcastClient.newHazelcastClient(configMgr.getConfig().getRemoteClusterConfig().getClientConfig());
-			init(inst,configMgr.getConfig().getClusterName());
-		} catch (Exception e) {
-			throw new ConfigException(e);
-		} 
 		
+		super(null); //must be set later on.
+				
+		this.configManager = new RemoteConfigManager();
+		
+		
+		HazelcastClient client = HazelcastClient.newHazelcastClient(((RemoteXmlConfig)configManager.getConfig()).getHzClientConfig());
+		
+		this.hzClient = client;
+		configManager.setHzInstance(hzClient);
+		
+		addConfigurations();
 	}
-	public RetryRemoteManagerImpl(HazelcastClient clientInstance,String clusterName) {
-		init(clientInstance, clusterName);
-	}
+
 	
 	/**
 	 * Reference the callback cluster by name
@@ -90,18 +99,39 @@ public class RetryRemoteManagerImpl implements RetryManager {
 	}
 	
 	
-	private <T> T submitRPC(String method,Object...signature) {
-		try {
-			return (T)hzClient.getExecutorService().submit(new RemoteRPCTask<T>(method, signature )).get();
-		}catch (ExecutionException | InterruptedException e) {
-			//TODO - wrap in a suitable runtime exception
-			throw new RuntimeException(e.getMessage(),e);
-		}finally {
 		
-		}
+
+	
+	public RetryRemoteManagerImpl(HazelcastInstance clientInstance) {
+		super(clientInstance);
 		
+		this.configManager = new RemoteConfigManager(clientInstance);
 	}
 	
+	/**
+	 * Add configurations from local config only if it doesn't exist on 
+	 * the server
+	 */
+	private void addConfigurations() {
+		
+		Map<String,RetryConfiguration> configs = configManager.getConfigMapLocal();
+		for (RetryConfiguration config:configs.values()) {
+			if (configManager.getConfiguration(config.getType()) == null) {
+				configManager.addConfiguration(config);
+			} else {
+				//TODO log something
+			}
+			
+		}
+	}
+	
+	@Override
+	protected <T> RemoteRPC<T> rpcClass(String method,Object...signature) {
+		
+		return new RemoteManagerRPC<>(method, signature);
+	}
+	
+
 	public boolean onCallback(RetryHolder holder) throws Exception {
 		
 		RetryCallback localCallback = callbackMap.get(holder.getType());
@@ -116,9 +146,11 @@ public class RetryRemoteManagerImpl implements RetryManager {
 		}
 		return false;
 	}
+
 	@Override
 	public void addRetry(RetryHolder retry) throws NoCallbackException,
 			ConfigException {
+		
 		submitRPC("addRetry", retry);
 	
 	}
@@ -213,27 +245,24 @@ public class RetryRemoteManagerImpl implements RetryManager {
 
 	@Override
 	public void shutdown() {
-		throw new UnsupportedOperationException("");
+		hzClient.getLifecycleService().shutdown();
 		
 	}
 
 	@Override
 	public RetryConfigManager getConfigManager() {
-		// TODO Auto-generated method stub
-		return null;
+		return configManager;
 	}
 
 	@Override
 	public int countBySecondaryIndex(String type, String secondaryIndex) {
-		// TODO Auto-generated method stub
-		return 0;
+		return submitRPC("countBySecondaryIndex",type,secondaryIndex);
 	}
 
 	@Override
 	public Collection<RetryHolder> bySecondaryIndex(String type,
 			String secondaryIndex) {
-		// TODO Auto-generated method stub
-		return null;
+		return submitRPC("bySecondaryIndex",type,secondaryIndex);
 	}
 
 }

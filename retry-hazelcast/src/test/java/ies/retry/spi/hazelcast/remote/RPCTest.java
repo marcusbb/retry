@@ -5,7 +5,7 @@ import ies.retry.Retry;
 import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 import ies.retry.spi.hazelcast.HzIntegrationTestUtil;
-import ies.retry.spi.hazelcast.remote.RemoteRPCTask;
+
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -31,17 +31,23 @@ public class RPCTest {
 		HzIntegrationTestUtil.afterClass();
 	}
 	@Test
-	public void testRPCAdd() throws ExecutionException, InterruptedException {
+	public void testRPCAddAndGet() throws ExecutionException, InterruptedException {
 		//With a client
 		HazelcastClient client = HazelcastClient.newHazelcastClient(new ClientConfig().addAddress("localhost:6701"));
-		
-		client.getExecutorService().submit(new RemoteRPCTask<Void>("addRetry", new RetryHolder("id1","POKE") ));
+		RetryRemoteManagerImpl remoteImpl = new RetryRemoteManagerImpl(client);
+		//client.getExecutorService().submit(new RemoteManagerRPC<Void>("addRetry", new RetryHolder("id1","POKE") ));
+		remoteImpl.addRetry(new RetryHolder("id1","POKE"));
 		//sync add, so we can get it back
-		List<RetryHolder> result = client.getExecutorService().submit(new RemoteRPCTask<List<RetryHolder>>("getRetry", "id1","POKE" )).get();
-		
+		List<RetryHolder> result = null;
+		int i = 0;
+		while (result ==null && i++ < 5) {
+			Thread.sleep(1000);
+			result = remoteImpl.getRetry("id1", "POKE");	
+		}		
 		assertEquals(1,result.size());
 		
 		
 	}
+	
 
 }

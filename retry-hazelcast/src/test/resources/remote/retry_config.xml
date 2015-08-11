@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<retry>
+	<provider>ies.retry.spi.hazelcast.remote.RetryRemoteManagerImpl</provider>
+	<!-- persistence config -->
+	<address-list>
+		<address>localhost:6701</address>	
+	</address-list>
+	
+	<typeConfig>
+		<type>POKE</type>
+		<listBacked>true</listBacked>
+		<queueStrategy>UNORDERED</queueStrategy>
+		<backOff>
+			<interval>5000</interval>
+			<intervalMultiplier>1.0</intervalMultiplier>
+			<maxAttempts>100</maxAttempts>
+		</backOff>
+		<batchConfig>
+			<batchHeartBeat>5050</batchHeartBeat>
+			<batchSize>5</batchSize>
+			<minBatchSize>1</minBatchSize>
+			<intervalMultiplier>1</intervalMultiplier>
+		</batchConfig>
+		<stackTraceLinesCount>3</stackTraceLinesCount>
+	</typeConfig>
+	
+</retry>

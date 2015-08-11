@@ -24,6 +24,8 @@ public class HzSerializableRetryHolder implements DataSerializable,List<RetryHol
 	private static final long serialVersionUID = 1L;
 	private transient List<RetryHolder> holderList;
 	private transient RetrySerializer serizlizer;
+	private transient boolean deferPayloadSerialization = false; 
+	
 	
 	public HzSerializableRetryHolder() {
 		this.serizlizer = new KryoSerializer();
@@ -38,6 +40,7 @@ public class HzSerializableRetryHolder implements DataSerializable,List<RetryHol
 		this.holderList = list;
 		this.serizlizer = serializer;
 	}
+	
 	public void setSerializer(RetrySerializer serializer) {
 		this.serizlizer = serializer;
 	}
@@ -51,7 +54,8 @@ public class HzSerializableRetryHolder implements DataSerializable,List<RetryHol
 		}catch (Exception e) {
 			this.serizlizer = new KryoSerializer();
 		}
-		int len = Integer.parseInt(input.readUTF());
+		int len = input.readByte();
+		this.deferPayloadSerialization = input.readBoolean();
 		holderList = new ArrayList<>();
 		for (int i=0;i<len;i++) {
 			RetryHolder holder = new RetryHolder(null,null);
@@ -78,7 +82,8 @@ public class HzSerializableRetryHolder implements DataSerializable,List<RetryHol
 	@Override
 	public void writeData(DataOutput output) throws IOException {
 		output.writeUTF(this.serizlizer.getClass().getName());
-		output.writeUTF(Integer.toString(holderList.size()));
+		output.writeByte(holderList.size());
+		output.writeBoolean(deferPayloadSerialization);
 		for (RetryHolder holder:holderList) {
 			output.writeUTF(holder.getId());
 			output.writeUTF(holder.getType());
@@ -99,6 +104,13 @@ public class HzSerializableRetryHolder implements DataSerializable,List<RetryHol
 		}
 		
 	}
+	public boolean isDeferPayloadSerialization() {
+		return deferPayloadSerialization;
+	}
+	public void setDeferPayloadSerialization(boolean deferPayloadSerialization) {
+		this.deferPayloadSerialization = deferPayloadSerialization;
+	}
+	
 	public List<RetryHolder> getHolderList() {
 		return holderList;
 	}
