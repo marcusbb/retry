@@ -28,7 +28,7 @@ public class HazelcastConfigManager extends XMLRetryConfigMgr {
 	}
 	
 	@Override
-	public void addConfiguration(RetryConfiguration newConfig) {
+	public synchronized void addConfiguration(RetryConfiguration newConfig) {
 		//This can be moved into the api
 		//super.addConfiguration(config);
 		Map<String,RetryConfiguration> configMap = getConfigMap();
