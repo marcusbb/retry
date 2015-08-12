@@ -7,12 +7,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
+
 import ies.retry.Retry;
+import ies.retry.RetryCallback;
 import ies.retry.RetryConfigManager;
 import ies.retry.RetryConfiguration;
+import ies.retry.RetryHolder;
 import ies.retry.RetryManager;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 import ies.retry.spi.hazelcast.HzIntegrationTestUtil;
+import ies.retry.spi.hazelcast.util.HzUtil;
 import ies.retry.xml.XMLRetryConfigMgr;
 
 import org.junit.AfterClass;
@@ -122,5 +126,28 @@ public class RemoteRetryImplTest {
 		assertEquals(0,availSet.size());
 	}
 	
+	@Test
+	public void register() {
+		Retry.setRetryManager(server);
+		HzUtil.HZ_CONFIG_FILE = "remote/client-cluster.xml";
+		HzUtil.buildHzInstanceWith("retry_client_cluster");
+		
+		XMLRetryConfigMgr.setXML_FILE("remote/retry_config.xml");
+		RetryRemoteManagerImpl client = new RetryRemoteManagerImpl();
+		
+		client.registerCallback(new RetryCallback() {
+			
+			@Override
+			public boolean onEvent(RetryHolder retry) throws Exception {
+				return true;
+			}
+		}, "POKE");
+		
+		
+		
+		
+		HzUtil.HZ_CONFIG_FILE = "hazelcast.xml";
+		
+	}
 
 }

@@ -1,5 +1,6 @@
 package ies.retry.spi.hazelcast.remote;
 
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,6 +25,32 @@ import ies.retry.xml.XmlRetryConfig;
 public class RemoteXmlConfig extends XmlRetryConfig {
 
 	/**
+	 * Convenience for non-jaxb serializable {@link ClientConfig} 
+	 *
+	 */
+	public static class SeralizableClientConfig {
+		
+		@XmlTransient
+		private ClientConfig cc;
+		
+		public GroupConfig groupConfig = new GroupConfig();
+		
+		@XmlElement( name="host" )
+		@XmlElementWrapper( name="hosts" )
+		public List<String> hostList = new ArrayList<String>(10);
+		
+		public int port = 5701;
+		
+		@XmlTransient
+		public ClientConfig getClientConfig() {
+			ClientConfig cc = new ClientConfig();
+			for (String address:hostList)
+				cc.addInetSocketAddress(new InetSocketAddress(address, port));
+			cc.setGroupConfig(groupConfig);
+			return cc;
+		}
+	}
+	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 3844414914400811803L;
@@ -41,16 +68,21 @@ public class RemoteXmlConfig extends XmlRetryConfig {
 	
 	private List<String> addressList = new ArrayList<String>(10);
 	
-	
+	private int port = 5701; 
 
 	private GroupConfig groupConfig = new GroupConfig();
+	
+	private String clusterName = "retry_client_cluster";
+
 	
 	public RemoteXmlConfig() {}
 	
 	public RemoteXmlConfig(List<String> addressList) {
 		this.addressList = addressList;
 	}
-	
+	public void add(String address) {
+		this.addressList.add(address);
+	}
 	public RemoteXmlConfig(List<String> addressList, GroupConfig groupConfig) {
 		this.addressList = addressList;
 		this.groupConfig = groupConfig;
@@ -71,6 +103,13 @@ public class RemoteXmlConfig extends XmlRetryConfig {
 		this.addressList = addressList;
 	}
 	
+	public String getClusterName() {
+		return clusterName;
+	}
+
+	public void setClusterName(String clusterName) {
+		this.clusterName = clusterName;
+	}
 	@XmlTransient
 	public ClientConfig getHzClientConfig() {
 		ClientConfig cc = new ClientConfig();
@@ -81,5 +120,14 @@ public class RemoteXmlConfig extends XmlRetryConfig {
 		
 		return cc;
 	}
+
+	public int getPort() {
+		return port;
+	}
+
+	public void setPort(int port) {
+		this.port = port;
+	}
+	
 	
 }

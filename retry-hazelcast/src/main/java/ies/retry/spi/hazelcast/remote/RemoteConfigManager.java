@@ -51,7 +51,9 @@ public class RemoteConfigManager extends XMLRetryConfigMgr  {
 			throw new ConfigException(e);
 		}
 	}
-	
+	public RemoteXmlConfig getClientConfig() {
+		return (RemoteXmlConfig)getConfig();
+	}
 	protected void setHzInstance(HazelcastInstance hzClientInstance) {
 		this.remoteHandle = new Remote(hzClientInstance);
 	}

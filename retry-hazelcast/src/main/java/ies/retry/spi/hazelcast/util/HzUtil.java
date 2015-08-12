@@ -4,6 +4,7 @@ import ies.retry.xml.XMLRetryConfigMgr;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.Properties;
 
 import provision.services.logging.Logger;
@@ -31,6 +32,38 @@ public class HzUtil {
 		//XMLRetryConfigMgr xmlconfigMgr = (XMLRetryConfigMgr)configMgr;
 		HazelcastInstance h1 = null;
 		try {
+			
+			Config config = loadHzConfig();
+			
+			Logger.info(CALLER, "Load_Hazelcast_Configuration", "Loaded Hazelcast: " + config.toString());
+											
+			h1 = Hazelcast.newHazelcastInstance(config);
+		}catch (Exception e) {
+			Logger.warn(CALLER, "Load_Hazelcast_Configuration", "NO HAZELCAST CONFIGURATION FOUND: " + e.getMessage(), e);
+			h1 = Hazelcast.newHazelcastInstance();
+			Logger.info(CALLER, "Load_Hazelcast_Configuration", "Using default config");
+		}	
+		return h1;
+	}
+	public static HazelcastInstance buildHzInstanceWith(String name) {
+		
+		try {
+			Config config = loadHzConfig();
+			config.setInstanceName(name);
+			return Hazelcast.newHazelcastInstance(config);
+		}catch (IOException e) {
+			Logger.warn(CALLER, "Load_Hazelcast_Configuration", "NO HAZELCAST CONFIGURATION FOUND: " + e.getMessage(), e);
+			Config c = new Config();
+			c.setInstanceName(name);
+			return Hazelcast.newHazelcastInstance(c);
+		}
+		
+		
+		
+	}
+
+	private static Config loadHzConfig() throws IOException {
+		
 			Config config = null;
 			String dir = XMLRetryConfigMgr.getCONFIG_DIR();
 			if (!"".equals(dir)) {
@@ -60,16 +93,9 @@ public class HzUtil {
 			
 			Logger.info(CALLER, "Load_Hazelcast_Configuration", "Loaded Hazelcast: " + config.toString());
 			
-								
-			h1 = Hazelcast.newHazelcastInstance(config);
-		}catch (Exception e) {
-			Logger.warn(CALLER, "Load_Hazelcast_Configuration", "NO HAZELCAST CONFIGURATION FOUND: " + e.getMessage(), e);
-			h1 = Hazelcast.getDefaultInstance();
-			Logger.info(CALLER, "Load_Hazelcast_Configuration", "Using default config");
-		}	
-		return h1;
+			return config;
+		
 	}
-
 	public int maxMapSize(MapConfig mapConfig,Cluster cluster) {
 		MaxSizeConfig maxSizeConfig = mapConfig.getMaxSizeConfig();
 		MapMaxSizePolicy maxSizePolicy = null;

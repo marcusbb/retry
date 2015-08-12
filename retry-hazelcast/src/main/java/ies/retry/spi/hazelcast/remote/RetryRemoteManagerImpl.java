@@ -47,14 +47,12 @@ public class RetryRemoteManagerImpl extends Remoteable implements RetryManager {
 	/**
 	 * client to the target cluster
 	 */
-	HazelcastClient hzClient = null;
+	
 	HazelcastInstance cluster = null;
 	
-	private Map<String,RetryCallback> callbackMap = new HashMap<String, RetryCallback>();
+	private Map<String,RetryCallback> localCallbackMap = new HashMap<String, RetryCallback>();
 	
-	private ClientConfigManager configMgr = null;
 	
-
 		
 	RemoteConfigManager configManager = null;
 
@@ -134,7 +132,7 @@ public class RetryRemoteManagerImpl extends Remoteable implements RetryManager {
 
 	public boolean onCallback(RetryHolder holder) throws Exception {
 		
-		RetryCallback localCallback = callbackMap.get(holder.getType());
+		RetryCallback localCallback = localCallbackMap.get(holder.getType());
 		
 		if (localCallback == null) {
 			throw new NoCallbackException();
@@ -202,10 +200,12 @@ public class RetryRemoteManagerImpl extends Remoteable implements RetryManager {
 
 	@Override
 	public void registerCallback(RetryCallback callback, String type) {
-		callbackMap.put(type, callback);
+		
 		//TODO come up with client config of this 
-		DefaultRemoteCallback remoteCallback = new DefaultRemoteCallback(null, callback);
+		RemoteCallback remoteCallback = new DefaultRemoteCallback(this.configManager, type);
 		submitRPC("registerRemoteCallback", remoteCallback);
+		
+		localCallbackMap.put(type, callback);
 	}
 
 	@Override
@@ -226,7 +226,7 @@ public class RetryRemoteManagerImpl extends Remoteable implements RetryManager {
 
 	@Override
 	public Map<String, RetryState> getAllStates() {
-		return submitRPC("getStateAllStates");
+		return submitRPC("getAllStates");
 	}
 
 	@Override

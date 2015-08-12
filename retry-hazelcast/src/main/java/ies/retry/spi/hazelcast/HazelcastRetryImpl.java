@@ -16,6 +16,7 @@ import ies.retry.spi.hazelcast.disttasks.AddRetryTask;
 import ies.retry.spi.hazelcast.disttasks.PutRetryTask;
 import ies.retry.spi.hazelcast.persistence.RetryMapStore;
 import ies.retry.spi.hazelcast.persistence.RetryMapStoreFactory;
+import ies.retry.spi.hazelcast.remote.RemoteCallback;
 import ies.retry.spi.hazelcast.util.HzUtil;
 import ies.retry.spi.hazelcast.util.IOUtil;
 import ies.retry.spi.hazelcast.util.RetryUtil;
@@ -514,7 +515,19 @@ public class HazelcastRetryImpl implements RetryManager {
 	}
 	
 	//configure the remote cluster
-	public void registerRemoteCallback(RetryCallback remoteCallback) {
+	//The side effect of Remote RPC is that it needs 
+	public void registerRemoteCallback(RemoteCallback.DefaultRemoteCallback remoteCallback) {
+		Logger.info(CALLER, "Register_remotecallback","","callback",remoteCallback);
+		
+		callbackManager.addCallback(new RetryCallback() {
+			
+			@Override
+			public boolean onEvent(RetryHolder retry) throws Exception {
+				//TODO
+				
+				return false;
+			}
+		}, remoteCallback.getType());
 		
 	}
 	
