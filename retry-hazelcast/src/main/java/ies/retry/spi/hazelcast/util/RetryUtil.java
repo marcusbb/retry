@@ -1,5 +1,6 @@
 package ies.retry.spi.hazelcast.util;
 
+import ies.retry.BackOff;
 import ies.retry.Retry;
 import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
@@ -97,6 +98,26 @@ public class RetryUtil {
 			return true;
 	}
 
+	public static long getNextDelayForRetry(BackOff backOff, int retryNum){
+
+		long nextDelay = 0;
+		
+		switch (backOff.getBackoffMode()){
+		case Geometric:
+			nextDelay = Math.round(Math.pow(backOff.getIntervalMultiplier(),retryNum)*backOff.getMilliInterval());
+			break;
+		case StaticIntervals:
+			if (retryNum < backOff.staticMillis().length-1)
+				nextDelay = backOff.staticMillis()[retryNum];
+			else
+				nextDelay = backOff.staticMillis()[backOff.staticMillis().length - 1];
+			break;
+		case Periodic:						
+			nextDelay = Math.round(backOff.getMilliInterval());
+			break;
+		}
+		return nextDelay;
+	}
 	/*
 	// removes entries present in the first list from second one. We have to do it manually because RetryHolder.equals() considers all items in the list being the same
 	public static List<RetryHolder> removeExpired(String caller, List<RetryHolder> processed, List<RetryHolder> latest) {

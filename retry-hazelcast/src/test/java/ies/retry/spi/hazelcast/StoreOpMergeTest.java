@@ -40,7 +40,7 @@ public class StoreOpMergeTest {
 	private final static String id = "JB_Believe";
 	private static String ORIG_XML_FILE;
 
-	private static HazelcastRetryImpl retryManager;
+	private HazelcastRetryImpl retryManager;
 
 	@Before
 	public void setUpBefore() throws Throwable {
@@ -60,7 +60,7 @@ public class StoreOpMergeTest {
 		EntityManagerFactory emf = Persistence.createEntityManagerFactory("retryPool");
 		EntityManager em = emf.createEntityManager();
 		em.getTransaction().begin();
-		em.createNativeQuery("delete from retries where type='" + type + "'");
+		em.createNativeQuery("delete from retries where RETRY_TYPE='" + type + "'");
 		em.getTransaction().commit();
 		em.close();
 
@@ -166,9 +166,12 @@ public class StoreOpMergeTest {
 					.setParameter(i++, IOUtil.serialize(list)).executeUpdate();
 
 			em.getTransaction().commit();
+			
 			em.close();
-
+			
 			retryManager.getStateMgr().init();
+			retryManager.getStateMgr().suspend(type);
+			retryManager.getStateMgr().resume(type);
 
 			int maxWait = 10;
 			int cycle = 0;

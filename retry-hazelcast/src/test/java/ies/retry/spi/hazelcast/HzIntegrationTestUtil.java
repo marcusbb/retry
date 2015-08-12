@@ -38,6 +38,8 @@ public abstract class HzIntegrationTestUtil {
 		}catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+		XMLRetryConfigMgr.setXML_FILE( XMLRetryConfigMgr.DEFAULT_XML_FILE);
+		HzUtil.HZ_CONFIG_FILE = "hazelcast.xml";
 	}
 	
 	private static void executeResource(Connection con, String resource) throws IOException,SQLException {
