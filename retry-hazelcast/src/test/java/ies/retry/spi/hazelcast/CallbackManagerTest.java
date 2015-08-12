@@ -1,6 +1,8 @@
 package ies.retry.spi.hazelcast;
 
 import ies.retry.Retry;
+import ies.retry.RetryCallback;
+import ies.retry.RetryConfiguration;
 import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.util.HzUtil;
 import ies.retry.xml.XMLRetryConfigMgr;
@@ -58,7 +60,7 @@ public class CallbackManagerTest {
 		((HazelcastRetryImpl)Retry.getRetryManager()).getH1().getMap("POKE").put(id, holderList);
 		
 		// de-queue it
-		retryManager.getCallbackManager().tryDequeue("POKE");
+		Assert.assertTrue(retryManager.getCallbackManager().tryDequeue("POKE"));
 
 		// success
 		Assert.assertTrue(latch.await(1, TimeUnit.SECONDS));
@@ -88,7 +90,7 @@ public class CallbackManagerTest {
 		h1.getMap(TYPE).put(id, holderList);
 		
 		// de-queue it
-		retryManager.getCallbackManager().tryDequeue(TYPE);
+		Assert.assertTrue(retryManager.getCallbackManager().tryDequeue(TYPE));
 
 		// success
 		Assert.assertTrue(latch.await(1, TimeUnit.SECONDS));
@@ -98,6 +100,50 @@ public class CallbackManagerTest {
 		Assert.assertNotNull(holderList);
 		
 		Assert.assertEquals(1, holderList.get(0).getCount());
+	}
+	
+	@Test
+	public void addAndDequeueTimeout() throws Exception {
+		
+		String id = "CALL_BACK_TEST-TIMEOUT";
+		String type = "TIMEOUT";
+		RetryHolder holder = new RetryHolder(id, "TIMEOUT");
+		
+		class TimeoutCallback implements RetryCallback {
+			
+			long sleep = 0L;
+			TimeoutCallback(long sleep) {
+				this.sleep = sleep;
+			}
+			@Override
+			public boolean onEvent(RetryHolder retry) throws Exception {
+				Thread.sleep(sleep);
+				return true;
+			}
+			
+		}
+		RetryConfiguration newConfig = retryManager.getConfigManager().cloneConfiguration("POKE");
+		newConfig.setType(type);
+		newConfig.setCallbackTimeoutMs(1000);
+		retryManager.getConfigManager().addConfiguration(newConfig);
+		retryManager.registerCallback(new TimeoutCallback(newConfig.getCallbackTimeoutMs() + 1000), type);
+		retryManager.addRetry(holder);
+
+		
+		List<RetryHolder> holderList = (List<RetryHolder>) ((HazelcastRetryImpl)Retry.getRetryManager()).getH1().getMap(type).get(id);
+
+		Assert.assertEquals(1, holderList.size());
+		// modify next attempt to now
+		holderList.get(0).setNextAttempt(holderList.get(0).getSystemTs());
+		((HazelcastRetryImpl)Retry.getRetryManager()).getH1().getMap(type).put(id, holderList);
+		
+		Assert.assertTrue(retryManager.getCallbackManager().tryDequeue(type));
+		
+		Assert.assertEquals(1,retryManager.getRetry(id, type).get(0).getCount());
+		
+		
+		
+		
 	}
 
 	// TODO

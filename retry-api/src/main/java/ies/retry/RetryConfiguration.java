@@ -59,6 +59,12 @@ public class RetryConfiguration implements Serializable{
 	 * Is only timeout for add operation currently.
 	 */
 	private long syncTimeoutInms = 20 * 1000;
+	
+	/**
+	 * Indicates the timeout period that retry will wait
+	 * for execution of a callback
+	 */
+	private long callbackTimeoutMs = 5 * 60 * 1000;
 	/**
 	 *  
 	 * Based on input on the review there is no need to drain FIFO.
@@ -76,7 +82,7 @@ public class RetryConfiguration implements Serializable{
 	 * 
 	 * 
 	 */
-	private BatchConfig batchConfig;
+	private BatchConfig batchConfig = new BatchConfig();
 	
 	/**
 	 * Indicates that this retry type is permanently stored
@@ -199,6 +205,14 @@ public class RetryConfiguration implements Serializable{
 		this.syncTimeoutInms = syncTimeoutInms;
 	}
 
+	public long getCallbackTimeoutMs() {
+		return callbackTimeoutMs;
+	}
+
+	public void setCallbackTimeoutMs(long callbackTimeoutMs) {
+		this.callbackTimeoutMs = callbackTimeoutMs;
+	}
+	
 	
 	
 }

@@ -50,26 +50,7 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 		
 	}
 	
-	private long getNextDelayForRetry(BackOff backOff, int retryNum){
-
-		long nextDelay = 0;
-		
-		switch (backOff.getBackoffMode()){
-		case Geometric:
-			nextDelay = Math.round(Math.pow(backOff.getIntervalMultiplier(),retryNum)*backOff.getMilliInterval());
-			break;
-		case StaticIntervals:
-			if (retryNum < backOff.staticMillis().length-1)
-				nextDelay = backOff.staticMillis()[retryNum];
-			else
-				nextDelay = backOff.staticMillis()[backOff.staticMillis().length - 1];
-			break;
-		case Periodic:						
-			nextDelay = Math.round(backOff.getMilliInterval());
-			break;
-		}
-		return nextDelay;
-	}
+	
 	
 	@Override
 	public CallbackStat call() throws Exception {
@@ -129,6 +110,7 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 								//the actual callback portion
 								if(!skipCallbackForRemainingItemsDueToException){
 									//try the next holder in the list only if the callback didn't throw an exceptoin for the previously executed retries in the list. 
+									Logger.info(CALLER, "DistCallBackTask_PreCallback","precallback","retry",id);
 									stat.setSuccess(callback.onEvent(holder));
 								}
 								
@@ -214,11 +196,12 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 						} else {
 							//we separate the timer from the calculation of next
 							//set all of them to be safe (and help in query)
+							long ts = System.currentTimeMillis();
 							for (RetryHolder fh:failedHolder) {
 									
-								long nextDelay = getNextDelayForRetry(backOff, fh.getCount());																
+								long nextDelay = RetryUtil.getNextDelayForRetry(backOff, fh.getCount());																
 								
-								fh.setNextAttempt(System.currentTimeMillis() + nextDelay);
+								fh.setNextAttempt(ts + nextDelay);
 								fh.incrementCount();									
 							}
 							List<RetryHolder> mergedList = RetryUtil.merge(CALLER, listHolder, failedHolder, latest);
