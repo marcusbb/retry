@@ -10,16 +10,19 @@ import com.hazelcast.core.MultiTask;
 
 public abstract class Remoteable {
 
-	HazelcastInstance hzClient = null;
+	protected HazelcastInstance hzClient = null;
 	String executorName = null;
 	
+	public Remoteable() {}
 	public Remoteable(HazelcastInstance hzClientInstane) {
 		this.hzClient = hzClientInstane;
 	}
-	public Remoteable(HazelcastInstance hzClientInstane,String name) {
-		this.hzClient = hzClientInstane;
-	}
+//	public Remoteable(HazelcastInstance hzClientInstane,String name) {
+//		this.hzClient = hzClientInstane;
+//	}
 	protected <T> T submitRPC(String method,Object...signature) {
+		if (hzClient == null)
+			throw new IllegalStateException("hz client hasn't been assigned");
 		try {
 			return (T)hzClient.getExecutorService().submit(rpcClass(method,signature)).get();
 		}catch (ExecutionException | InterruptedException e) {
@@ -31,6 +34,8 @@ public abstract class Remoteable {
 		
 	}
 	protected <T> Collection<T> submitToAll(String method,Object...signature) {
+		if (hzClient == null)
+			throw new IllegalStateException("hz client hasn't been assigned");
 		try {
 			MultiTask<?> task = new MultiTask<>(rpcClass(method, signature), hzClient.getCluster().getMembers());
 			hzClient.getExecutorService().submit(task);
