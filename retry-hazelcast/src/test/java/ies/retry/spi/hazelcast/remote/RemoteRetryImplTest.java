@@ -145,7 +145,7 @@ public class RemoteRetryImplTest {
 		
 		
 		
-		
+		client.shutdown();
 		HzUtil.HZ_CONFIG_FILE = "hazelcast.xml";
 		
 	}
