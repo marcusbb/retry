@@ -78,6 +78,8 @@ public class HazelcastRetryImpl implements RetryManager {
 		
 	protected CallbackManager callbackManager;
 	
+	protected CallbackRemoteProxy callRemotebackProxy;
+	
 	protected StateManager stateMgr;
 	
 	protected RetryStats stats;
@@ -515,21 +517,20 @@ public class HazelcastRetryImpl implements RetryManager {
 	}
 	
 	//configure the remote cluster
-	//The side effect of Remote RPC is that it needs 
+	//The side effect of Remote RPC is that it needs the explicit class, not interface name :(
 	public void registerRemoteCallback(RemoteCallback.DefaultRemoteCallback remoteCallback) {
 		Logger.info(CALLER, "Register_remotecallback","","callback",remoteCallback);
 		
-		callbackManager.addCallback(new RetryCallback() {
-			
-			@Override
-			public boolean onEvent(RetryHolder retry) throws Exception {
-				//TODO
-				
-				return false;
-			}
-		}, remoteCallback.getType());
+		callbackManager.addCallback(getCallbackRemoteProxy(remoteCallback), remoteCallback.getType());
 		
 	}
+	private synchronized CallbackRemoteProxy getCallbackRemoteProxy(RemoteCallback.DefaultRemoteCallback remoteCallback) {
+		if (this.callRemotebackProxy == null) {
+			this.callRemotebackProxy = new CallbackRemoteProxy(remoteCallback.getClientConfig().getHzClientConfig());
+		}
+		return this.callRemotebackProxy;
+	}
+	
 	
 	public RetryCallback registeredCallback(String type) {
 		return callbackManager.getCallbackMap().get(type);
