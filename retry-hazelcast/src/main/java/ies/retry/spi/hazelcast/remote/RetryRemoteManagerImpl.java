@@ -203,7 +203,7 @@ public class RetryRemoteManagerImpl extends Remoteable implements RetryManager {
 		
 		//TODO come up with client config of this 
 		RemoteCallback remoteCallback = new DefaultRemoteCallback(this.configManager, type);
-		submitRPC("registerRemoteCallback", remoteCallback);
+		submitToAll("registerRemoteCallback", remoteCallback);
 		
 		localCallbackMap.put(type, callback);
 	}
