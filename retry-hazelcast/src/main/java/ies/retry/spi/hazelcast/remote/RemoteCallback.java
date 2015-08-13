@@ -54,7 +54,7 @@ public interface RemoteCallback extends Serializable {
 			clientConfig.setPort(thisInst.getConfig().getNetworkConfig().getPort());
 			
 			for (Member member:thisInst.getCluster().getMembers()) {
-				clientConfig.add(member.getInetSocketAddress().getHostName());
+				clientConfig.add(member.getInetSocketAddress().getHostName() + ":" + thisInst.getConfig().getNetworkConfig().getPort());
 			}
 			this.type = type;
 			
