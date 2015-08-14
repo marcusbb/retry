@@ -74,8 +74,7 @@ public class HazelcastRetryImpl implements RetryManager {
 	protected StateManager stateMgr;
 	
 	protected RetryStats stats;
-	protected GridHealthCheck gridCheck;
-	
+		
 	protected LocalQueuer localQueuer;
 	
 	HzStateMachine hzStateMachine;
@@ -156,8 +155,7 @@ public class HazelcastRetryImpl implements RetryManager {
 		
 		if (callbackManager != null)
 			callbackManager.shutdown();
-		if (gridCheck !=null)
-			gridCheck.shutdown();
+		
 		if (stateMgr != null)
 			stateMgr.shutdown();
 		RetryMapStoreFactory.getInstance().shutdown();
