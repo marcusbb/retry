@@ -1,20 +1,5 @@
 package ies.retry.spi.hazelcast;
 
-import ies.retry.BackOff;
-import ies.retry.BatchConfig;
-import ies.retry.Retry;
-import ies.retry.RetryCallback;
-import ies.retry.RetryConfigManager;
-import ies.retry.RetryConfiguration;
-import ies.retry.RetryHolder;
-import ies.retry.RetryState;
-import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
-import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
-import ies.retry.spi.hazelcast.disttasks.CallbackRegistration;
-import ies.retry.spi.hazelcast.disttasks.CallbackSelectionTask;
-import ies.retry.spi.hazelcast.disttasks.DistCallBackTask;
-import ies.retry.spi.hazelcast.util.RetryUtil;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -32,15 +17,23 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
 
-import provision.services.logging.Logger;
-
 import com.hazelcast.client.ClientConfig;
 import com.hazelcast.client.HazelcastClient;
-import com.hazelcast.core.DistributedTask;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
-import com.hazelcast.core.Member;
-import com.hazelcast.core.MultiTask;
+
+import ies.retry.BackOff;
+import ies.retry.BatchConfig;
+import ies.retry.Retry;
+import ies.retry.RetryCallback;
+import ies.retry.RetryConfigManager;
+import ies.retry.RetryConfiguration;
+import ies.retry.RetryHolder;
+import ies.retry.RetryState;
+import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
+import ies.retry.spi.hazelcast.disttasks.DistCallBackTask;
+import ies.retry.spi.hazelcast.util.RetryUtil;
+import provision.services.logging.Logger;
 
 /**
  * Manages the scheduler and the callbacks.
@@ -294,8 +287,8 @@ public class CallbackManager  {
 					FutureTask<CallbackStat> task = null;
 					
 					Callable<CallbackStat> callbackTask = new DistCallBackTask(listHolder, isArchiveExpired(type));			
-					//task = new DistributedTask<CallbackStat>(callbackTask, execMember);
-					distCallBackExec.submit(callbackTask);
+					task = new FutureTask<CallbackStat>(callbackTask);
+					distCallBackExec.submit(task);
 					futureList.add(new FutureTaskWrapper(task,type,id));
 					
 					
@@ -324,7 +317,7 @@ public class CallbackManager  {
 						callBackTimeOut(fw.getType(), fw.getId());
 					}
 					catch (Exception e) {
-						Logger.warn(CALLER, "Try_Dequeue_Exception", "Exception Message: " + e.getMessage(), "Type", type);
+						Logger.warn(CALLER, "Try_Dequeue_Exception", "Exception Message: " + e.getMessage(), "Type", type,e);
 						
 					}
 					if (ret) {
