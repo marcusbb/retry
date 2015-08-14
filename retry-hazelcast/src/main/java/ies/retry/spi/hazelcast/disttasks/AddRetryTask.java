@@ -114,7 +114,7 @@ public class AddRetryTask implements Callable<Void>, DataSerializable {
 				Logger.warn(CALLER, "Add_Retry_Task_Max_List_Size_Reached", "Retry holder was removed: " + retryHolder.getId(), "Type",	retryHolder.getType());
 			}
 			
-			distMap.put(retry.getId(), serialiableHolder);
+			distMap.put(retry.getId(), new HzSerializableRetryHolder(listHolder, new KryoSerializer()));
 			
 			DBMergePolicy mergePolicy = null;
 		
