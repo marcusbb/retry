@@ -13,36 +13,37 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 
+import com.hazelcast.core.PartitionAware;
 import com.hazelcast.nio.DataSerializable;
 
 
-public class HzSerializableRetryHolder implements DataSerializable,List<RetryHolder> {
+public class HzSerializableRetryHolder implements DataSerializable,PartitionAware<String>,List<RetryHolder> {
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 	private transient List<RetryHolder> holderList;
-	private transient RetrySerializer serizlizer;
+	private transient RetrySerializer serializer;
 	private transient boolean deferPayloadSerialization = false; 
 	
 	
 	public HzSerializableRetryHolder() {
-		this.serizlizer = new KryoSerializer();
+		this.serializer = new KryoSerializer();
 	}
 	public HzSerializableRetryHolder(RetryHolder holder,RetrySerializer serializer) {
 		this.holderList = new ArrayList<>(1);
 		holderList.add(holder);
-		this.serizlizer = serializer;
+		this.serializer = serializer;
 	}
 	
 	public HzSerializableRetryHolder(List<RetryHolder> list,RetrySerializer serializer) {
 		this.holderList = list;
-		this.serizlizer = serializer;
+		this.serializer = serializer;
 	}
 	
 	public void setSerializer(RetrySerializer serializer) {
-		this.serizlizer = serializer;
+		this.serializer = serializer;
 	}
 	@Override
 	public void readData(DataInput input) throws IOException {
@@ -50,9 +51,9 @@ public class HzSerializableRetryHolder implements DataSerializable,List<RetryHol
 		//some information of serializer in the payload
 		//unless we make a call to retry configuration here (not ideal either)
 		try {
-			this.serizlizer = (RetrySerializer)(Class.forName(input.readUTF()).newInstance());
+			this.serializer = (RetrySerializer)(Class.forName(input.readUTF()).newInstance());
 		}catch (Exception e) {
-			this.serizlizer = new KryoSerializer();
+			this.serializer = new KryoSerializer();
 		}
 		int len = input.readByte();
 		this.deferPayloadSerialization = input.readBoolean();
@@ -69,7 +70,7 @@ public class HzSerializableRetryHolder implements DataSerializable,List<RetryHol
 			if (ps > 0) {
 				byte []payload = new byte[ps];
 				input.readFully(payload);
-				holder.setRetryData(serizlizer.serializeToObject(payload) );
+				holder.setRetryData(serializer.serializeToObject(payload) );
 			}
 			holderList.add(holder);
 			
@@ -81,9 +82,11 @@ public class HzSerializableRetryHolder implements DataSerializable,List<RetryHol
 
 	@Override
 	public void writeData(DataOutput output) throws IOException {
-		output.writeUTF(this.serizlizer.getClass().getName());
+		output.writeUTF(this.serializer.getClass().getName());
 		output.writeByte(holderList.size());
 		output.writeBoolean(deferPayloadSerialization);
+		if (holderList == null)
+			throw new IllegalArgumentException("holderList is null");
 		for (RetryHolder holder:holderList) {
 			output.writeUTF(holder.getId());
 			output.writeUTF(holder.getType());
@@ -92,7 +95,7 @@ public class HzSerializableRetryHolder implements DataSerializable,List<RetryHol
 			output.writeLong(holder.getNextAttempt());
 			output.writeUTF(holder.getSecondaryIndex());
 			if (holder.getRetryData() != null) {
-				byte []payload = serizlizer.serializeToByte(holder.getRetryData());
+				byte []payload = serializer.serializeToByte(holder.getRetryData());
 				output.write(payload.length);
 				output.write(payload);
 			}else {
@@ -230,6 +233,13 @@ public class HzSerializableRetryHolder implements DataSerializable,List<RetryHol
 	@Override
 	public List<RetryHolder> subList(int fromIndex, int toIndex) {
 		return holderList.subList(fromIndex, toIndex);
+	}
+	@Override
+	public String getPartitionKey() {
+		if (holderList != null && holderList.get(0) != null)
+			return holderList.get(0).getId();
+		
+		throw new IllegalArgumentException("holderList is null");
 	}
 	
 	
