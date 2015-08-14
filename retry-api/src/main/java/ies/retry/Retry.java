@@ -1,5 +1,11 @@
 package ies.retry;
 
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javax.xml.bind.JAXBException;
+
 import ies.retry.xml.XMLRetryConfigMgr;
 import ies.retry.xml.XmlRetryConfig;
 
@@ -20,6 +26,8 @@ public class Retry {
 	
 	private static Object lock = new Object();
 	private static boolean init = false;
+	
+	private static Map<String,Object> instanceMap = new ConcurrentHashMap<String, Object>();
 	
 	private Retry() {
 				
@@ -48,6 +56,15 @@ public class Retry {
 		return retryManager;
 		
 	}
+	public static void registerInst(String id,Object handle) {
+				
+		instanceMap.putIfAbsent(id, handle);
+				
+	}
+	public static Object getByInst(String id) {
+		return instanceMap.get(id);
+	}
+	
 	private static RetryManager init() {
 		try {
 						
@@ -58,6 +75,7 @@ public class Retry {
 				throw new ConfigException("No Provider");
 			RetryManager inst = (RetryManager) Class.forName(config.getProvider()).newInstance();
 			init = true;
+			instanceMap.putIfAbsent(inst.getId(), inst);
 			return inst;
 
 		} catch (Exception e) {

@@ -163,6 +163,10 @@ public class StubbedRetryManager implements RetryManager {
 		// TODO Auto-generated method stub
 		return false;
 	}
+	@Override
+	public String getId() {
+		return "";
+	}
 
 	
 	

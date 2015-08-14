@@ -189,4 +189,10 @@ public interface RetryManager {
 	 * @return
 	 */
 	public Collection<RetryHolder> bySecondaryIndex(String type,String secondaryIndex);
+	
+	/**
+	 * Internal identifier
+	 * @return
+	 */
+	public String getId();
 }
