@@ -5,8 +5,11 @@ import ies.retry.Retry;
 import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 import ies.retry.spi.hazelcast.HzIntegrationTestUtil;
+import ies.retry.spi.hazelcast.HzSerializableRetryHolder;
+import ies.retry.spi.hazelcast.util.KryoSerializer;
 
-
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -30,6 +33,19 @@ public class RPCTest {
 	public static void afterClass() {
 		HzIntegrationTestUtil.afterClass();
 	}
+	
+	@Test
+	public void dataSerializableTest() throws ExecutionException,InterruptedException {
+		RetryHolder holder = new RetryHolder("id-1", "POKE", new HashMap<>());
+		ArrayList<RetryHolder> list = new ArrayList<>();list.add(holder);
+		HzSerializableRetryHolder serializable = new HzSerializableRetryHolder(list,new KryoSerializer());
+		RemoteManagerSerializableRPC<Void> rpc = new RemoteManagerSerializableRPC<>("addRetry", serializable);
+		rpc.setIdHandle(retryManager.getId());
+		HazelcastClient client = HazelcastClient.newHazelcastClient(new ClientConfig().addAddress("localhost:6701"));
+		client.getExecutorService().submit(rpc).get();
+		
+		client.shutdown();
+	}
 	@Test
 	public void testRPCAddAndGet() throws ExecutionException, InterruptedException {
 		//With a client
@@ -46,6 +62,7 @@ public class RPCTest {
 		}		
 		assertEquals(1,result.size());
 		
+		client.shutdown();
 		
 	}
 	

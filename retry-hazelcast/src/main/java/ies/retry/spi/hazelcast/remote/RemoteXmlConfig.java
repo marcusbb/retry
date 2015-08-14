@@ -74,6 +74,7 @@ public class RemoteXmlConfig extends XmlRetryConfig {
 	
 	private String clusterName = "retry_client_cluster";
 
+	private String idHandle;
 	
 	public RemoteXmlConfig() {}
 	
@@ -127,6 +128,14 @@ public class RemoteXmlConfig extends XmlRetryConfig {
 
 	public void setPort(int port) {
 		this.port = port;
+	}
+
+	public String getIdHandle() {
+		return idHandle;
+	}
+
+	public void setIdHandle(String idHandle) {
+		this.idHandle = idHandle;
 	}
 	
 	

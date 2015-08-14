@@ -102,7 +102,7 @@ public class HazelcastRetryImplTest {
 		
 		assertEquals(1,ret.size());
 		assertNotNull(ret.get(0).getRetryData());
-		
+		retryManager.shutdown();
 		
 	}
 	@Test

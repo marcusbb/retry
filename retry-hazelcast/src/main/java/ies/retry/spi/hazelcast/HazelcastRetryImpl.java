@@ -1,5 +1,24 @@
 package ies.retry.spi.hazelcast;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import javax.persistence.PersistenceException;
+
+import com.hazelcast.core.DistributedTask;
+import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.IMap;
+import com.hazelcast.query.EntryObject;
+import com.hazelcast.query.Predicate;
+import com.hazelcast.query.PredicateBuilder;
+
 import ies.retry.ConfigException;
 import ies.retry.NoCallbackException;
 import ies.retry.RetryCallback;
@@ -18,36 +37,8 @@ import ies.retry.spi.hazelcast.persistence.RetryMapStore;
 import ies.retry.spi.hazelcast.persistence.RetryMapStoreFactory;
 import ies.retry.spi.hazelcast.remote.RemoteCallback;
 import ies.retry.spi.hazelcast.util.HzUtil;
-import ies.retry.spi.hazelcast.util.IOUtil;
 import ies.retry.spi.hazelcast.util.RetryUtil;
-import ies.retry.spi.hazelcast.util.StringUtil;
-import ies.retry.xml.XMLRetryConfigMgr;
-import ies.retry.xml.XmlRetryConfig;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import javax.persistence.PersistenceException;
-
 import provision.services.logging.Logger;
-
-import com.hazelcast.config.ClasspathXmlConfig;
-import com.hazelcast.config.Config;
-import com.hazelcast.config.InMemoryXmlConfig;
-import com.hazelcast.core.DistributedTask;
-import com.hazelcast.core.Hazelcast;
-import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IMap;
-import com.hazelcast.query.EntryObject;
-import com.hazelcast.query.Predicate;
-import com.hazelcast.query.PredicateBuilder;
 
 /**
  * The implementor for {@link RetryManager}.
@@ -89,6 +80,7 @@ public class HazelcastRetryImpl implements RetryManager {
 	
 	HzStateMachine hzStateMachine;
 	
+	private String id;
 	
 	public HazelcastRetryImpl() throws ConfigException {
 		
@@ -110,7 +102,7 @@ public class HazelcastRetryImpl implements RetryManager {
 		Logger.info(CALLER, "Constructor", "Loading HazelCast config from classpath");
 		
 		h1 = HzUtil.loadHzConfiguration();
-		
+		id = h1.getName();
 		
 		Logger.info(CALLER, "Constructor", "Initializing Persistence");
 		RetryMapStoreFactory.getInstance().init(configMgr.getRetryHzConfig());
@@ -161,9 +153,7 @@ public class HazelcastRetryImpl implements RetryManager {
 	}
 	@Override
 	public void shutdown() {
-		if (h1!=null) {
-			h1.getLifecycleService().shutdown();
-		}
+		
 		if (callbackManager != null)
 			callbackManager.shutdown();
 		if (gridCheck !=null)
@@ -172,6 +162,9 @@ public class HazelcastRetryImpl implements RetryManager {
 			stateMgr.shutdown();
 		RetryMapStoreFactory.getInstance().shutdown();
 		
+		if (h1!=null) {
+			h1.getLifecycleService().shutdown();
+		}
 	}
 	/**
 	 * 
@@ -238,6 +231,15 @@ public class HazelcastRetryImpl implements RetryManager {
 		
 	}
 	
+	public void addRetry(HzSerializableRetryHolder serializable) {
+		if (serializable.getHolderList() == null)
+			throw new IllegalArgumentException("list must contain one retry element");
+		if (serializable.getHolderList().get(0) == null)
+			throw new IllegalArgumentException("list must contain one retry element");
+		
+		addRetry(serializable.getHolderList().get(0));
+		
+	}
 	private void dealSync(DistributedTask<Void> distTask,RetryConfiguration config) throws ExecutionException, InterruptedException, TimeoutException {
 		try {
 			//right now its a global configuration, TODO: change by type
@@ -526,7 +528,7 @@ public class HazelcastRetryImpl implements RetryManager {
 	}
 	private synchronized CallbackRemoteProxy getCallbackRemoteProxy(RemoteCallback.DefaultRemoteCallback remoteCallback) {
 		if (this.callRemotebackProxy == null) {
-			this.callRemotebackProxy = new CallbackRemoteProxy(remoteCallback.getClientConfig().getHzClientConfig());
+			this.callRemotebackProxy = new CallbackRemoteProxy(remoteCallback.getClientConfig());
 		}
 		return this.callRemotebackProxy;
 	}
@@ -626,6 +628,10 @@ public class HazelcastRetryImpl implements RetryManager {
 	
 	public HzStateMachine getHzStateMachine() {
 		return hzStateMachine;
+	}
+	@Override
+	public String getId() {
+		return id;
 	}
 	
 	

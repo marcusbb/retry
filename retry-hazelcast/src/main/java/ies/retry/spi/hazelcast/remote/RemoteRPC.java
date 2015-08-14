@@ -1,8 +1,5 @@
 package ies.retry.spi.hazelcast.remote;
 
-import ies.retry.Retry;
-import ies.retry.spi.hazelcast.HazelcastRetryImpl;
-
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.concurrent.Callable;
@@ -13,6 +10,7 @@ public abstract class RemoteRPC<T> implements Callable<T>,Serializable {
 	private static final long serialVersionUID = -4144188157501414137L;
 	private String method;
 	private Object []signature;
+	private String idHandle;
 	
 	public RemoteRPC(String method,Object...signature) {
 		this.method = method;
@@ -34,5 +32,12 @@ public abstract class RemoteRPC<T> implements Callable<T>,Serializable {
 		
 		return (T)m.invoke(target(), signature);
 	}
+	public String getIdHandle() {
+		return idHandle;
+	}
+	public void setIdHandle(String idHandle) {
+		this.idHandle = idHandle;
+	}
+	
 	
 }

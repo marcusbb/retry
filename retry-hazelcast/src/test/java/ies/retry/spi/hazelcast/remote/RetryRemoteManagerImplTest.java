@@ -1,23 +1,14 @@
 package ies.retry.spi.hazelcast.remote;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-
-
-import ies.retry.Retry;
-import ies.retry.RetryCallback;
-import ies.retry.RetryConfigManager;
-import ies.retry.RetryConfiguration;
-import ies.retry.RetryHolder;
-import ies.retry.RetryManager;
-import ies.retry.spi.hazelcast.HazelcastRetryImpl;
-import ies.retry.spi.hazelcast.HzIntegrationTestUtil;
-import ies.retry.spi.hazelcast.util.HzUtil;
-import ies.retry.xml.XMLRetryConfigMgr;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -25,7 +16,19 @@ import org.junit.Test;
 
 import com.hazelcast.client.HazelcastClient;
 
-public class RemoteRetryImplTest {
+import ies.retry.Retry;
+import ies.retry.RetryCallback;
+import ies.retry.RetryConfigManager;
+import ies.retry.RetryConfiguration;
+import ies.retry.RetryHolder;
+import ies.retry.RetryManager;
+import ies.retry.spi.hazelcast.CallbackManager;
+import ies.retry.spi.hazelcast.CallbackRemoteProxy;
+import ies.retry.spi.hazelcast.HazelcastRetryImpl;
+import ies.retry.spi.hazelcast.util.HzUtil;
+import ies.retry.xml.XMLRetryConfigMgr;
+
+public class RetryRemoteManagerImplTest {
 
 	static RetryManager server;
 	
@@ -40,8 +43,8 @@ public class RemoteRetryImplTest {
 		Retry.setRetryManager(null);
 		XMLRetryConfigMgr.setXML_FILE(XMLRetryConfigMgr.DEFAULT_XML_FILE);
 	}
-	
-	@Test
+	//
+	//@Test
 	public void instantiateAndDestroy() {
 		XMLRetryConfigMgr.setXML_FILE("remote/retry_config.xml");
 		
@@ -55,6 +58,7 @@ public class RemoteRetryImplTest {
 	
 	@Test
 	public void multiClient() {
+		Retry.setRetryManager(server);
 		XMLRetryConfigMgr.setXML_FILE("remote/retry_config.xml");
 		RetryRemoteManagerImpl client1 = new RetryRemoteManagerImpl();
 		RetryRemoteManagerImpl client2 = new RetryRemoteManagerImpl();
@@ -127,7 +131,7 @@ public class RemoteRetryImplTest {
 	}
 	
 	@Test
-	public void register() {
+	public void register() throws InterruptedException {
 		Retry.setRetryManager(server);
 		HzUtil.HZ_CONFIG_FILE = "remote/client-cluster.xml";
 		HzUtil.buildHzInstanceWith("retry_client_cluster");
@@ -135,15 +139,42 @@ public class RemoteRetryImplTest {
 		XMLRetryConfigMgr.setXML_FILE("remote/retry_config.xml");
 		RetryRemoteManagerImpl client = new RetryRemoteManagerImpl();
 		
+				
+		assertTrue(server.registeredCallback("POKE") instanceof CallbackRemoteProxy);
+		
+		CallbackManager cbm = ((HazelcastRetryImpl)server).getCallbackManager();
+		cbm.tryDequeue("POKE");
+				
+		client.shutdown();
+		HzUtil.HZ_CONFIG_FILE = "hazelcast.xml";
+		
+	}
+	@Test
+	public void endToend() throws InterruptedException {
+		Retry.setRetryManager(server);
+		HzUtil.HZ_CONFIG_FILE = "remote/client-cluster.xml";
+		HzUtil.buildHzInstanceWith("retry_client_cluster");
+		
+		XMLRetryConfigMgr.setXML_FILE("remote/retry_config.xml");
+		RetryRemoteManagerImpl client = new RetryRemoteManagerImpl();
+		
+		final CountDownLatch latch = new CountDownLatch(1);
 		client.registerCallback(new RetryCallback() {
 			
 			@Override
 			public boolean onEvent(RetryHolder retry) throws Exception {
+				latch.countDown();
 				return true;
 			}
 		}, "POKE");
 		
+		//add retry
+		client.addRetry(new RetryHolder("test-id1", "POKE", new HashMap<>()));
 		
+		CallbackManager cbm = ((HazelcastRetryImpl)server).getCallbackManager();
+		cbm.tryDequeue("POKE");
+		
+		assertTrue(latch.await(100, TimeUnit.SECONDS));
 		
 		client.shutdown();
 		HzUtil.HZ_CONFIG_FILE = "hazelcast.xml";

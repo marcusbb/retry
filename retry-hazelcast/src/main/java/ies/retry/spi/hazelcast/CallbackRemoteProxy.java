@@ -2,17 +2,15 @@ package ies.retry.spi.hazelcast;
 
 import com.hazelcast.client.ClientConfig;
 import com.hazelcast.client.HazelcastClient;
-import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.LifecycleEvent;
 import com.hazelcast.core.LifecycleEvent.LifecycleState;
 import com.hazelcast.core.LifecycleListener;
-import com.hazelcast.logging.ILogger;
 
-import ies.retry.Retry;
 import ies.retry.RetryCallback;
 import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.remote.RemoteManagerRPC;
 import ies.retry.spi.hazelcast.remote.RemoteRPC;
+import ies.retry.spi.hazelcast.remote.RemoteXmlConfig;
 import ies.retry.spi.hazelcast.remote.Remoteable;
 import provision.services.logging.Logger;
 
@@ -23,14 +21,14 @@ import provision.services.logging.Logger;
  */
 public class CallbackRemoteProxy extends Remoteable implements RetryCallback,LifecycleListener {
 
-	private ClientConfig remoteClusterConfig;
+	private RemoteXmlConfig remoteClusterConfig;
 	
 		
-	public CallbackRemoteProxy(ClientConfig cc) {
+	public CallbackRemoteProxy(RemoteXmlConfig config) {
 		
-		this.remoteClusterConfig = cc;
+		this.remoteClusterConfig = config;
 		
-		HazelcastClient client = HazelcastClient.newHazelcastClient(remoteClusterConfig);
+		HazelcastClient client = HazelcastClient.newHazelcastClient(remoteClusterConfig.getHzClientConfig());
 		this.hzClient = client;
 		client.getLifecycleService().addLifecycleListener(this);
 		
@@ -53,7 +51,9 @@ public class CallbackRemoteProxy extends Remoteable implements RetryCallback,Lif
 
 	@Override
 	protected <T> RemoteRPC<T> rpcClass(String method, Object... signature) {
-		return new RemoteManagerRPC<>(method, signature);
+		RemoteManagerRPC<T> inst =  new RemoteManagerRPC<>(method, signature);
+		inst.setIdHandle(remoteClusterConfig.getIdHandle());
+		return inst;
 	}
 
 }

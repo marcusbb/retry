@@ -43,7 +43,7 @@ public class HazelcastXmlConfig extends XmlRetryConfig {
 	/**
 	 * The time to wait for a lock to be tried on adding retry to the grid (and storage)
 	 */
-	private long retryAddLockTimeout = 10 * 1000;
+	private long retryAddLockTimeout = 60 * 1000;
 	
 	private int defaultLocalQueueSize = 64000;
 	

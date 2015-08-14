@@ -17,6 +17,8 @@ public class  RemoteManagerRPC<T> extends RemoteRPC<T> implements Serializable {
 
 	@Override
 	Object target() {
+		if (getIdHandle() != null)
+			return Retry.getByInst(getIdHandle());
 		return Retry.getRetryManager();
 	}
 	

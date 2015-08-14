@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -78,12 +79,7 @@ public class CallbackManager  {
 	public static String EXEC_SRV_NAME = "RETRY_DEQUEUE";
 	private ExecutorService distCallBackExec = null;
 	
-	/*
-	 * All information related to member distribution
-	 * is a possible points to refactor 
-	 */
-	private volatile int memberCursor = 0;
-	private Member distMember = null;
+	
 	private HazelcastInstance h1;
 	
 	RetryStats stats;
@@ -98,9 +94,12 @@ public class CallbackManager  {
 		typeLockMap = new Hashtable<String, ReentrantLock>();
 		this.stateMgr = stateMgr;
 		
-		//
-		distMember = h1.getCluster().getLocalMember();
-		distCallBackExec = h1.getExecutorService(EXEC_SRV_NAME);
+		
+		//distCallBackExec = h1.getExecutorService(EXEC_SRV_NAME);
+		//TODO: possibly convert this to a thread pool 
+		//The throttling mechanism determined by the the batch size
+		//should control the maximum bounds of threads
+		distCallBackExec = Executors.newCachedThreadPool();
 		this.stats = stats;
 				
 		
@@ -267,7 +266,7 @@ public class CallbackManager  {
 			}
 			Iterator<String> keyIter = retryMap.localKeySet().iterator();
 			
-			Member execMember = pickMember(type);
+			//Member execMember = pickMember(type);
 			
 
 			Logger.info(CALLER, "Try_Dequeue", "Dequeueing local set size: " + retryMap.localKeySet().size() + ". BLOCK size: " + getBatchSize(type), "Type", type);
@@ -295,8 +294,8 @@ public class CallbackManager  {
 					FutureTask<CallbackStat> task = null;
 					
 					Callable<CallbackStat> callbackTask = new DistCallBackTask(listHolder, isArchiveExpired(type));			
-					task = new DistributedTask<CallbackStat>(callbackTask, execMember);
-					distCallBackExec.submit(task);
+					//task = new DistributedTask<CallbackStat>(callbackTask, execMember);
+					distCallBackExec.submit(callbackTask);
 					futureList.add(new FutureTaskWrapper(task,type,id));
 					
 					
@@ -360,10 +359,6 @@ public class CallbackManager  {
 				stat.resetFailed();
 			} 
 		
-		}catch (NoCallbackMember e) {
-			Logger.warn(CALLER, "Try_Dequeue_NoCallbackMember", "No member to call back registered anywhere in the grid", "Type", type);
-			
-			return false;
 		}
 		catch (Throwable t) {
 			
@@ -410,52 +405,7 @@ public class CallbackManager  {
 	}
 	
 	
-	private Member pickLocalMember() {
-		return h1.getCluster().getLocalMember();
-	}
 	
-	private Member pickMember(String type) throws NoCallbackMember {
-		HazelcastXmlConfig config = configMgr.getRetryHzConfig();
-		if (config.isPickLocalCallback())
-			return pickLocalMember();
-		//if a local registered listener is available, callbackMap will 
-		//populated
-		Logger.debug(CALLER, "Pick_Member", "Picking exection member for type.", "Type", type);
-		
-		if (callbackMap.get(type) != null) {
-			Logger.debug(CALLER, "Pick_Member", "Picked local member", "Type", type);
-			return pickLocalMember();
-		//
-		//	else synchronous RPC type task is 
-		}else {
-			Logger.info(CALLER, "Pick_Member", "Picking another member to execute callback ", "Type", type);			
-			MultiTask<CallbackRegistration> task = new MultiTask<CallbackRegistration>(new CallbackSelectionTask(type), h1.getCluster().getMembers());
-			distCallBackExec.submit(task);
-			try {
-				Iterator<CallbackRegistration> iter = task.get().iterator();
-				ArrayList<Member> callbackMembers = new ArrayList<Member>();
-				//pick first one: this won't be optimal
-				while(iter.hasNext()) {
-					CallbackRegistration registation = iter.next();
-					if (registation.isRegistered()) {
-						callbackMembers.add( registation.getMember() );
-						
-					}
-				}
-				if (callbackMembers.size() == 0)
-					throw new NoCallbackMember();
-				distMember = callbackMembers.get(memberCursor); 
-				memberCursor = memberCursor++ %callbackMembers.size();
-				
-					
-			}catch (Exception e) {
-				//unable to choose member
-				Logger.error(CALLER, "Pick_Member_Exception", "Exception Message: " + e.getMessage(), "Type", type, e);
-				distMember = h1.getCluster().getLocalMember();
-			}
-		}
-		return distMember;
-	}
 	/**
 	 * cluster wide isDrained function.
 	 * 
