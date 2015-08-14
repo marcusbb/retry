@@ -58,7 +58,7 @@ public class Retry {
 	}
 	public static void registerInst(String id,Object handle) {
 				
-		instanceMap.putIfAbsent(id, handle);
+		instanceMap.put(id, handle);
 				
 	}
 	public static Object getByInst(String id) {
