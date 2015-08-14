@@ -119,7 +119,7 @@ public class CallbackManager  {
 	 */
 	public void shutdown() {
 		if (stpe != null)
-			stpe.shutdown();
+			stpe.shutdownNow();
 		
 	}
 	/**
