@@ -241,7 +241,7 @@ public class CallbackManager  {
 	 * 
 	 */
 	
-	protected boolean tryDequeue(String type) {
+	public boolean tryDequeue(String type) {
 		
 		boolean dequeued = true;
 		
