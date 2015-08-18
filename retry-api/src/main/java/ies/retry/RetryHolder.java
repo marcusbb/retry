@@ -49,7 +49,7 @@ public class RetryHolder implements Serializable {
 	 * of size.
 	 * 
 	 */
-	transient Serializable retryData;
+	Serializable retryData;
 	
 	private byte [] payload;
 	/**
