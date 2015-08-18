@@ -92,7 +92,7 @@ public class PutRetryTask implements Callable<Void>, DataSerializable {
 						"InMemory", inMemoryList.size(), "HZ", hzSize, "Result", retryList!=null ? retryList.size() : 0);
 			}
 					
-			distMap.put(retry.getId(), serializableHolder);
+			distMap.put(retry.getId(), new HzSerializableRetryHolder(retryList, new KryoSerializer()));
 			
 			
 			if (persist)
