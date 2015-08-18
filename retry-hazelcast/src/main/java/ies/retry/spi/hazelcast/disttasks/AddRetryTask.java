@@ -48,6 +48,9 @@ public class AddRetryTask implements Callable<Void>, DataSerializable {
 	public AddRetryTask(RetryHolder holder) {
 		this.serialiableHolder = new HzSerializableRetryHolder(holder, new KryoSerializer());
 	}
+	public AddRetryTask(HzSerializableRetryHolder holder) {
+		this.serialiableHolder = holder;
+	}
 	public AddRetryTask(RetryHolder holder,boolean persist) {
 		this.serialiableHolder = new HzSerializableRetryHolder(holder, new KryoSerializer());
 		this.persist = persist;

@@ -3,15 +3,17 @@ package ies.retry.spi.hazelcast.remote;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.concurrent.Callable;
 
 import com.hazelcast.core.PartitionAware;
 import com.hazelcast.nio.DataSerializable;
 
+import ies.retry.Retry;
 import ies.retry.spi.hazelcast.HzSerializableRetryHolder;
 
-public abstract class RemoteDataSerializableRPC<T> implements Callable<T>,DataSerializable,PartitionAware<Object> {
+public class RemoteDataSerializableRPC<T> implements Serializable,Callable<T>,DataSerializable,PartitionAware<Object> {
 
 	
 	private static final long serialVersionUID = -4144188157501414137L;
@@ -33,7 +35,11 @@ public abstract class RemoteDataSerializableRPC<T> implements Callable<T>,DataSe
 		this.serializable = serializable;
 		this.partitionKey = partitionKey;
 	}
-	abstract Object target();
+	public Object target() {
+		if (getIdHandle() != null)
+			return Retry.getByInst(getIdHandle());
+		return Retry.getRetryManager();
+	}
 	
 
 	@Override
@@ -42,17 +48,22 @@ public abstract class RemoteDataSerializableRPC<T> implements Callable<T>,DataSe
 		//determine signature types
 //		Class<? extends DataSerializable> []parameterTypes = new Class[1];
 				
-		Method m = target().getClass().getMethod(method, DataSerializable.class); 
+		Method m = target().getClass().getMethod(method, HzSerializableRetryHolder.class); 
 		
 		return (T)m.invoke(target(), serializable);
 	}
 	@Override
 	public void writeData(DataOutput out) throws IOException {
+		out.writeUTF(method);
+		out.writeUTF(idHandle);
 		this.serializable.writeData(out);
 		
 	}
 	@Override
 	public void readData(DataInput in) throws IOException {
+		this.method = in.readUTF();
+		this.idHandle = in.readUTF();
+		this.serializable = new HzSerializableRetryHolder();
 		this.serializable.readData(in);
 		
 	}

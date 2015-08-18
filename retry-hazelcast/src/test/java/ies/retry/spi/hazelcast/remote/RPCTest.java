@@ -39,10 +39,11 @@ public class RPCTest {
 		RetryHolder holder = new RetryHolder("id-1", "POKE", new HashMap<>());
 		ArrayList<RetryHolder> list = new ArrayList<>();list.add(holder);
 		HzSerializableRetryHolder serializable = new HzSerializableRetryHolder(list,new KryoSerializer());
-		RemoteManagerSerializableRPC<Void> rpc = new RemoteManagerSerializableRPC<>("addRetry", serializable);
+		RemoteDataSerializableRPC<Void> rpc = new RemoteDataSerializableRPC<>("addRetry", serializable);
 		rpc.setIdHandle(retryManager.getId());
 		HazelcastClient client = HazelcastClient.newHazelcastClient(new ClientConfig().addAddress("localhost:6701"));
 		client.getExecutorService().submit(rpc).get();
+		
 		
 		client.shutdown();
 	}
@@ -52,7 +53,7 @@ public class RPCTest {
 		HazelcastClient client = HazelcastClient.newHazelcastClient(new ClientConfig().addAddress("localhost:6701"));
 		RetryRemoteManagerImpl remoteImpl = new RetryRemoteManagerImpl(client);
 		//client.getExecutorService().submit(new RemoteManagerRPC<Void>("addRetry", new RetryHolder("id1","POKE") ));
-		remoteImpl.addRetry(new RetryHolder("id1","POKE"));
+		remoteImpl.addRetry(new RetryHolder("id1","POKE",new HashMap<>()));
 		//sync add, so we can get it back
 		List<RetryHolder> result = null;
 		int i = 0;
@@ -61,6 +62,7 @@ public class RPCTest {
 			result = remoteImpl.getRetry("id1", "POKE");	
 		}		
 		assertEquals(1,result.size());
+		assertTrue(result.get(0).getRetryData() instanceof HashMap);
 		
 		client.shutdown();
 		

@@ -41,6 +41,11 @@ public class PutRetryTask implements Callable<Void>, DataSerializable {
 		this.retryList = retryList;
 		this.persist = persist;
 	}
+	public PutRetryTask(HzSerializableRetryHolder holder,boolean persist) {
+		this.serializableHolder = holder;
+		this.retryList = holder.getHolderList();
+		this.persist = persist;
+	}
 	@Override
 	public void writeData(DataOutput out) throws IOException {
 		

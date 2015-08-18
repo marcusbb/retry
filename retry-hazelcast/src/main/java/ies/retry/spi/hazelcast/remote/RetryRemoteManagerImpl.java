@@ -23,7 +23,9 @@ import ies.retry.RetryHolder;
 import ies.retry.RetryManager;
 import ies.retry.RetryState;
 import ies.retry.RetryTransitionListener;
+import ies.retry.spi.hazelcast.HzSerializableRetryHolder;
 import ies.retry.spi.hazelcast.remote.RemoteCallback.DefaultRemoteCallback;
+import ies.retry.spi.hazelcast.util.KryoSerializer;
 
 
 /**
@@ -136,7 +138,8 @@ public class RetryRemoteManagerImpl extends Remoteable implements RetryManager {
 		try {
 			return localCallback.onEvent(holder);
 		}catch (Exception e) {
-			//TODO 
+			//TODO: we don't want to throw back an except to the server
+			//that it can't handle.
 		}
 		return false;
 	}
@@ -144,8 +147,9 @@ public class RetryRemoteManagerImpl extends Remoteable implements RetryManager {
 	@Override
 	public void addRetry(RetryHolder retry) throws NoCallbackException,
 			ConfigException {
-		
-		submitRPC("addRetry", retry);
+		HzSerializableRetryHolder holder = new HzSerializableRetryHolder(retry, new KryoSerializer());
+		holder.setDeferPayloadSerialization(true);
+		submitRPC("addRetry", holder);
 	
 	}
 
@@ -165,7 +169,17 @@ public class RetryRemoteManagerImpl extends Remoteable implements RetryManager {
 
 	@Override
 	public List<RetryHolder> getRetry(String retryId, String type) {
-		return submitRPC("getRetry", retryId,type);
+		List<RetryHolder> list =  submitRPC("getRetry", retryId,type);
+		
+		if (list instanceof HzSerializableRetryHolder ) {
+			for (RetryHolder holder:list) {
+				if (holder.getPayload() != null) {
+					holder.setRetryData(new KryoSerializer().serializeToObject(holder.getPayload()) );
+				}
+			}
+		}
+		
+		return list;
 	}
 
 	@Override

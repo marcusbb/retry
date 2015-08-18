@@ -7,6 +7,7 @@ import ies.retry.spi.hazelcast.util.KryoSerializer;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -17,15 +18,15 @@ import com.hazelcast.core.PartitionAware;
 import com.hazelcast.nio.DataSerializable;
 
 
-public class HzSerializableRetryHolder implements DataSerializable,PartitionAware<String>,List<RetryHolder> {
+public class HzSerializableRetryHolder implements Serializable,DataSerializable,PartitionAware<String>,List<RetryHolder> {
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	private transient List<RetryHolder> holderList;
+	private List<RetryHolder> holderList;
 	private transient RetrySerializer serializer;
-	private transient boolean deferPayloadSerialization = false; 
+	private boolean deferPayloadSerialization = false; 
 	
 	
 	public HzSerializableRetryHolder() {
@@ -70,7 +71,10 @@ public class HzSerializableRetryHolder implements DataSerializable,PartitionAwar
 			if (ps > 0) {
 				byte []payload = new byte[ps];
 				input.readFully(payload);
-				holder.setRetryData(serializer.serializeToObject(payload) );
+				if (deferPayloadSerialization)
+					holder.setPayload(payload);
+				else
+					holder.setRetryData(serializer.serializeToObject(payload) );
 			}
 			holderList.add(holder);
 			
@@ -82,6 +86,8 @@ public class HzSerializableRetryHolder implements DataSerializable,PartitionAwar
 
 	@Override
 	public void writeData(DataOutput output) throws IOException {
+		if (serializer == null)
+			this.serializer = new KryoSerializer();
 		output.writeUTF(this.serializer.getClass().getName());
 		output.writeByte(holderList.size());
 		output.writeBoolean(deferPayloadSerialization);
