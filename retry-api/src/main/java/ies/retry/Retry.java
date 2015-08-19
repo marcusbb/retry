@@ -27,7 +27,7 @@ public class Retry {
 	private static Object lock = new Object();
 	private static boolean init = false;
 	
-	private static Map<String,Object> instanceMap = new ConcurrentHashMap<String, Object>();
+	private final static Map<String,Object> instanceMap = new ConcurrentHashMap<String, Object>();
 	
 	private Retry() {
 				
@@ -64,7 +64,9 @@ public class Retry {
 	public static Object getByInst(String id) {
 		return instanceMap.get(id);
 	}
-	
+	public static Map<String,Object> getInstMap() {
+		return instanceMap;
+	}
 	private static RetryManager init() {
 		try {
 						
