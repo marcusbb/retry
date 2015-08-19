@@ -80,7 +80,7 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 			
 			BackOff backOff = config.getBackOff();
 			
-			List<RetryHolder> listHolder = retryMap.get(id);
+			//List<RetryHolder> listHolder = retryMap.get(id);
 			//retryMap.lock(id); // WE do lock below
 			boolean exec = false;
 			long curTime = System.currentTimeMillis();
@@ -115,7 +115,9 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 								if(!skipCallbackForRemainingItemsDueToException){
 									//try the next holder in the list only if the callback didn't throw an exceptoin for the previously executed retries in the list. 
 									Logger.info(CALLER, "DistCallBackTask_PreCallback","precallback","retry",id);
-									stat.setSuccess(callback.onEvent(holder));
+									
+									boolean successCall = callback.onEvent(holder);
+									stat.setSuccess(successCall);
 								}
 								
 								if (!stat.isSuccess())
