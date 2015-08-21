@@ -8,6 +8,8 @@ import java.util.concurrent.ExecutionException;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.MultiTask;
 
+import ies.retry.spi.hazelcast.HzSerializableRetryHolder;
+
 public abstract class Remoteable {
 
 	protected HazelcastInstance hzClient = null;
@@ -49,6 +51,20 @@ public abstract class Remoteable {
 			
 		}catch (ExecutionException | InterruptedException e) {
 			e.printStackTrace(System.out);
+			//TODO - wrap in a suitable runtime exception
+			throw new RuntimeException(e.getMessage(),e);
+		}finally {
+		
+		}
+		
+	}
+	
+	protected <T> T submitSerializableRPC(String method,HzSerializableRetryHolder serializable,Object partitionKey) {
+		
+		try {
+			RemoteDataSerializableRPC<T> rpc = new RemoteDataSerializableRPC<>(method, serializable, partitionKey);
+			return (T)hzClient.getExecutorService().submit(rpc).get();
+		}catch (ExecutionException | InterruptedException e) {
 			//TODO - wrap in a suitable runtime exception
 			throw new RuntimeException(e.getMessage(),e);
 		}finally {

@@ -147,10 +147,8 @@ public class RetryRemoteManagerImpl extends Remoteable implements RetryManager {
 	@Override
 	public void addRetry(RetryHolder retry) throws NoCallbackException,
 			ConfigException {
-		HzSerializableRetryHolder holder = new HzSerializableRetryHolder(retry, new KryoSerializer());
-		holder.setDeferPayloadSerialization(true);
-		submitRPC("addRetry", holder);
-	
+		HzSerializableRetryHolder holder = new HzSerializableRetryHolder(retry, new KryoSerializer(),true);
+		submitSerializableRPC("addRetry", holder, retry.getId());
 	}
 
 	@Override
@@ -163,7 +161,11 @@ public class RetryRemoteManagerImpl extends Remoteable implements RetryManager {
 	@Override
 	public void putRetry(List<RetryHolder> retryList)
 			throws NoCallbackException, ConfigException {
-		submitRPC("putRetry", retryList);
+		//submitRPC("putRetry", retryList);
+		if (retryList.get(0).getId() == null)
+			throw new IllegalArgumentException("Retry Id cant be null");
+		HzSerializableRetryHolder holder = new HzSerializableRetryHolder(retryList, new KryoSerializer(),true);
+		submitSerializableRPC("addRetry", holder, retryList.get(0).getId());
 		
 	}
 
