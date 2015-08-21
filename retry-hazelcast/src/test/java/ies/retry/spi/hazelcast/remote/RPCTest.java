@@ -34,6 +34,20 @@ public class RPCTest {
 		HzIntegrationTestUtil.afterClass();
 	}
 	
+	@Test 
+	public void HzSerializationDeferredFormat() {
+		RetryHolder holder = new RetryHolder("id-1", "POKE", new HashMap<>());
+		ArrayList<RetryHolder> list = new ArrayList<>();list.add(holder);
+		HzSerializableRetryHolder serializable = new HzSerializableRetryHolder(list,new KryoSerializer(),true);
+		retryManager.getHzInst().getMap("POKE").put("id-1", serializable);
+		
+		HzSerializableRetryHolder serialHolder = (HzSerializableRetryHolder)retryManager.getHzInst().getMap("POKE").get("id-1");
+		
+		assertNull(serialHolder.get(0).getRetryData());
+		assertNotNull(serialHolder.get(0).getPayload());
+		
+		
+	}
 	@Test
 	public void dataSerializableTest() throws ExecutionException,InterruptedException {
 		RetryHolder holder = new RetryHolder("id-1", "POKE", new HashMap<>());

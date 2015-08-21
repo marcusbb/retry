@@ -1,8 +1,6 @@
 package ies.retry.spi.hazelcast.remote;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -12,7 +10,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -157,6 +154,35 @@ public class RetryRemoteManagerImplTest {
 		
 	}
 	@Test
+	public void deferredSerialization() {
+		HzUtil.HZ_CONFIG_FILE = "remote/client-cluster.xml";
+		HazelcastInstance clientCluster = HzUtil.buildHzInstanceWith("retry_client_cluster");
+		
+		XMLRetryConfigMgr.setXML_FILE("remote/retry_config.xml");
+		RetryRemoteManagerImpl client = new RetryRemoteManagerImpl();
+		
+		
+		//add retry
+		client.addRetry(new RetryHolder("test-deferred-id1", "POKE", new HashMap<>()));
+		
+		List<RetryHolder> serverRef = server.getRetry("test-deferred-id1", "POKE");
+		//assertNotNull(serverRef.get(0).getPayload());
+		assertNull(serverRef.get(0).getRetryData());
+		
+		List<RetryHolder> clientRef = client.getRetry("test-deferred-id1", "POKE");
+		assertNotNull(clientRef.get(0).getRetryData());
+		
+		
+		
+		
+		
+		client.shutdown();
+		clientCluster.getLifecycleService().shutdown();
+		HzUtil.HZ_CONFIG_FILE = "hazelcast.xml";
+		
+	}
+	
+	@Test
 	public void endToendRemoteCallback() throws InterruptedException {
 		
 		HzUtil.HZ_CONFIG_FILE = "remote/client-cluster.xml";
@@ -180,7 +206,7 @@ public class RetryRemoteManagerImplTest {
 		
 		cbm.tryDequeue("POKE");
 		
-		//assertTrue(latch.await(1, TimeUnit.SECONDS));
+		assertTrue(latch.await(1, TimeUnit.SECONDS));
 		latch.await();
 		client.shutdown();
 		clientCluster.getLifecycleService().shutdown();
