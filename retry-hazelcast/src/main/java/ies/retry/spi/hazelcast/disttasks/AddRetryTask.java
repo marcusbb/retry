@@ -51,10 +51,10 @@ public class AddRetryTask implements Callable<Void>, DataSerializable {
 	public AddRetryTask(HzSerializableRetryHolder holder) {
 		this.serialiableHolder = holder;
 	}
-	public AddRetryTask(RetryHolder holder,boolean persist) {
-		this.serialiableHolder = new HzSerializableRetryHolder(holder, new KryoSerializer());
-		this.persist = persist;
-	}
+//	public AddRetryTask(RetryHolder holder,boolean persist) {
+//		this.serialiableHolder = new HzSerializableRetryHolder(holder, new KryoSerializer());
+//		this.persist = persist;
+//	}
 	
 	@Override
 	public void writeData(DataOutput out) throws IOException {
@@ -117,7 +117,7 @@ public class AddRetryTask implements Callable<Void>, DataSerializable {
 				Logger.warn(CALLER, "Add_Retry_Task_Max_List_Size_Reached", "Retry holder was removed: " + retryHolder.getId(), "Type",	retryHolder.getType());
 			}
 			
-			distMap.put(retry.getId(), new HzSerializableRetryHolder(listHolder, new KryoSerializer()));
+			distMap.put(retry.getId(), new HzSerializableRetryHolder(listHolder, new KryoSerializer(),serialiableHolder.isDeferPayloadSerialization()));
 			
 			DBMergePolicy mergePolicy = null;
 		
