@@ -8,8 +8,6 @@ import ies.retry.spi.hazelcast.StateManager;
 import ies.retry.spi.hazelcast.StateManager.LoadingState;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
