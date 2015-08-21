@@ -6,6 +6,7 @@ import ies.retry.Retry;
 import ies.retry.RetryCallback;
 import ies.retry.RetryConfiguration;
 import ies.retry.RetryHolder;
+import ies.retry.spi.hazelcast.CallbackRemoteProxy;
 import ies.retry.spi.hazelcast.CallbackStat;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 import ies.retry.spi.hazelcast.NoCallbackRegistered;
@@ -13,6 +14,7 @@ import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
 import ies.retry.spi.hazelcast.persistence.DBMergePolicy;
 import ies.retry.spi.hazelcast.persistence.RetryMapStore;
 import ies.retry.spi.hazelcast.persistence.RetryMapStoreFactory;
+import ies.retry.spi.hazelcast.util.KryoSerializer;
 import ies.retry.spi.hazelcast.util.RetryUtil;
 
 import java.io.Serializable;
@@ -27,7 +29,7 @@ import com.hazelcast.core.IMap;
 
 
 /**
- * Makes a distributed callback to dequeue the retry holder list from the IMap.
+ * A callback to dequeue the retry holder list from the IMap.
  * Also (potentially) removes the entry from storage 
  * 
  * Locks for this particular retry are only established on 
@@ -106,8 +108,8 @@ public class DistCallBackTask implements Callable<CallbackStat>,Serializable{
 						for (i=0;i<listHolder.size();i++) {
 							RetryHolder holder = listHolder.get(i);
 							
-							if (holder.getRetryData() == null && holder.getPayload() != null) {
-								holder.setRetryData(config.getSerializer().serializeToObject(holder.getPayload()));
+							if (!(callback instanceof CallbackRemoteProxy) && holder.getRetryData() == null && holder.getPayload() != null) {
+								holder.setRetryData(new KryoSerializer().serializeToObject(holder.getPayload()));
 							}
 							try {
 								//this is the potentially VERY expensive operation
