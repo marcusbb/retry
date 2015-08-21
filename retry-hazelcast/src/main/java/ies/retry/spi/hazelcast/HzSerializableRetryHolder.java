@@ -25,8 +25,9 @@ public class HzSerializableRetryHolder implements Serializable,DataSerializable,
 	 */
 	private static final long serialVersionUID = 1L;
 	private List<RetryHolder> holderList;
+	private boolean deferPayloadSerialization;
 	private transient RetrySerializer serializer;
-	private boolean deferPayloadSerialization = false; 
+	 
 	
 	
 	public HzSerializableRetryHolder() {
@@ -37,10 +38,18 @@ public class HzSerializableRetryHolder implements Serializable,DataSerializable,
 		holderList.add(holder);
 		this.serializer = serializer;
 	}
+	public HzSerializableRetryHolder(RetryHolder holder,RetrySerializer serializer,boolean deferSerialization) {
+		this(holder,serializer);
+		this.deferPayloadSerialization = deferSerialization;
+	}
 	
 	public HzSerializableRetryHolder(List<RetryHolder> list,RetrySerializer serializer) {
 		this.holderList = list;
 		this.serializer = serializer;
+	}
+	public HzSerializableRetryHolder(List<RetryHolder> list,RetrySerializer serializer,boolean deferSerialization) {
+		this(list,serializer);
+		this.deferPayloadSerialization = deferSerialization;
 	}
 	
 	public void setSerializer(RetrySerializer serializer) {
@@ -73,8 +82,10 @@ public class HzSerializableRetryHolder implements Serializable,DataSerializable,
 				input.readFully(payload);
 				if (deferPayloadSerialization)
 					holder.setPayload(payload);
-				else
+				else {
 					holder.setRetryData(serializer.serializeToObject(payload) );
+					//holder.setPayload(payload);
+				}
 			}
 			holderList.add(holder);
 			
@@ -100,7 +111,10 @@ public class HzSerializableRetryHolder implements Serializable,DataSerializable,
 			output.writeLong(holder.getSystemTs());
 			output.writeLong(holder.getNextAttempt());
 			output.writeUTF(holder.getSecondaryIndex());
-			if (holder.getRetryData() != null) {
+			if (holder.getPayload() != null) {
+				output.write(holder.getPayload().length);
+				output.write(holder.getPayload());
+			}else if (holder.getRetryData() != null) {
 				byte []payload = serializer.serializeToByte(holder.getRetryData());
 				output.write(payload.length);
 				output.write(payload);
