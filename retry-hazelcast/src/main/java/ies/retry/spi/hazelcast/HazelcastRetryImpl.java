@@ -37,6 +37,7 @@ import ies.retry.spi.hazelcast.persistence.RetryMapStore;
 import ies.retry.spi.hazelcast.persistence.RetryMapStoreFactory;
 import ies.retry.spi.hazelcast.remote.RemoteCallback;
 import ies.retry.spi.hazelcast.util.HzUtil;
+import ies.retry.spi.hazelcast.util.KryoSerializer;
 import ies.retry.spi.hazelcast.util.RetryUtil;
 import provision.services.logging.Logger;
 
@@ -167,12 +168,28 @@ public class HazelcastRetryImpl implements RetryManager {
 	/**
 	 * 
 	 * 
-	 * See {@link CallbackManager} for de-queuing
+	 * The point of entry for "local" based processing, where callbacks
+	 * are coresident on the same JVM as Hz/Retry
 	 * 
 	 */
 	public void addRetry(RetryHolder retry) throws NoCallbackException,
 			ConfigException {
 		
+		addRetry(new HzSerializableRetryHolder(retry, new KryoSerializer(),false));
+		
+		
+	}
+	/**
+	 * this is intended to be called by clients, that choose deferred serialization
+	 * @param serializable
+	 */
+	public void addRetry(HzSerializableRetryHolder serializable) {
+		if (serializable.getHolderList() == null)
+			throw new IllegalArgumentException("list must contain one retry element");
+		if (serializable.getHolderList().get(0) == null)
+			throw new IllegalArgumentException("list must contain one retry element");
+		
+		RetryHolder retry = serializable.getHolderList().get(0);
 		
 		if (configMgr.getConfiguration(retry.getType()) == null) {
 			throw new ConfigException("No configuration set for type: " + retry.getType());
@@ -185,8 +202,9 @@ public class HazelcastRetryImpl implements RetryManager {
 		
 		if (null != retry.getException()) truncateStackTrace(retry, config);
 		
-//		if (retry.getRetryData() != null)
-//			retry.setPayload(config.getSerializer().serializeToByte(retry.getRetryData()));
+		if (retry.getRetryData() != null && serializable.isDeferPayloadSerialization()) {
+			retry.setPayload(new KryoSerializer().serializeToByte(retry.getRetryData()));
+		}
 				
 				
 		//queue locally if we have a local queue buffer
@@ -199,7 +217,7 @@ public class HazelcastRetryImpl implements RetryManager {
 			stateMgr.retryAddedEvent(retry.getType(),true);
 			
 			// first determine the partition key, add to owning member
-			DistributedTask<Void> distTask = new DistributedTask<Void>(new AddRetryTask(retry), retry.getId());
+			DistributedTask<Void> distTask = new DistributedTask<Void>(new AddRetryTask(serializable), retry.getId());
 			
 			h1.getExecutorService(EXEC_SRV_NAME).submit(distTask);
 			
@@ -226,16 +244,6 @@ public class HazelcastRetryImpl implements RetryManager {
 				localQueuer.add(retry);
 			}
 		}
-		
-	}
-	
-	public void addRetry(HzSerializableRetryHolder serializable) {
-		if (serializable.getHolderList() == null)
-			throw new IllegalArgumentException("list must contain one retry element");
-		if (serializable.getHolderList().get(0) == null)
-			throw new IllegalArgumentException("list must contain one retry element");
-		
-		addRetry(serializable.getHolderList().get(0));
 		
 	}
 	private void dealSync(DistributedTask<Void> distTask,RetryConfiguration config) throws ExecutionException, InterruptedException, TimeoutException {
@@ -414,11 +422,13 @@ public class HazelcastRetryImpl implements RetryManager {
 	 * @param type
 	 * @return
 	 */
+	@Deprecated
 	private boolean isActive(String type) {
-		RetryState transitionType = stateMgr.getState(type);
-		if (stateMgr.isMemberLostEvent())
-			return true;
-		return  (! (transitionType == RetryState.DRAINED) );
+//		RetryState transitionType = stateMgr.getState(type);
+//		if (stateMgr.isMemberLostEvent())
+//			return true;
+//		return  (! (transitionType == RetryState.DRAINED) );
+		return true;
 	}
 	@Override
 	public List<RetryHolder> getRetry(String retryId, String type,
