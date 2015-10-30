@@ -37,8 +37,14 @@ public class HazelcastTxRetryImpl extends HazelcastRetryImpl implements Synchron
 	@Override
 	public void addRetry(RetryHolder holder) {
 		
-		if (txMap.get() == null)
-			throw new IllegalStateException("Transaction hasn't been registerd");
+		
+		if (txMap.get() == null) {
+			//throw new IllegalStateException("Transaction hasn't been registerd");
+			//warn of non-pending transaction status
+			super.addRetry(holder);
+			return;
+			
+		}
 		
 		if (txMap.get().get(holder.getId()) == null) {
 			List<RetryHolder> l = new ArrayList<>();
@@ -53,27 +59,40 @@ public class HazelcastTxRetryImpl extends HazelcastRetryImpl implements Synchron
 	@Override
 	public void putRetry(List<RetryHolder> retryList) throws NoCallbackException, ConfigException {
 		
-		if (txMap.get() == null)
-			throw new IllegalStateException("Transaction hasn't been registerd");
+		if (txMap.get() == null) {
+			//throw new IllegalStateException("Transaction hasn't been registerd");
+			//warn of non-pending transaction status
+			super.putRetry(retryList);
+			return;
+		}
+		if (retryList == null || retryList.get(0) == null) {
+			throw new IllegalArgumentException("Empty retry list");
+		}
+		//non-additive, just overrides
+		txMap.get().put(retryList.get(0).getId(), retryList);
+		 
 		
 	}
 	
 
 	@Override
 	public void afterCompletion(int status) {
-		txMap.set(null);
+		
 		if (status == Status.STATUS_COMMITTED) {
 			//This is where we don't guarantee 
 			//things will be added with absolute certainty
 			for (List<RetryHolder> retryList: txMap.get().values()) {
-				super.putRetry(retryList);
+				for (RetryHolder holder:retryList) {
+					super.addRetry(holder);
+				}
 			}
 		}
+		txMap.set(null);
 	}
 
 	@Override
 	public void beforeCompletion() {
-		// TODO Auto-generated method stub
+		
 		
 	}
 

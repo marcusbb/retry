@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<retry>
+	<provider>ies.retry.spi.hazelcast.HazelcastTxRetryImpl</provider>
+	<!-- persistence config -->
+	<persistenceConfig>
+		<ON>false</ON>
+		<jpaPU>retryPool</jpaPU>
+	</persistenceConfig>
+	<throwOnAddException>false</throwOnAddException>
+	<!-- health check config -->
+	<healthCheckConfig>
+		<enabled>false</enabled>
+		<checkInterval>10</checkInterval>
+		<timeUnit>SECONDS</timeUnit>
+	</healthCheckConfig>
+	<pickLocalCallback>false</pickLocalCallback>
+	
+	<typeConfig>
+		<type>POKE</type>
+		<listBacked>true</listBacked>
+		<queueStrategy>UNORDERED</queueStrategy>
+		<backOff>
+			<interval>5000</interval>
+			<intervalMultiplier>1.0</intervalMultiplier>
+			<maxAttempts>100</maxAttempts>
+		</backOff>
+		<batchConfig>
+			<batchHeartBeat>999999999</batchHeartBeat>
+			<batchSize>5</batchSize>
+			<minBatchSize>1</minBatchSize>
+			<intervalMultiplier>1</intervalMultiplier>
+		</batchConfig>
+		<stackTraceLinesCount>3</stackTraceLinesCount>
+	</typeConfig>
+	
+	
+</retry>
