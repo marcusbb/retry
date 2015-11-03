@@ -7,6 +7,5 @@ www.hazelcast.com
 Store "retry" objects that will be later called based on a callback policy and configuration.  
 Retries are distributed according to hazelcast policy (configuration) and optionally stored in relational DB.
 
-Upcoming feature:
-- configurable storage to Cassandra
+
 
