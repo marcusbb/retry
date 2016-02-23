@@ -1,10 +1,7 @@
 package ies.retry;
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import javax.xml.bind.JAXBException;
 
 import ies.retry.xml.XMLRetryConfigMgr;
 import ies.retry.xml.XmlRetryConfig;
@@ -13,9 +10,7 @@ import ies.retry.xml.XmlRetryConfig;
 /**
  * Entry point to Retry.
  * 
- * Wiki: <a href="http://wikis.rim.net/display/bbprv/Retry" />
- *  
- * Singleton strategy is described below.
+ * 
  * 
  * @author msimonsen
  *
@@ -27,7 +22,7 @@ public class Retry {
 	private static Object lock = new Object();
 	private static boolean init = false;
 	
-	private final static Map<String,Object> instanceMap = new ConcurrentHashMap<String, Object>();
+	private final static ConcurrentHashMap<String,Object> instanceMap = new ConcurrentHashMap<String, Object>();
 	
 	private Retry() {
 				
