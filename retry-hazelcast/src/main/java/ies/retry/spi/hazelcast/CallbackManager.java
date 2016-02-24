@@ -17,7 +17,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.commons.logging.LogFactory;
 import org.slf4j.Logger;
 
 import com.hazelcast.client.ClientConfig;
@@ -36,7 +35,7 @@ import ies.retry.RetryState;
 import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
 import ies.retry.spi.hazelcast.disttasks.DistCallBackTask;
 import ies.retry.spi.hazelcast.util.RetryUtil;
-import reader.CQLRowReader;
+
 
 
 /**
