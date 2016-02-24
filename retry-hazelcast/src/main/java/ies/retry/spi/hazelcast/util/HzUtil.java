@@ -7,7 +7,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
 
-import provision.services.logging.Logger;
 
 import com.hazelcast.config.ClasspathXmlConfig;
 import com.hazelcast.config.Config;
@@ -25,8 +24,7 @@ public class HzUtil {
 	public static String HZ_CONFIG_FILE = "hazelcast.xml";
 	public static String HZ_PROP_FILE = "hz.properties";
 	
-	
-	static String CALLER = HzUtil.class.getName();
+	private static org.slf4j.Logger logger =  org.slf4j.LoggerFactory.getLogger(HzUtil.class);
 	
 	public static HazelcastInstance loadHzConfiguration() {
 		//XMLRetryConfigMgr xmlconfigMgr = (XMLRetryConfigMgr)configMgr;
@@ -35,13 +33,13 @@ public class HzUtil {
 			
 			Config config = loadHzConfig();
 			
-			Logger.info(CALLER, "Load_Hazelcast_Configuration", "Loaded Hazelcast: " + config.toString());
+			logger.info( "Load_Hazelcast_Configuration: config={}", config.toString());
 											
 			h1 = Hazelcast.newHazelcastInstance(config);
 		}catch (Exception e) {
-			Logger.warn(CALLER, "Load_Hazelcast_Configuration", "NO HAZELCAST CONFIGURATION FOUND: " + e.getMessage(), e);
+			logger.warn( "Load_Hazelcast_Configuration: NO HAZELCAST CONFIGURATION FOUND: {} ", e.getMessage(), e);
 			h1 = Hazelcast.newHazelcastInstance();
-			Logger.info(CALLER, "Load_Hazelcast_Configuration", "Using default config");
+			logger.info( "Load_Hazelcast_Configuration: Using default config");
 		}	
 		return h1;
 	}
@@ -52,7 +50,7 @@ public class HzUtil {
 			config.setInstanceName(name);
 			return Hazelcast.newHazelcastInstance(config);
 		}catch (IOException e) {
-			Logger.warn(CALLER, "Load_Hazelcast_Configuration", "NO HAZELCAST CONFIGURATION FOUND: " + e.getMessage(), e);
+			logger.warn( "Load_Hazelcast_Configuration: NO HAZELCAST CONFIGURATION FOUND: {}", e.getMessage(), e);
 			Config c = new Config();
 			c.setInstanceName(name);
 			return Hazelcast.newHazelcastInstance(c);
@@ -80,18 +78,18 @@ public class HzUtil {
 					Properties properties = new Properties();
 					properties.load(propFin);
 					for (Object key:properties.keySet()) {
-						Logger.info(CALLER, "Load_Hz_Prop","load","key",key,"value",properties.get(key));
+						logger.info( "Load_Hz_Prop: key={},value={}",key,properties.get(key));
 						System.setProperty((String)key, (String)properties.get(key) );
 					}
 				}else {
-					Logger.info(CALLER, "Load_Hz_Prop","No Properties to set");
+					logger.info( "Load_Hz_Prop: No Properties to set");
 				}
 				
 			}else {
 				config = new ClasspathXmlConfig(HZ_CONFIG_FILE);
 			}
 			
-			Logger.info(CALLER, "Load_Hazelcast_Configuration", "Loaded Hazelcast: " + config.toString());
+			logger.info( "Load_Hazelcast_Configuration", "Loaded Hazelcast: " + config.toString());
 			
 			return config;
 		

@@ -11,6 +11,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
@@ -19,13 +20,11 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 
 import driver.em.CUtils;
-import provision.services.logging.Logger;
-import provision.util.turbo.TurboThreadFactory;
+
 
 public class RetryMapStoreFactory implements ConfigListener {//implements MapStoreFactory<String, List<RetryHolder>>{
 	
-
-	private static final String CALLER = RetryMapStoreFactory.class.getName();
+	private static org.slf4j.Logger logger =  org.slf4j.LoggerFactory.getLogger(RetryMapStore.class);
 	
 	private String pu = "retry";
 	private EntityManagerFactory emf = null;
@@ -89,17 +88,27 @@ public class RetryMapStoreFactory implements ConfigListener {//implements MapSto
 		this.pu = config.getPersistenceConfig().getJpaPU();
 		this.persistConfig = config.getPersistenceConfig();
 		
-		Logger.info(CALLER, "Retry_Map_Store_Init", "Loaded persistence configuration: " + persistConfig);
-		ThreadFactory tFactory = new TurboThreadFactory(TFactoryName,TFactoryPrefix);
+		logger.info( "Retry_Map_Store_Init: config={}", persistConfig);
+		//ThreadFactory tFactory = new TurboThreadFactory(TFactoryName,TFactoryPrefix);
+		ThreadFactory tFactory = new ThreadFactory() {
+			String prefix = "RetryMapStoreTP_";
+			AtomicLong suffix = new AtomicLong(1);
+			@Override
+			public Thread newThread(Runnable r) {
+				Thread t = new Thread(r);
+				t.setName(prefix +  suffix.getAndIncrement());
+				return t;
+			}
+		};
 		if (persistConfig.getQueuePolicy() == PersistenceConfig.ThreadQueuePolicy.LINKED) {
 			execService = new ThreadPoolExecutor(persistConfig.getCoreSize(), persistConfig.getMaxPoolSize(),
-				0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(),tFactory );
+				0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>() );
 		}else if (persistConfig.getQueuePolicy() == PersistenceConfig.ThreadQueuePolicy.ARRAY) {
 			execService = new ThreadPoolExecutor(persistConfig.getCoreSize(), persistConfig.getMaxPoolSize(),
-					0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(persistConfig.getBoundedQueueSize()),tFactory );
+					0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(persistConfig.getBoundedQueueSize()) );
 		}else if (persistConfig.getQueuePolicy() == PersistenceConfig.ThreadQueuePolicy.SYNC) {
 			execService = new ThreadPoolExecutor(persistConfig.getCoreSize(), persistConfig.getMaxPoolSize(),
-					0L, TimeUnit.MILLISECONDS, new SynchronousQueue<Runnable>(),tFactory );
+					0L, TimeUnit.MILLISECONDS, new SynchronousQueue<Runnable>() );
 		}
 		
 		long start = System.currentTimeMillis();
@@ -111,11 +120,11 @@ public class RetryMapStoreFactory implements ConfigListener {//implements MapSto
 		try {
 			emf = Persistence.createEntityManagerFactory(pu);
 		}catch (Exception e) {
-			Logger.error(CALLER, "Retry_Map_Store_Exception", "","msg",e.getMessage(),e);
+			logger.error( "Retry_Map_Store_Exception: msg={}", e.getMessage(),e);
 			//let the client continue to get exceptions on newMapStore
 		}
 
-		Logger.info(CALLER, "Retry_Map_Store_Init", "created exec service, EMF creation time:" + (System.currentTimeMillis()-start));
+		logger.info( "Retry_Map_Store_Init: time={}",  (System.currentTimeMillis()-start));
 	}
 	
 	private EntityManagerFactory getEMF() {

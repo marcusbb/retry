@@ -36,7 +36,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import provision.services.logging.Logger;
 
 import com.hazelcast.core.IMap;
 
@@ -48,7 +47,8 @@ import com.hazelcast.core.IMap;
 @Ignore /* due to race condition */
 @RunWith(Parameterized.class)
 public class DistCallBackTaskTest {
-	private final static String CALLER = DistCallBackTaskTest.class.getName();
+	
+	private static org.slf4j.Logger logger =  org.slf4j.LoggerFactory.getLogger(DistCallBackTaskSyncTest.class);
 
 	private static EntityManagerFactory emf;
 	private static RetryMapStore onMapStore = null;
@@ -127,7 +127,7 @@ public class DistCallBackTaskTest {
 
 			@Override
 			public boolean onEvent(RetryHolder retry) throws Exception {
-				Logger.info(CALLER, "RetryCallback_onEvent", "Retried");
+				logger.info( "RetryCallback_onEvent", "Retried");
 				if (retryFail)
 					throw new Exception("TEST");
 				return true;

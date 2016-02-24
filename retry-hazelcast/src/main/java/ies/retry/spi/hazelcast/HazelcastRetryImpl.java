@@ -12,6 +12,8 @@ import java.util.concurrent.TimeoutException;
 
 import javax.persistence.PersistenceException;
 
+import org.slf4j.Logger;
+
 import com.hazelcast.core.DistributedTask;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
@@ -39,7 +41,6 @@ import ies.retry.spi.hazelcast.remote.RemoteCallback;
 import ies.retry.spi.hazelcast.util.HzUtil;
 import ies.retry.spi.hazelcast.util.KryoSerializer;
 import ies.retry.spi.hazelcast.util.RetryUtil;
-import provision.services.logging.Logger;
 
 /**
  * The implementor for {@link RetryManager}.
@@ -58,8 +59,8 @@ import provision.services.logging.Logger;
  */
 public class HazelcastRetryImpl implements RetryManager {
 
-	//static Logger logger = Logger.getLogger(HazelcastRetryImpl.class.getName()); 
-	private static String CALLER = HazelcastRetryImpl.class.getName();
+	//static logger.logger.= logger.getlogger.HazelcastRetryImpl.class.getName()); 
+	private static org.slf4j.Logger logger =  org.slf4j.LoggerFactory.getLogger(HazelcastRetryImpl.class);
 	
 	private final static StackTraceElement [] EMPTY_STACK_TRACE = new StackTraceElement [0];
 	
@@ -85,30 +86,29 @@ public class HazelcastRetryImpl implements RetryManager {
 	public HazelcastRetryImpl() throws ConfigException {
 		
 		
-		Logger.info(CALLER, "Constructor", "Hazelcast Retry co-ordinator initiating");
+		
 		//Unavoidable double loading - if we're providing customized behavior
 		HazelcastConfigManager xmlconfigMgr = new HazelcastConfigManager(this);
 		xmlconfigMgr.setFactory(new HazelcastXmlConfFactory());
 		xmlconfigMgr.setJaxbConfigClass(HazelcastXmlConfig.class);
 		try {
 			xmlconfigMgr.load();
-			Logger.info(CALLER, "Constructor", "Retry config: " + xmlconfigMgr.marshallXML());
+			logger.info( "Retry config: config={}" + xmlconfigMgr.marshallXML());
 		} catch (Exception e) {
 			throw new ConfigException(e);
 		} 
 		
 		this.configMgr = xmlconfigMgr;
 		
-		Logger.info(CALLER, "Constructor", "Loading HazelCast config from classpath");
-		
+				
 		h1 = HzUtil.loadHzConfiguration();
 		id = h1.getName();
 		
-		Logger.info(CALLER, "Constructor", "Initializing Persistence");
+		logger.info( "Initializing_Persistence");
 		RetryMapStoreFactory.getInstance().init(configMgr.getRetryHzConfig());
 
 		configMgr.addListener(RetryMapStoreFactory.getInstance() );
-		Logger.info(CALLER, "Constructor", "Initializing State and Callback");
+		logger.info( "Initializing_State_Callback");
 		//Stats might need to be augmented by state manager as well.
 		stats = initStats();
 		initIndexes();
@@ -194,8 +194,8 @@ public class HazelcastRetryImpl implements RetryManager {
 		if (configMgr.getConfiguration(retry.getType()) == null) {
 			throw new ConfigException("No configuration set for type: " + retry.getType());
 		}
-		//Logger.debug(CALLER, "HZ INST: " + this);
-		Logger.info(CALLER, "Add_Retry", "Adding Retry.", "ID", retry.getId(), "Type", retry.getType() );
+		//logger.debug( "HZ INST: " + this);
+		logger.info( "Add_Retry: ID={}, Type={}",  retry.getId(),  retry.getType() );
 					
 		
 		RetryConfiguration config = configMgr.getConfiguration(retry.getType());
@@ -228,15 +228,15 @@ public class HazelcastRetryImpl implements RetryManager {
 		//HZ update has been propagated - hence no need to store to local queue
 		//However we will have a delta between storage and HZ
 		catch (StoreTimeoutException e) {
-			Logger.error(CALLER, "Add_Retry_StorageTimeout_Exception", "Exception Message: " + e.getMessage(), "ID", retry.getId(), "Type", e);
+			logger.error( "Add_Retry_StorageTimeout_Exception: msg={}, ID={}, Type={}",  e.getMessage(),  retry.getId(),  e);
 			
 		} catch (PersistenceException e) {
-			Logger.error(CALLER, "Add_Retry_Persistence_Exception", "Exception Message: " + e.getMessage(), "ID", retry.getId(), "Type", e);
+			logger.error( "Add_Retry_Persistence_Exception: msg={}, ID={}, Type={}",  e.getMessage(),  retry.getId(),  e);
 		} 
 		
 		catch (Exception e) {
 			//Unable to add retry
-			Logger.error(CALLER, "Add_Retry_Exception", "Exception Message: " + e.getMessage(), "ID", retry.getId(), "Type", e);
+			logger.error( "Add_Retry_Exception:  msg={}, ID={}, Type={}",  e.getMessage(),  retry.getId());
 			if (configMgr.getRetryHzConfig().isThrowOnAddException())
 				throw new RuntimeException("Configured to Throw exception, deal with it");
 			else {
@@ -269,7 +269,7 @@ public class HazelcastRetryImpl implements RetryManager {
 			throw new ConfigException("No configuration set for type: " + retry.getType());
 		}
 		 
-		Logger.info(CALLER, "Archive_Retry_No_Dequeue", "Archiving Retry", "ID", retry.getId(), "Type", retry.getType());
+		logger.info( "Archive_Retry_No_Dequeue: ID={}, Type={}",  retry.getId(), retry.getType());
 		retry.setPayload(configMgr.getConfiguration(retry.getType()).getSerializer().serializeToByte(retry.getRetryData()));
 		RetryMapStore store = (RetryMapStore)RetryMapStoreFactory.getInstance().newMapStore(retry.getType());
 		List<RetryHolder> retries = new ArrayList<RetryHolder>();
@@ -333,7 +333,7 @@ public class HazelcastRetryImpl implements RetryManager {
 		
 		if(retryList.isEmpty()){
 			//TODO MS - is this behaviour you expect? I'm trying to find if a retryId exists by calling getRetry(id, type) and this was throwing an indexoutofbound when there were no retries found.
-			Logger.warn(CALLER, "Put_Retry_RetryList_Empty", "putRetry will be skipped since the RetryList is empty");
+			logger.warn( "Put_Retry_RetryList_Empty");
 			return;
 		}
 		
@@ -361,7 +361,7 @@ public class HazelcastRetryImpl implements RetryManager {
 			dealSync(distTask, config);
 		}catch (Exception e) {
 			//Unable to add retry
-			Logger.error(CALLER, "Put_Retry_Exception", "Exception Message: " + e.getMessage(), "Type", (retry!=null)?retry.getType():null, e);
+			logger.error( "Put_Retry_Exception: msg={}, Type={}",  e.getMessage(), (retry!=null)?retry.getType():null, e);
 			if (configMgr.getRetryHzConfig().isThrowOnAddException())
 				throw new RuntimeException("Configured to Throw exception, deal with it");
 			else {
@@ -404,7 +404,7 @@ public class HazelcastRetryImpl implements RetryManager {
 				list = RetryMapStoreFactory.getInstance().newMapStore(type).load(retryId);
 				//only call putRetry if the list is not empty, putRetry will log error otherwise (before it was throwing an index out of bound but I changed it to log an error)
 				if(list != null && !list.isEmpty()){
-					Logger.info(CALLER, "Put_Retry_RetryList", "Loaded retry list from DB", "Type", type, "Id", retryId, "Size", list.size());
+					logger.info( "Put_Retry_RetryList", "Loaded retry list from DB", "Type", type, "Id", retryId, "Size", list.size());
 					putRetry(list, false);
 				}else{
 					//TODO - MS - I think the mapstorefactory sets this to empty list but probably should be null??
@@ -529,7 +529,7 @@ public class HazelcastRetryImpl implements RetryManager {
 	//configure the remote cluster
 	//The side effect of Remote RPC is that it needs the explicit class, not interface name :(
 	public void registerRemoteCallback(RemoteCallback.DefaultRemoteCallback remoteCallback) {
-		Logger.info(CALLER, "Register_remotecallback","","callback",remoteCallback);
+		logger.info( "Register_remotecallback","","callback",remoteCallback);
 		
 		callbackManager.addCallback(getCallbackRemoteProxy(remoteCallback), remoteCallback.getType());
 		

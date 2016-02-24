@@ -16,7 +16,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
-import provision.services.logging.Logger;
 import reader.ReaderConfig;
 
 import com.datastax.driver.core.ResultSet;
@@ -40,6 +39,8 @@ public class CassRetryMapStore extends RetryMapStore {
 	private String mapName = null;
 	
 	private int dropThreshold = Integer.MAX_VALUE;
+	
+	private static org.slf4j.Logger logger =  org.slf4j.LoggerFactory.getLogger(CassRetryMapStore.class);
 	
 	/**
 	 * 
@@ -142,7 +143,7 @@ public class CassRetryMapStore extends RetryMapStore {
 	public void store(final String key, final List<RetryHolder> value,
 			DBMergePolicy mergePolicy) {
 		if (dropThreshold < execService.getQueue().size() ){
-			Logger.error(CassRetryMapStore.class.getName(), "DB_QUEUE_MAX_REACHED","Reached queue size: " + execService.getQueue().size());
+			logger.error("DB_QUEUE_MAX_REACHED: size={}", execService.getQueue().size());
 			return;
 		}
 		handleWriteSync(
@@ -161,7 +162,7 @@ public class CassRetryMapStore extends RetryMapStore {
 						//TODO make parameters configurable
 						em.persist(entity, CUtils.getDefaultParams() );
 					}catch (ClassNotFoundException | IOException e) {
-						Logger.error(CassRetryMapStore.class.getName(), "ERR_DESERIZALATION_CASS",e.getMessage(),e);
+						logger.error( "ERR_DESERIZALATION_CASS: {}",e.getMessage(),e);
 						
 					}
 					return null;

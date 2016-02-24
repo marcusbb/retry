@@ -24,7 +24,7 @@
 			<artifactId>retry-api</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-		<dependency>
+		<!-- <dependency>
 			<groupId>ies.common.util</groupId>
 			<artifactId>ies-common</artifactId>
 			<version>1.5.1-SNAPSHOT</version>
@@ -33,7 +33,7 @@
 			<groupId>log4j</groupId>
 			<artifactId>log4j</artifactId>
 			<version>1.2.15</version>
-		</dependency>
+		</dependency> -->
 		<dependency>
 			<groupId>com.hazelcast</groupId>
 			<artifactId>hazelcast</artifactId>
@@ -110,7 +110,7 @@
 		<dependency>
 			<groupId>cass.driver</groupId>
 			<artifactId>driver-util</artifactId>
-			<version>2.1.0-SNAPSHOT</version>
+			<version>2.2.0-SNAPSHOT</version>
 			
 			<exclusions>
 				<!-- Exclude hazelcast from CQL project as incompatible -->
@@ -128,6 +128,11 @@
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.7.16</version>
+		</dependency>
+		<!-- <dependency>
+			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-log4j12</artifactId>
 			<version>1.5.8</version>
 			<scope>test</scope>
@@ -137,7 +142,7 @@
 			<artifactId>slf4j-log4j12</artifactId>
 			<version>1.5.8</version>
 			<scope>test</scope>
-		</dependency>
+		</dependency> -->
 		
 		
 		<dependency>
@@ -249,11 +254,7 @@
 	    </site>
 	 </distributionManagement> 
 	
-	<scm>
-	    <connection>scm:perforce:${env.P4_USERNAME}@perforce02:1668://depot/dev/cardhu/IES/retry/retry-hazelcast/</connection>
-	    <developerConnection>scm:perforce:${env.P4_USERNAME}@perforce02:1668://depot/dev/cardhu/IES/retry/retry-hazelcast/</developerConnection>
-	     <url>//depot/dev/cardhu/${env.P4_USERNAME}/IES/retry/retry-hazelcast/</url>
-	</scm>
+	
 	
 </project>
 

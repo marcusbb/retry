@@ -16,13 +16,13 @@ import javax.persistence.Table;
 import javax.persistence.Transient;
 import javax.persistence.Version;
 
-import provision.services.logging.Logger;
 
 @Entity
 @Table(name="RETRIES")
 public class RetryEntity implements Serializable{
 
-	private static String CALLER = RetryEntity.class.getName();
+	private static org.slf4j.Logger logger =  org.slf4j.LoggerFactory.getLogger(RetryEntity.class);
+	
 	private static final long serialVersionUID = -5185244774028196569L;
 
 	/**
@@ -68,7 +68,7 @@ public class RetryEntity implements Serializable{
 		
 		id = new RetryId(holder.getId(),holder.getType());
 		//1.0.9 HF - remove the exception from persistence
-		Logger.debug(CALLER, "Dropping exception from RetryHolder","","ID", id,"TYPE",holder.getType());
+		logger.debug( "Dropping exception from RetryHolder, id={},type={}", id,holder.getType());
 		Exception[] exceptionBackup = new Exception[holderList.size()];
 		int count = 0;
 		for (RetryHolder th:holderList) {			

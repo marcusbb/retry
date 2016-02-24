@@ -19,7 +19,6 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Queue;
 
-import provision.services.logging.Logger;
 
 
 /**
@@ -46,6 +45,8 @@ import provision.services.logging.Logger;
  */
 public class LocalQueueLog {
 
+	private static org.slf4j.Logger logger =  org.slf4j.LoggerFactory.getLogger(LocalQueueLog.class);
+	
 	String workingDir = ".";
 	 FileOutputStream commitFout;
 	 
@@ -206,7 +207,7 @@ public class LocalQueueLog {
 				try {
 					col.add( (RetryHolder)IOUtil.deserialize(bObj) );
 				}catch (Exception e) {
-					Logger.error(getClass().getName(), "QUEUE_SERIALIZATION","","msg",e.getMessage(),e);
+					logger.error("QUEUE_SERIALIZATION: msg={}",e.getMessage(),e);
 				}
 				if (incrementTakeMarker) {
 					curTakeMarker += nextBytes +INT_BYTE_SIZE;

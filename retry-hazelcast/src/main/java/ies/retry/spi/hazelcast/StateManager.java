@@ -30,7 +30,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import provision.services.logging.Logger;
 
 import com.hazelcast.core.DistributedTask;
 import com.hazelcast.core.EntryEvent;
@@ -56,12 +55,12 @@ import com.hazelcast.core.MultiTask;
  */
 public class StateManager implements  MembershipListener{
 
+	private static org.slf4j.Logger logger =  org.slf4j.LoggerFactory.getLogger(StateManager.class);
 	
 	public static String STATE_MAP_NAME = "NEAR--RETRY_STATE_MAP";
 	private IMap<String, RetryState> globalStateMap = null;
 	
-	private static String CALLER = StateManager.class.getName();
-	
+		
 	private List<RetryTransitionListener> globalListeners;
 	
 	private HazelcastConfigManager configMgr;
@@ -135,11 +134,11 @@ public class StateManager implements  MembershipListener{
 	
 	/*To be called for when dynamic retry types register themselves later */
 	public void init(RetryConfiguration config) {
-		Logger.info(CALLER, "StateManager_Init","","TYPE",config.getType());
+		logger.info("StateManager_Init: Type={}",config.getType());
 		//does a state already exist, just notify listener
 		if(globalStateMap.get(config.getType()) != null){
 			notifyStateListeners(null, new RetryTransitionEvent(RetryState.DRAINED, globalStateMap.get(config.getType()), config.getType()));
-			Logger.warn(CALLER, "StateManager_Init","State_determined","TYPE",config.getType(),"state",globalStateMap.get(config.getType()));
+			logger.warn( "StateManager_Init_State_determined: Type={}, state={}",config.getType(),globalStateMap.get(config.getType()));
 			//return;
 		} else {
 			//set all to drained state initially:
@@ -147,7 +146,7 @@ public class StateManager implements  MembershipListener{
 		}
 		//load retry data		
 		if (master) {
-			Logger.info(CALLER, "Init_State","master_loading","TYPE",config.getType());
+			logger.info("Init_State_master_loading: Type={}",config.getType());
 			List<String> types = new ArrayList<String>();
 			types.add(config.getType());
 			//this be deferred like above: 
@@ -173,7 +172,7 @@ public class StateManager implements  MembershipListener{
 		ExecutorService exec = h1.getExecutorService(EXEC_SRV_NAME);
 		
 		int count = store.count();
-		Logger.info(CALLER, "Load_Data", "Starting to load  " + count + " " + type + " retries");
+		logger.info( "Load_Data_loading: count={}, Type={} " + count, type );
 		
 		while (count>0) {
 			long start = System.currentTimeMillis();
@@ -184,7 +183,7 @@ public class StateManager implements  MembershipListener{
 
 				boolean nonZeroMap = map.size() >0;
 				if (nonZeroMap) {
-					Logger.info(CALLER, "Load_Data", "Loading Retry from Store.", "Type", type, "Index", index, "Map_Size", map.size());
+					logger.info( "Load_Data_Store: Type={}, Index={}, map_size={}", type, index, map.size());
 					retryAddedEvent(type,false);
 				}
 			
@@ -198,9 +197,9 @@ public class StateManager implements  MembershipListener{
 				index += retSize;
 
 			}catch (Exception e) {
-				Logger.error(CALLER, "LOAD_EXCEPTION","",e.getMessage(),e);
+				logger.error("LOAD_EXCEPTION",e);
 			}
-			Logger.info(CALLER, "Type", type, "Loaded: " + map.size() + " in " + ( System.currentTimeMillis() - start));
+			logger.info("Type_Loaded: Type={}, size={}, ms={}", type,  map.size() + ( System.currentTimeMillis() - start));
 		}
 	}
 
@@ -237,7 +236,7 @@ public class StateManager implements  MembershipListener{
 							if(loadingStateMap.get(config.getType()) != LoadingState.LOADING) {
 								// initialize loading state null -> loading
 								loadingStateMap.put(config.getType(), LoadingState.LOADING);
-								Logger.info(CALLER, "Load_Data_Async", "Update loading State -> LOADING", "Type", config.getType());
+								
 								
 								//scrolling or paging loading?
 								if (configMgr.getRetryHzConfig().getPersistenceConfig().isPagedLoading())
@@ -246,12 +245,10 @@ public class StateManager implements  MembershipListener{
 									loadData(config.getType(),config,true);
 								
 								loadingStateMap.put(config.getType(), LoadingState.READY);
-								Logger.info(CALLER, "Load_Data_Async", "Update loading State -> READY", "Type", config.getType());
+								logger.info("Load_Data_Async_State -> READY", "Type", config.getType());
 							}
-								else {
-									Logger.warn(CALLER, "UnableToLoad","","TYPE",config.getType());
-								}
-							 
+								
+							logger.info("Load_Data_Async_State: state={}, Type={}",loadingStateMap.get(config.getType()),  config.getType());
 						}finally {
 							loadingStateMap.unlock(config.getType());
 						}		
@@ -283,7 +280,7 @@ public class StateManager implements  MembershipListener{
 			index = map.size();
 			boolean nonZeroMap = map.size() >0;
 			if (nonZeroMap) {
-				Logger.info(CALLER, "Load_Data", "Loading Retry from Store.", "Type", type, "Index", index, "Map_Size", map.size());
+				logger.info( "Load_Data_Store: Type={}, Index={}, map_size={}",  type, index,  map.size());
 				retryAddedEvent(type,false);
 			}
 
@@ -302,14 +299,14 @@ public class StateManager implements  MembershipListener{
 					try {
 						future.get(300, TimeUnit.SECONDS);
 					} catch (Exception e) {
-						Logger.error(CALLER, "Loading_Exception","","msg",e.getMessage(),e);
+						logger.error( "Loading_Exception","","msg",e.getMessage(),e);
 					}
 				}
 			}
 			
 			index += retSize;
 			hasMore = nonZeroMap;
-			Logger.info(CALLER,"Loaded : " + map.size() + "in " + ( System.currentTimeMillis() - start));
+			logger.info("data_Loaded: map_size={}, ms={} " , map.size() , ( System.currentTimeMillis() - start));
 		}
 	}
 	
@@ -318,7 +315,7 @@ public class StateManager implements  MembershipListener{
 		masterMember = h1.getCluster().getMembers().iterator().next();
 		//if I'm the master member then I own the scheduler
 		if (h1.getCluster().getLocalMember().equals(masterMember)) {			
-			Logger.info(CALLER, "I_Am_Master", "I am the master: "+ masterMember);
+			logger.info( "I_Am_Master: master={}" , masterMember);
 			master = true;
 			//
 			long queueCheckPeriod = configMgr.getRetryHzConfig().getQueueCheckPeriod();
@@ -327,13 +324,13 @@ public class StateManager implements  MembershipListener{
 					queueCheckPeriod, queueCheckPeriod, TimeUnit.MILLISECONDS);
 		} else {
 			master = false;
-			Logger.info(CALLER, "I_Am_Slave", "I am a slave: master=["+ masterMember + "] slave=" + h1.getCluster().getLocalMember());			
+			logger.info( "I_Am_Slave", "I am a slave: master=[{}] " , masterMember, h1.getCluster().getLocalMember());			
 		}		
 	}
 	
 	@Override
 	public void memberAdded(MembershipEvent membershipEvent) {
-		Logger.info(CALLER, "Member_Added", "Adding new member "+ membershipEvent.getMember());
+		logger.info( "Member_Added: member={}", membershipEvent.getMember());
 		setMaster();
 		
 		
@@ -341,7 +338,7 @@ public class StateManager implements  MembershipListener{
 
 	@Override
 	public void memberRemoved(MembershipEvent membershipEvent) {
-		Logger.info(CALLER, "Member_Removed", "Member was removed "+ membershipEvent.getMember());
+		logger.info( "Member_Removed: member={}",  membershipEvent.getMember());
 		memberLostEvent = true;
 		setMaster();
 		
@@ -354,7 +351,7 @@ public class StateManager implements  MembershipListener{
 	 */
 	public void addTransitionListener(RetryTransitionListener listener) {
 		//new Exception().printStackTrace();
-		Logger.debug(CALLER, "Transition_listener_Add","listener",listener);
+		logger.debug( "Transition_listener_Add: listener={}",listener);
 		globalListeners.add(listener);
 	}
 	/**
@@ -363,7 +360,7 @@ public class StateManager implements  MembershipListener{
 	 * @param listener
 	 */
 	public void removeListener(RetryTransitionListener listener) {
-		Logger.debug(CALLER, "Transition_listener_Remove","listener",listener);
+		logger.debug("Transition_listener_Remove: listener={}",listener);
 		globalListeners.remove(listener);
 	}
 	/**
@@ -401,11 +398,11 @@ public class StateManager implements  MembershipListener{
 	public void syncGridAndStore() {
 		
 		if (!master) {
-			Logger.debug(StateManager.class.getName(),"SLAVE_MEMBER","dropping request");
+			logger.debug("SLAVE_MEMBER dropping request");
 			return;
 		}
 		if (h1.getCluster().getMembers().size() < configMgr.getRetryHzConfig().getMinMembersToSyncStore()) {
-			Logger.warn(CALLER,"MIN_CLUSTER_SIZE_NOT_MET_STORE_SYNC","Not enough members to sync - to force sync use JMX operation");
+			logger.warn("MIN_CLUSTER_SIZE_NOT_MET_STORE_SYNC: Not enough members to sync - to force sync use JMX operation");
 			return;
 			
 		}
@@ -417,7 +414,7 @@ public class StateManager implements  MembershipListener{
 			}
 						
 			
-			Logger.debug(CALLER, "SYNC_GRID_QUEUED","","TYPE",type);
+			logger.debug("SYNC_GRID_QUEUED: Type={}",type);
 			int storeCount = ((RetryMapStore)RetryMapStoreFactory.getInstance().newMapStore(type)).count();
 			int gridCount = h1.getMap(type).size();
 			int maxSize = configMgr.getHzConfiguration().getMapConfig(type).getMaxSizeConfig().getSize();
@@ -432,11 +429,11 @@ public class StateManager implements  MembershipListener{
 			
 			if ( (gridCount < storeCount) && !pBusy && !overCapacity && master ) {
 				
-				Logger.warn(CALLER, "SYNC_DB_GRID","","gridCount",gridCount,"storeCount",storeCount);			
+				logger.warn("SYNC_DB_GRID: grid_count={}, store_count={}",gridCount,storeCount);			
 				syncTypes.add(type);
 			}
 			if ( storeCount == 0 && gridCount ==0 ) {
-				Logger.info(CALLER, "SYNC_GRID_DB_ZERO","","TYPE",type);
+				logger.info( "SYNC_GRID_DB_ZERO: Type={}",type);
 				publish(new RetryTransitionEvent(t, RetryState.DRAINED,type));
 				//finally flip the member lost event off,
 				//as we're  synchronized persistence
@@ -472,7 +469,7 @@ public class StateManager implements  MembershipListener{
 		try {
 			return sizeTask.get();
 		}catch (Exception  e) {
-			Logger.error(CALLER, "Multitask_execution_failure","","msg",e.getMessage(),e);
+			logger.error( "Multitask_execution_failure: msg={}",e.getMessage(),e);
 			throw new RuntimeException(e);
 		}
 		
@@ -483,7 +480,7 @@ public class StateManager implements  MembershipListener{
 	public void notifyStateListeners(RetryState oldState, RetryTransitionEvent event) {
 		
 		String retryType = event.getRetryType();
-		Logger.info(CALLER, "Notify_State_Listeners", "State Transition [" +retryType +"]" + oldState + "->" + event.getRetryState());
+		logger.info( "Notify_State_Listeners: ", "State Transition [{}] -> {}" , oldState , event.getRetryState());
 		
 		//could have our own thread dispatch policy
 		//inform all listeners
@@ -504,7 +501,7 @@ public class StateManager implements  MembershipListener{
 	 * @param type
 	 */
 	public void suspend(String type) {
-		Logger.warn(CALLER, "StateMgr_suspend","Suspended","Type",type);
+		logger.warn( "StateMgr_suspend: Type={}",type);
 		RetryState t = globalStateMap.get(type);
 		if ( t == null) {
 			throw new StateTransitionException();
@@ -514,7 +511,7 @@ public class StateManager implements  MembershipListener{
 	}
 	
 	public void resume(String type) {
-		Logger.warn(CALLER, "StateMgr_resume","Resume","Type",type);
+		logger.warn( "StateMgr_resume: Type={}",type);
 		RetryState t = globalStateMap.get(type);
 		if ( t == null) {
 			throw new StateTransitionException();
@@ -601,18 +598,19 @@ public class StateManager implements  MembershipListener{
 
 class StateMapEntryListener implements EntryListener<String,RetryState> {
 
+	private static org.slf4j.Logger logger =  org.slf4j.LoggerFactory.getLogger(StateMapEntryListener.class);
 	private StateManager stateMgr;
-	private static String CALLER = StateMapEntryListener.class.getName();
+	
 	
 	public StateMapEntryListener(StateManager stateMgr) {
 		this.stateMgr = stateMgr;
 	}
 	@Override
 	public void entryAdded(EntryEvent<String, RetryState> event) {
-		Logger.info(CALLER, "entryAdded","type/STATE: " +event.getKey()+"/"+ event.getOldValue() +"->" + event.getValue());
+		logger.info( "entryAdded","type/STATE: " +event.getKey()+"/"+ event.getOldValue() +"->" + event.getValue());
 		
 		if (event.getOldValue() == null) {
-			Logger.info(CALLER, "entryAdded","Discarding notification");
+			logger.info("entryAdded","Discarding notification");
 			return;
 		}
 		stateMgr.notifyStateListeners( event.getOldValue(), new RetryTransitionEvent(event.getOldValue(),event.getValue(),event.getKey()) );
@@ -620,15 +618,15 @@ class StateMapEntryListener implements EntryListener<String,RetryState> {
 
 	@Override
 	public void entryRemoved(EntryEvent<String, RetryState> event) {
-		Logger.info(CALLER, "entryRemoved","type/STATE: " +event.getKey()+"/"+ event.getOldValue() +"->" + event.getValue());
+		logger.info( "entryRemoved","type/STATE: " +event.getKey()+"/"+ event.getOldValue() +"->" + event.getValue());
 		
 	}
 
 	@Override
 	public void entryUpdated(EntryEvent<String, RetryState> event) {
-		Logger.info(CALLER, "entryUpdated","type/STATE: " +event.getKey()+"/"+ event.getOldValue() +"->" + event.getValue());
+		logger.info( "entryUpdated","type/STATE: " +event.getKey()+"/"+ event.getOldValue() +"->" + event.getValue());
 		if (event.getOldValue() == event.getValue()) {
-			Logger.info(CALLER, "entryUpdated","Discarding notification");
+			logger.info( "entryUpdated","Discarding notification");
 			return;
 		}
 		stateMgr.notifyStateListeners(event.getOldValue(), new RetryTransitionEvent(event.getOldValue(),event.getValue(),event.getKey()) );
@@ -636,7 +634,7 @@ class StateMapEntryListener implements EntryListener<String,RetryState> {
 
 	@Override
 	public void entryEvicted(EntryEvent<String, RetryState> event) {
-		Logger.info(CALLER, "entryEvicted","type/STATE: " +event.getKey()+"/"+ event.getOldValue() +"->" + event.getValue());
+		logger.info( "entryEvicted","type/STATE: " +event.getKey()+"/"+ event.getOldValue() +"->" + event.getValue());
 		
 	}
 	
@@ -645,8 +643,7 @@ class StateMapEntryListener implements EntryListener<String,RetryState> {
 class SyncGridStorageTask implements Runnable {
 
 	private StateManager stateMgr;
-	private static String CALLER = SyncGridStorageTask.class.getName();
-	
+	private static org.slf4j.Logger logger =  org.slf4j.LoggerFactory.getLogger(StateMapEntryListener.class);
 	
 	public SyncGridStorageTask(StateManager stateMgr) {
 		this.stateMgr = stateMgr;
@@ -655,7 +652,7 @@ class SyncGridStorageTask implements Runnable {
 	
 	@Override
 	public void run() {
-		Logger.debug(CALLER,"Check_state_start");
+		logger.debug("Check_state_start");
 				
 		try {
 			if(stateMgr.isMaster())
@@ -663,7 +660,7 @@ class SyncGridStorageTask implements Runnable {
 				
 			
 		}catch (Throwable e) {
-			Logger.error(CALLER,"Check_period_fail","","msg",e.getMessage(),e);
+			logger.error("Check_period_fail","","msg",e.getMessage(),e);
 		}
 		
 	}

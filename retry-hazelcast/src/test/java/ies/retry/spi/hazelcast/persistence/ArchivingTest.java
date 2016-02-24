@@ -4,6 +4,7 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
 import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.HzIntegrationTestUtil;
+import ies.retry.spi.hazelcast.disttasks.DistCallBackTaskSyncTest;
 import ies.retry.spi.hazelcast.util.IOUtil;
 
 import java.io.ByteArrayOutputStream;
@@ -22,9 +23,9 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import provision.services.logging.Logger;
 
 public class ArchivingTest {
+	private static org.slf4j.Logger logger =  org.slf4j.LoggerFactory.getLogger(ArchivingTest.class);
 	private static EntityManagerFactory emf;
 	private static String TYPE = "TEST_ARCHIVED_1";
 	String id = "ID_" + System.currentTimeMillis();
@@ -102,8 +103,7 @@ public class ArchivingTest {
 		} catch (Exception e) {
 			//em.getTransaction().rollback();
 			e.printStackTrace();
-			Logger.error(getClass().getName(), "Persistence_Op_Exception",
-					"Exception Message: " + e.getMessage(), e);
+			logger.error("Persistence_Op_Exception Exception Message: {}" , e.getMessage(), e);
 		} finally {
 			if (em != null)
 				em.close();

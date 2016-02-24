@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import provision.services.logging.Logger;
 import reader.ReaderJob;
 import reader.RowReaderTask;
 
@@ -33,6 +32,7 @@ import driver.em.DefaultEntityManager;
  */
 public class RetryRowReaderLoader extends ReaderJob<Void> {
 
+	private static org.slf4j.Logger logger =  org.slf4j.LoggerFactory.getLogger(RetryRowReaderLoader.class);
 	
 	private static final long serialVersionUID = -4855716640224367110L;
 
@@ -92,7 +92,7 @@ public class RetryRowReaderLoader extends ReaderJob<Void> {
 					exec.submit(distTask);
 				}
 			}catch (Exception e) {
-				Logger.error(getClass().getName(), "Add_Retry_StorageTimeout_Exception", "Exception Message: " + e.getMessage(), "ex", e);
+				logger.error( "Add_Retry_StorageTimeout_Exception: {}", e.getMessage(),  e);
 			}
 			count.incrementAndGet();
 			
@@ -140,7 +140,7 @@ public class RetryRowReaderLoader extends ReaderJob<Void> {
 
 	@Override
 	public void onReadComplete() {
-		Logger.info(getClass().getName(), "Complete_read","complete_read","size",getCount());
+		logger.info( "Complete_read: size={}",getCount());
 		
 	}
 	public int getCount() {

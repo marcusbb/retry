@@ -16,9 +16,11 @@ import java.util.TreeMap;
 
 import com.hazelcast.core.IMap;
 
-import provision.services.logging.Logger;
+
 
 public class RetryUtil {
+	private static org.slf4j.Logger logger =  org.slf4j.LoggerFactory.getLogger(RetryUtil.class);
+	
 	private RetryUtil() {
 	}
 
@@ -53,11 +55,11 @@ public class RetryUtil {
 
 	}
 	// retains data from failed and delta from latest lists. retry count for objects present in both list is supposed to be the same as in failed list
-	public static List<RetryHolder> merge(String caller, List<RetryHolder> original, List<RetryHolder> failed, List<RetryHolder> latest) {
+	public static List<RetryHolder> merge( List<RetryHolder> original, List<RetryHolder> failed, List<RetryHolder> latest) {
 		
 		
 		if(latest==null || latest.size()==0 || latest.size()==original.size()){
-			Logger.debug(caller, "Merging_retries: no new retries");
+			logger.debug( "Merging_retries: no new retries");
 			return failed;
 		}
 		
@@ -77,12 +79,12 @@ public class RetryUtil {
 		List<RetryHolder> result  = null;
 		if(failed.size()!=0){ // new retries must be added to failed list
 			result  = RetryUtil.merge(failed, latest); // merge orders items by timestamp
-			Logger.debug(caller, "Merging_retries: failed size=" + failed.size() + ", latest size=" + latest.size() + ", result size=" + result.size());
+			logger.debug( "Merging_retries: failed size=" + failed.size() + ", latest size=" + latest.size() + ", result size=" + result.size());
 		}
 		else{ // only new retries should remain
 			
 			result = latest;
-			Logger.debug(caller, "Merging_retries: original size=" + original.size() + ", latest size=" + latest.size() + ", result size=" + result.size());
+			logger.debug( "Merging_retries: original size=" + original.size() + ", latest size=" + latest.size() + ", result size=" + result.size());
 		}
 		
 		return result;

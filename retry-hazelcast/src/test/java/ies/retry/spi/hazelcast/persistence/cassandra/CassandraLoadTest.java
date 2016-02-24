@@ -12,6 +12,7 @@ import ies.retry.RetryConfiguration;
 import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 import ies.retry.spi.hazelcast.HzIntegrationTestUtil;
+import ies.retry.spi.hazelcast.persistence.ArchivingTest;
 import ies.retry.xml.XMLRetryConfigMgr;
 
 import org.junit.After;
@@ -21,7 +22,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import provision.services.logging.Logger;
 import reader.ReaderConfig;
 
 import com.datastax.driver.core.Cluster;
@@ -35,6 +35,7 @@ public class CassandraLoadTest {
 
 	static CassConfig config = new CassConfig();
 	static HashSet<String> types = new HashSet<>();
+	private static org.slf4j.Logger logger =  org.slf4j.LoggerFactory.getLogger(ArchivingTest.class);
 	
 	static {
 		config.setNativePort(9142);
@@ -176,7 +177,7 @@ public class CassandraLoadTest {
 	private void assertLoadedRows(int size) throws InterruptedException {
 		int tries = 0;
 		while (tries <20) {
-			Logger.debug(getClass().getName(),"hz map size","map_size","size",retry.getH1().getMap("cass-type1").size());
+			logger.debug(getClass().getName(),"hz map size","map_size","size",retry.getH1().getMap("cass-type1").size());
 			if (retry.getH1().getMap("cass-type1").size() >= size)
 				break;
 			tries++;

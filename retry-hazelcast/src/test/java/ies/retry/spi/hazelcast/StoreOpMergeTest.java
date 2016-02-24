@@ -25,12 +25,11 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import provision.services.logging.Logger;
 
 //@Ignore
 public class StoreOpMergeTest {
 
-	private final static String CALLER = StoreOpMergeTest.class.getName();
+	private static org.slf4j.Logger logger =  org.slf4j.LoggerFactory.getLogger(StoreOpMergeTest.class);
 
 	private static EntityManagerFactory emf;
 	private static RetryMapStore onMapStore = null;
@@ -74,7 +73,7 @@ public class StoreOpMergeTest {
 
 			@Override
 			public boolean onEvent(RetryHolder retry) throws Exception {
-				Logger.info(CALLER, "RetryCallback_onEvent", "Retried");
+				logger.info( "RetryCallback_onEvent Retried");
 				Thread.sleep(10000);
 				return true;
 			}

@@ -17,6 +17,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+
 import com.hazelcast.client.ClientConfig;
 import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.core.HazelcastInstance;
@@ -33,7 +36,8 @@ import ies.retry.RetryState;
 import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
 import ies.retry.spi.hazelcast.disttasks.DistCallBackTask;
 import ies.retry.spi.hazelcast.util.RetryUtil;
-import provision.services.logging.Logger;
+import reader.CQLRowReader;
+
 
 /**
  * Manages the scheduler and the callbacks.
@@ -49,7 +53,7 @@ import provision.services.logging.Logger;
 public class CallbackManager  {
 
 	//static Logger logger = Logger.getLogger(CallbackManager.class.getName());
-	static String CALLER = CallbackManager.class.getName();
+	private static Logger logger = org.slf4j.LoggerFactory.getLogger(CallbackManager.class);
 	
 	private HazelcastConfigManager configMgr;
 	
@@ -119,7 +123,7 @@ public class CallbackManager  {
 	 * @param callback
 	 */
 	public void addCallback(RetryCallback callback,String retryType) {
-		Logger.info(CALLER, "Add_Callback", "putting call back availability to: " + h1.getCluster().getLocalMember(), "Type", retryType);
+		logger.info( "Add_Callback: putting call back availability to: {}, Type={}" + h1.getCluster().getLocalMember(), retryType);
 		
 		callbackMap.put(retryType, callback);
 		
@@ -151,7 +155,7 @@ public class CallbackManager  {
 				batchConfig.getBatchHeartBeat(), 
 				TimeUnit.MILLISECONDS);
 		//Include interval multiplier here as well.
-		Logger.debug(CALLER, "Schedule_Next_Run", "Scheduled Next Run " + retryType + " in " + batchConfig.getBatchHeartBeat() + " ms");
+		logger.debug("Schedule_Next_Run: Scheduled Next Run {} in {} ms ",  retryType , batchConfig.getBatchHeartBeat());
 	}
 	/**
 	 * Try to dequeue for all - it's called from {@link CallbackManager}
@@ -186,7 +190,7 @@ public class CallbackManager  {
 			}try {
 				return lock.tryLock(0, TimeUnit.SECONDS);
 			}catch (InterruptedException e) {
-				Logger.error(CALLER, "tryLock","msg",e.getMessage(),e);
+				logger.error(e.getMessage(),e);
 				return false;
 			}
 			
@@ -194,7 +198,7 @@ public class CallbackManager  {
 	}
 	private void releaseLock(String type) {
 		ReentrantLock lock = typeLockMap.get(type);
-		Logger.debug(CALLER, "Release_Lock", "Unlocking");
+		logger.debug("Release_Lock Unlocking type {}", type);
 		if (lock != null && lock.isLocked())
 			lock.unlock();
 	}
@@ -241,9 +245,9 @@ public class CallbackManager  {
 		try {
 			//is released in finally
 			locked = tryLock(type);
-			Logger.debug(CALLER, "Try_Dequeue_Try_Locked","Type",type,"Locked",locked);
+			logger.debug("Try_Dequeue_Try_Locked: Type={}, Locked={}",type,locked);
 			if (!locked) {
-				Logger.warn(CALLER, "Try_Dequeue_Lock_Unavailable","","Type",type);
+				logger.warn("Try_Dequeue_Lock_Unavailable: Type={}",type);
 				return false;
 			}
 			
@@ -254,7 +258,7 @@ public class CallbackManager  {
 						
 			
 			if (retryMap.localKeySet().size() <1) {
-				Logger.debug(CALLER, "Try_Dequeue_zero_size");
+				logger.debug( "Try_Dequeue_zero_size");
 				return false;
 			}
 			Iterator<String> keyIter = retryMap.localKeySet().iterator();
@@ -262,7 +266,7 @@ public class CallbackManager  {
 			//Member execMember = pickMember(type);
 			
 
-			Logger.info(CALLER, "Try_Dequeue", "Dequeueing local set size: " + retryMap.localKeySet().size() + ". BLOCK size: " + getBatchSize(type), "Type", type);
+			logger.info("Try_Dequeue_local: set size={}, block_size={}, type={}" + retryMap.localKeySet().size(), getBatchSize(type), type);
 			long successCount = 0;
 			long failCount = 0;
 			while(keyIter.hasNext()) {
@@ -305,19 +309,19 @@ public class CallbackManager  {
 						ret = cbs.isSuccess();
 					}catch (ExecutionException e) {
 						if (e.getCause() instanceof NoCallbackRegistered){
-							Logger.warn(CALLER, "Try_Dequeue_NoCallbackRegistered", "Exception Message: " + e.getMessage(), "Type", type);
+							logger.warn("Try_Dequeue_NoCallbackRegistered: msg={}, Type={}", e.getMessage(), type);
 							//next round will pick another member
 						} else {
-							Logger.info(CALLER, "Try_Dequeue_ExecutionException", "Exception Message: " + e.getCause().getMessage(), "Type", type);
+							logger.info( "Try_Dequeue_ExecutionException: msg={}, Type={}", e.getCause().getMessage(), type);
 						}
 					}catch(TimeoutException te) {
-						Logger.warn(CALLER, "Try_Dequeue_TimeoutException", "msg: " + te.getMessage(), "Type", type,"id",fw.getId());
+						logger.warn("Try_Dequeue_TimeoutException: msg={}, Type={}, id={}",  te.getMessage(),  type, fw.getId());
 						ret = false;
 						fw.getFutureTask().cancel(true);
 						callBackTimeOut(fw.getType(), fw.getId());
 					}
 					catch (Exception e) {
-						Logger.warn(CALLER, "Try_Dequeue_Exception", "Exception Message: " + e.getMessage(), "Type", type,e);
+						logger.warn("Try_Dequeue_Exception: msg={}, Type={}",  e.getMessage(),  type,e);
 						
 					}
 					if (ret) {
@@ -333,16 +337,16 @@ public class CallbackManager  {
 					setBatchSize(type,successForBatch);
 				}
 				if (stateMgr.getState(type) == RetryState.SUSPENDED) {
-					Logger.info(CALLER, "Try_Dequeue_Suspended", "Suspended, no dequeuing for type.", "Type", type);
+					logger.info( "Try_Dequeue_Suspended: Type={}", type);
 					break;
 				}
 				
 			}
-			Logger.info(CALLER, "Try_Dequeue_Iteration_Completed", "Completed iteration.", "Type", type, "SUCCESS", successCount, "FAILED", failCount,"CUR_BATCH_SIZE",getBatchSize(type));			
+			logger.info("Try_Dequeue_Iteration_Completed: Type={}, SUCCESS={}, FAILED={}, CUR_BATCH_SIZE={}",  type, successCount,  failCount, getBatchSize(type));			
 			
 			
 			if (isDrained(type)) {
-				Logger.info(CALLER, "Try_Dequeue_Queue_Drained", "Retry is drained from memory", "Type", type);
+				logger.info( "Try_Dequeue_Queue_Drained: Type={}", type);
 				
 				/*boolean allDrained = stateMgr.isStorageDrained(type);
 				if (allDrained)
@@ -355,7 +359,7 @@ public class CallbackManager  {
 		}
 		catch (Throwable t) {
 			
-			Logger.error(CALLER, "Try_Dequeue_Throwable", "Exception Message: " + t.getMessage(), "Type", type, t);
+			logger.error( "Try_Dequeue_Throwable: ",  t);
 			
 		} finally {
 			if (locked) 

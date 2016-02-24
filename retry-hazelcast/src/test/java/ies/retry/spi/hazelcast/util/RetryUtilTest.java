@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ies.retry.RetryHolder;
+import ies.retry.spi.hazelcast.persistence.ArchivingTest;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -80,7 +81,7 @@ public class RetryUtilTest {
 	@Test
 	public void testMergeDistCallback() throws Exception {
 		for (int i = 0; i < TIMESTAMPS_DISTCALLBACK_MERGE_RESULT.length; i++) {
-			List<RetryHolder> mergedList = RetryUtil.merge("RetryUtil", createRetryList(TIMESTAMPS_DISTCALLBACK_MERGE, 0, i, 0), 
+			List<RetryHolder> mergedList = RetryUtil.merge( createRetryList(TIMESTAMPS_DISTCALLBACK_MERGE, 0, i, 0), 
 					createRetryList(TIMESTAMPS_DISTCALLBACK_MERGE, 1, i, 10), createRetryList(TIMESTAMPS_DISTCALLBACK_MERGE, 2, i, 0));
 
 			assertEquals(TIMESTAMPS_DISTCALLBACK_MERGE_RESULT[i].length, mergedList.size());

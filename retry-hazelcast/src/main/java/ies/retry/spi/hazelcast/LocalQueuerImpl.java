@@ -20,7 +20,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import provision.services.logging.Logger;
 
 import com.hazelcast.core.DistributedTask;
 import com.hazelcast.core.HazelcastInstance;
@@ -39,6 +38,7 @@ import com.hazelcast.core.HazelcastInstance;
  */
 public class LocalQueuerImpl implements LocalQueuer {
 
+	private static org.slf4j.Logger logger =  org.slf4j.LoggerFactory.getLogger(LocalQueuerImpl.class);
 	private HazelcastInstance hz;
 	private HazelcastXmlConfig config;
 	private HazelcastConfigManager configMgr;
@@ -65,7 +65,7 @@ public class LocalQueuerImpl implements LocalQueuer {
 			queueLog = new LocalQueueLog(configMgr.getRetryHzConfig().getLocalQueueLogDir());
 			replayLogAndQueue();
 		}catch (IOException e) {
-			Logger.error(getClass().getName(), "LocalQueuerImpl_init","No_local_log","msg",e.getMessage(),e);
+			logger.error("LocalQueuerImpl_init: msg={}",e.getMessage(),e);
 		}
 	}
 	protected void replayLogAndQueue() throws IOException {
@@ -211,7 +211,7 @@ public class LocalQueuerImpl implements LocalQueuer {
 						latch.await(await,TimeUnit.SECONDS);
 						latch = new CountDownLatch(1);
 					} catch (InterruptedException e) {
-						Logger.warn(getClass().getName(), "INTERUPTED_EX","ex_msg",e.getMessage(),e);
+						logger.warn("INTERUPTED_EX: msg={}",e.getMessage(),e);
 						stop();
 					} 
 				}else {
@@ -228,15 +228,15 @@ public class LocalQueuerImpl implements LocalQueuer {
 							queueLog.moveTakeMarker();
 						
 					} catch (TimeoutException e) {
-						Logger.warn(getClass().getName(), "TimeoutException","ex_msg",e.getMessage(),e);
+						logger.warn( "TimeoutException",e);
 					}
 					catch (ExecutionException e) {
-						Logger.warn(getClass().getName(), "ExecutionException","ex_msg",e.getMessage(),e);
+						logger.warn( "ExecutionException",e);
 					}catch (InterruptedException e) {
-						Logger.warn(getClass().getName(), "INTERUPTED_EX","ex_msg",e.getMessage(),e);
+						logger.warn( "INTERUPTED_EX","ex_msg",e);
 						stop();
 					} catch (IOException e) {
-						Logger.warn(getClass().getName(), "IOException","ex_msg",e.getMessage(),e);
+						logger.warn( "IOException","ex_msg",e);
 					}
 					
 					

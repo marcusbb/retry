@@ -1,22 +1,22 @@
 package ies.retry.spi.hazelcast.persistence.ops;
 
-import ies.retry.RetryHolder;
-import ies.retry.spi.hazelcast.persistence.DBMergePolicy;
-import ies.retry.spi.hazelcast.persistence.RetryEntity;
-import ies.retry.spi.hazelcast.persistence.RetryId;
-import ies.retry.spi.hazelcast.util.RetryUtil;
-
 import java.util.List;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.PersistenceException;
 
-import provision.services.logging.Logger;
+import org.slf4j.Logger;
+
+import ies.retry.RetryHolder;
+import ies.retry.spi.hazelcast.persistence.DBMergePolicy;
+import ies.retry.spi.hazelcast.persistence.RetryEntity;
+import ies.retry.spi.hazelcast.persistence.RetryId;
+import ies.retry.spi.hazelcast.util.RetryUtil;
 
 public class StoreOp extends AbstractOp<Void>{
 
-	private final static String CALLER = StoreOp.class.getName();
+	private static org.slf4j.Logger logger =  org.slf4j.LoggerFactory.getLogger(StoreOp.class);
 	
 	private DBMergePolicy mergePolicy = DBMergePolicy.FIND_OVERWRITE;
 	
@@ -63,10 +63,10 @@ public class StoreOp extends AbstractOp<Void>{
 			}
 		}catch (PersistenceException e) {
 			//This may have different concerns
-			Logger.error(CALLER, "Find_Update_Payload_PersistenceException", "Exception Message: " + e.getMessage(),e);
+			logger.error( "Find_Update_Payload_PersistenceException: {}",  e.getMessage(),e);
 			
 		}catch (Exception e) {
-			Logger.error(CALLER, "Find_Update_Payload_Exception", "Exception Message: " + e.getMessage(),e);
+			logger.error( "Find_Update_Payload_Exception: {}", e.getMessage(),e);
 		}
 	}
 	
@@ -84,8 +84,8 @@ public class StoreOp extends AbstractOp<Void>{
 				try {
 					dbList = entity.fromByte(entity.getRetryData());
 				} catch (Exception e) {
-					Logger.error(CALLER, "Find_Merge_Payload", "Failed to de-serialize binary data: " + e.getMessage(), 
-							"Key", storeId, "Type", retryType, "Version", entity.getVersion(), e);
+					logger.error("Find_Merge_Payload: Failed to de-serialize binary data: key={}, type={},version={},msg={}" , 
+							 storeId,  retryType,  entity.getVersion(), e.getMessage(), e);
 				}
 				
 				@SuppressWarnings("unchecked")
@@ -99,10 +99,10 @@ public class StoreOp extends AbstractOp<Void>{
 			}
 		}catch (PersistenceException e) {
 			//This may have different concerns
-			Logger.error(CALLER, "Find_Merge_Payload", "Exception Message: " + e.getMessage(),e);
+			logger.error( "Find_Merge_Payload: {}",  e.getMessage(),e);
 			
 		}catch (Exception e) {
-			Logger.error(CALLER, "Find_Merge_Payload", "Exception Message: " + e.getMessage(),e);
+			logger.error( "Find_Merge_Payload: {}",  e.getMessage(),e);
 		}
 	}
 	

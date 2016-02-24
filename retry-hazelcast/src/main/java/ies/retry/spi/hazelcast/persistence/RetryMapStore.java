@@ -32,8 +32,7 @@ import org.hibernate.ScrollableResults;
 import org.hibernate.Session;
 import org.hibernate.StatelessSession;
 
-import provision.services.logging.Logger;
-import provision.util.turbo.TurboThreadFactory;
+
 
 /**
  * Allows for synchronous write behind for all store methods.
@@ -55,8 +54,8 @@ import provision.util.turbo.TurboThreadFactory;
 public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 
 	private String mapName = null;
-	private static String CALLER = RetryMapStore.class.getName();
-
+	private static org.slf4j.Logger logger =  org.slf4j.LoggerFactory.getLogger(RetryMapStore.class);
+	
 	private EntityManagerFactory emf;
 	private EntityManager sync_emf;
 
@@ -92,7 +91,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 	}
 
 	public List<RetryHolder> load(String key) {
-		Logger.info(CALLER, "Retry_Map_Load_Key", "loading  " + key, "Type",
+		logger.info( "Retry_Map_Load_Key: key={},type={}", key, 
 				mapName);
 		try {
 			RetryEntity entity = sync_emf.find(RetryEntity.class, new RetryId(key, mapName));
@@ -101,8 +100,8 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 				try {
 					entity.setHolderList(entity.fromByte(entity.getRetryData()));
 				} catch (Exception e) {
-					Logger.error(CALLER, "Retry_Map_Load_Key_Exception", "Failed to de-serialize binary data: " + e.getMessage(), 
-							"Key", key, "Type", mapName, "Version", entity.getVersion(), e);
+					logger.error( "Retry_Map_Load_Key_Exception: msg={}, key={}, type={}, ver={}",  e.getMessage(), 
+							 key,  mapName,  entity.getVersion(), e);
 					// Remove retry that can't be de-serialized. A new transaction will be started in DeleteOp. 
 					// However, we are not supposed to get deadlock as current context is read-only
 					this.delete(key); 
@@ -125,7 +124,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 	}
 
 	public Map<String, List<RetryHolder>> load(int start, int size) {
-		Logger.info(CALLER, "Retry_Map_Load_Keys",
+		logger.info( "Retry_Map_Load_Keys",
 				"loading  all keys from provided start.", "Start", start,
 				"Size", size, "Type", mapName);
 		Map<String, List<RetryHolder>> map = new HashMap<String, List<RetryHolder>>(
@@ -143,7 +142,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 					map.put(entity.getId().getId(), entity.getHolderList());
 				}catch (Exception e) {
 					RetryId rId = entity.getId();
-					Logger.error(CALLER, "Retry_Map_Load_Keys", "Exception Message: " + e.getMessage(), "Start", start, "Size", size, "Type", mapName, 
+					logger.error( "Retry_Map_Load_Keys", "Exception Message: " + e.getMessage(), "Start", start, "Size", size, "Type", mapName, 
 							"id", (rId!=null ?  rId.getId() : null) , e);
 				}
 			}
@@ -165,9 +164,8 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 	 * @return Emtpy Map if there is no data to load
 	 */
 	public Map<String, List<RetryHolder>> load(int batchSize) {
-		Logger.info(CALLER, "Retry_Map_Load_Keys",
-				"loading keys from provided start.", "Size", batchSize, "Type",
-				mapName);
+		logger.info( "Retry_Map_Load_Keys: size={}, type={}",
+				 batchSize, mapName);
 		Map<String, List<RetryHolder>> map = new HashMap<String, List<RetryHolder>>(
 				batchSize);
 
@@ -177,8 +175,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		try {
 
 			if (retryCursor == null) {
-				Logger.info(CALLER, "Retry_Map_Load_Keys",
-						"creating database cursor", "Type", mapName);
+				logger.info( "Retry_Map_Load_Keys: creating cursor: type={}", mapName);
 				// Get Hibernate session for scroll-able cursor from JPA 1.0
 				// session = (Session)sync_emf.getDelegate();
 				this.statelessSession = ((Session) sync_emf.getDelegate())
@@ -202,11 +199,10 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 			if (i == 0) { // no data to read
 				closeRetryCursor();
 			}
-			Logger.debug(CALLER, "Loaded " + map.keySet().size()
-					+ " retries from db for type " + mapName);
+			logger.debug( "Loaded {} retries from db for type {}", map.keySet().size(), mapName);
 		} catch (Exception e) {
-			Logger.error(CALLER, "Retry_Map_Load_Keys", "Exception Message: "
-					+ e.getMessage(), "Size", batchSize, "Type", mapName, e);
+			logger.error( "Retry_Map_Load_Keys: msg={}, size={}, type={}", 
+					 e.getMessage(),  batchSize,  mapName, e);
 			closeRetryCursor();
 		} finally {
 
@@ -223,8 +219,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 		try {
 			retryCursor.close();
 		} catch (Exception e) {
-			Logger.error(CALLER, "closeRetryCursor", "Close cursor fail",
-					"HibernateException Message: " + e.getMessage(), "Type",
+			logger.error( "closeRetryCursor: Close cursor fail HibernateException Message={}, type={} ", e.getMessage(),
 					mapName, e);
 		} finally {
 			retryCursor = null;
@@ -234,10 +229,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 			try {
 				statelessSession.close();
 			} catch (Exception e) {
-				Logger.error(CALLER, "closeStatelessSession",
-						"Close statelessSession fail",
-						"HibernateException Message: " + e.getMessage(),
-						"Type", mapName, e);
+				logger.error( "closeStatelessSession: type={}", mapName, e);
 			} finally {
 				statelessSession = null;
 			}
@@ -287,11 +279,10 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 	 */
 	public void store(final String key, final List<RetryHolder> value,
 			final DBMergePolicy mergePolicy) {
-		Logger.info(CALLER, "Retry_Map_Store_Key", "store  key " + key, "Type",
-				mapName);
+		logger.info( "Retry_Map_Store_Key: key={}, type={}", key,mapName);
 		
 		if (execService.getQueue().size() >=  config.getDropOnQueueSize()) {
-			Logger.error(CALLER, "DB_QUEUE_MAX_REACHED","Reached queue size: " + execService.getQueue().size());
+			logger.error( "DB_QUEUE_MAX_REACHED","Reached queue size: {}" , execService.getQueue().size());
 			//decided to drop it based on results of 
 			//code review and possiblility of hitting the upper bound
 			//and blocking on the persistence ops
@@ -304,8 +295,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 	}
 
 	public void storeAll(final Map<String, List<RetryHolder>> map) {
-		Logger.info(CALLER, "Retry_Map_Store_Keys",
-				"store  all " + map.keySet(), "Type", mapName);
+		logger.info( "Retry_Map_Store_Keys: keys={}, type={}", map.keySet(),  mapName);
 
 		Future<OpResult<Void>> future = execService.submit(new StoreAllOp(emf, map));
 		handleWriteSync(future);
@@ -316,11 +306,11 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 	 * removeEntity - true if entity must be removed from retries table
 	 */
 	public void archive(final List<RetryHolder> list, boolean removeEntity) {
-		Logger.info(CALLER, "Retry_Map_Archive_Key_Partial", "archive  key " + list.get(0).getId(), "Type",
-				mapName, "Remove", removeEntity);
+		logger.info( "Retry_Map_Archive_Key_Partial: key={}, type={}, entity={}",  list.get(0).getId(), 
+				mapName,  removeEntity);
 
 		if (execService.getQueue().size() >=  config.getDropOnQueueSize()) {
-			Logger.error(CALLER, "DB_QUEUE_MAX_REACHED","Reached queue size: " + execService.getQueue().size());
+			logger.error( "DB_QUEUE_MAX_REACHED","Reached queue size: " + execService.getQueue().size());
 			//decided to drop it based on results of 
 			//code review and possiblility of hitting the upper bound
 			//and blocking on the persistence ops
@@ -332,11 +322,10 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 	}
 	
 	public void delete(final String key) {
-		Logger.info(CALLER, "Retry_Map_Delete_Key", "delete " + key, "Type",
-				mapName);
+		logger.info( "Retry_Map_Delete_Key: key={}, type={}",  key, mapName);
 
 		if (execService.getQueue().size() >=  config.getDropOnQueueSize()) {
-			Logger.error(CALLER, "DB_QUEUE_MAX_REACHED","Reached queue size: " + execService.getQueue().size());
+			logger.error( "DB_QUEUE_MAX_REACHED","Reached queue size: " + execService.getQueue().size());
 			//decided to drop it based on results of 
 			//code review and possiblility of hitting the upper bound
 			//and blocking on the persistence ops
@@ -348,8 +337,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 	}
 
 	public void deleteByType() {
-		Logger.info(CALLER, "Retry_Map_Delete_By_Type", "delete by type: "
-				+ mapName);
+		logger.info( "Retry_Map_Delete_By_Type: type={}",  mapName);
 		Future<OpResult<Void>> future = execService.submit(new Callable<OpResult<Void>>() {
 
 			@Override
@@ -376,7 +364,7 @@ public class RetryMapStore {// implements MapStore<String, List<RetryHolder>> {
 				future.get(timeOut,TimeUnit.MILLISECONDS);					
 				
 			} catch (TimeoutException e) {
-				Logger.warn(CALLER, "DB_TIMEOUT_OP","msg",e.getMessage(),e);
+				logger.warn( "DB_TIMEOUT_OP: msg={}",e.getMessage(),e);
 				future.cancel(true);
 				throw new StoreTimeoutException("Unable to handle storage",e);
 			} catch (ExecutionException e) {

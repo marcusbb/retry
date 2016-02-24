@@ -8,6 +8,7 @@ import ies.retry.Retry;
 import ies.retry.RetryCallback;
 import ies.retry.RetryHolder;
 import ies.retry.RetryManager;
+import ies.retry.spi.hazelcast.DataLossUponLoadingFromDBTest;
 import ies.retry.spi.hazelcast.HazelcastRetryImpl;
 import ies.retry.spi.hazelcast.HzIntegrationTestUtil;
 import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
@@ -33,7 +34,6 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import provision.services.logging.Logger;
 
 import com.hazelcast.core.IMap;
 
@@ -43,8 +43,8 @@ import com.hazelcast.core.IMap;
  */
 @Ignore /* due to race condition */ 
 public class DistCallBackTaskSyncTest {
-	private final static String CALLER = DistCallBackTaskSyncTest.class
-			.getName();
+	
+	private static org.slf4j.Logger logger =  org.slf4j.LoggerFactory.getLogger(DistCallBackTaskSyncTest.class);
 	private static EntityManagerFactory emf;
 	private static RetryMapStore mapStore = null;
 
@@ -104,7 +104,7 @@ public class DistCallBackTaskSyncTest {
 
 			@Override
 			public boolean onEvent(RetryHolder retry) throws Exception {
-				Logger.info(CALLER, "RetryCallback_onEvent", "Retried");
+				logger.info("RetryCallback_onEvent", "Retried");
 				if (retryFail)
 					throw new Exception("TEST");
 				return true;

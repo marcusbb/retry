@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
-import provision.services.logging.Logger;
 
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
@@ -36,7 +35,7 @@ public class AddRetryTask implements Callable<Void>, DataSerializable {
 	 * 
 	 */
 	private static final long serialVersionUID = -2759049204058496674L;
-	private static String CALLER = AddRetryTask.class.getName();
+	private static org.slf4j.Logger logger =  org.slf4j.LoggerFactory.getLogger(AddRetryTask.class);
 	private HzSerializableRetryHolder serialiableHolder = null;
 	private RetryHolder retry = null;
 	private boolean persist = true;
@@ -88,7 +87,7 @@ public class AddRetryTask implements Callable<Void>, DataSerializable {
 			//distMap.lock(retry.getId());
 			lockAquired = distMap.tryLock(retry.getId(), configMgr.getRetryHzConfig().getRetryAddLockTimeout(), TimeUnit.MILLISECONDS);
 			if ( ! lockAquired ) {
-				Logger.warn(CALLER, "Add_Retry_Task_Call_LockTimeout","Lock timeout","retry",retry);
+				logger.warn( "Add_Retry_Task_Call_LockTimeout","Lock timeout","retry",retry);
 				throw new RuntimeException("Unable to Aquire Lock: " + retry.toString());
 			}
 			long curTs = System.currentTimeMillis();
@@ -114,7 +113,7 @@ public class AddRetryTask implements Callable<Void>, DataSerializable {
 					list.add(retryHolder);
 					RetryMapStoreFactory.getInstance().newMapStore(retry.getType()).archive(list, false);
 				}
-				Logger.warn(CALLER, "Add_Retry_Task_Max_List_Size_Reached", "Retry holder was removed: " + retryHolder.getId(), "Type",	retryHolder.getType());
+				logger.warn( "Add_Retry_Task_Max_List_Size_Reached: ID={}, type={}",  retryHolder.getId(), retryHolder.getType());
 			}
 			
 			distMap.put(retry.getId(), new HzSerializableRetryHolder(listHolder, new KryoSerializer(),serialiableHolder.isDeferPayloadSerialization()));
@@ -131,7 +130,7 @@ public class AddRetryTask implements Callable<Void>, DataSerializable {
 				RetryMapStoreFactory.getInstance().newMapStore(retry.getType()).store(listHolder, mergePolicy);
 			
 		}catch (Exception e) {
-			Logger.error(CALLER, "Add_Retry_Task_Call_Exception", "Exception Message: " + e.getMessage(), e);
+			logger.error( "Add_Retry_Task_Call_Exception",  e);
 		}finally {
 			if (distMap != null && retry != null && lockAquired)
 				distMap.unlock(retry.getId());

@@ -11,7 +11,6 @@ import javax.persistence.PersistenceException;
 
 import org.hibernate.exception.ConstraintViolationException;
 
-import provision.services.logging.Logger;
 
 /**
  * A jpa transactable task.
@@ -22,8 +21,9 @@ import provision.services.logging.Logger;
  */
 public abstract class AbstractOp<T> implements Callable<OpResult<T>>,OpResult<T>{
 	
-	private String caller = this.getClass().getName();
-
+	private static org.slf4j.Logger logger =  org.slf4j.LoggerFactory.getLogger(AbstractOp.class);
+	
+	
 	protected EntityManagerFactory emf;
 	
 	protected String retryType;
@@ -88,17 +88,17 @@ public abstract class AbstractOp<T> implements Callable<OpResult<T>>,OpResult<T>
 			}
 			catch (ConstraintViolationException e) {
 				if(i == maxTimes-1){ // log error if we failed to execute Op maxTimes
-					Logger.error(caller, "Persistence_Op_PK_Exception", "DB operation failed because of PK violation: " + e.getMessage(), e); // log error message
+					logger.error( "Persistence_Op_PK_Exception: DB operation failed because of PK violation: {}" , e.getMessage(), e); // log error message
 				}
 				else{
-					Logger.warn(caller, "Persistence_Op_PK_Exception", "DB operation failed because of PK violation: " + e.getMessage(), e); // just log message, going to next iteration
+					logger.warn( "Persistence_Op_PK_Exception: DB operation failed because of PK violation: {}", e.getMessage(), e); // just log message, going to next iteration
 				}
 			}
 			catch (PersistenceException e) {
-				Logger.error(caller, "Persistence_Op_Exception", "Exception Message: " + e.getMessage(), e);
+				logger.error( "Persistence_Op_Exception: {}",  e.getMessage(), e);
 				throw e; // unknown persistence exception, leaving the loop
 			} catch (Exception e) {
-				Logger.error(caller, "Persistence_Op_Exception", "Exception Message: " + e.getMessage(), e);
+				logger.error( "Persistence_Op_Exception: {}",  e.getMessage(), e);
 				break; // unknown exception, leaving the loop
 			} finally {
 				em.getTransaction().rollback();

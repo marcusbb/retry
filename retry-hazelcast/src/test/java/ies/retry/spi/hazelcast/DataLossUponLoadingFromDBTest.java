@@ -8,6 +8,7 @@ import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
 import ies.retry.spi.hazelcast.persistence.RetryMapStoreFactory;
 import ies.retry.spi.hazelcast.util.IOUtil;
+import ies.retry.spi.hazelcast.util.RetryUtil;
 import ies.retry.xml.XMLRetryConfigMgr;
 
 import java.io.IOException;
@@ -23,7 +24,6 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import provision.services.logging.Logger;
 
 
 public class DataLossUponLoadingFromDBTest {
@@ -36,6 +36,8 @@ public class DataLossUponLoadingFromDBTest {
 
 	static HazelcastRetryImpl retryManager;
 
+	private static org.slf4j.Logger logger =  org.slf4j.LoggerFactory.getLogger(DataLossUponLoadingFromDBTest.class);
+	
 	@BeforeClass
 	public static void beforeClass() throws IOException {
 
@@ -98,7 +100,7 @@ public class DataLossUponLoadingFromDBTest {
 
 			@Override
 			public boolean onEvent(RetryHolder retry) throws Exception {
-				Logger.info("DT5254787Test", "RetryCallback_onEvent", "Retried");
+				logger.info("DT5254787Test RetryCallback_onEvent Retried");
 				Thread.sleep(1000000000); // never completes
 				return true;
 			}

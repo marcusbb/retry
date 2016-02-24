@@ -1,5 +1,7 @@
 package ies.retry.spi.hazelcast;
 
+import org.slf4j.Logger;
+
 import com.hazelcast.client.ClientConfig;
 import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.core.LifecycleEvent;
@@ -12,7 +14,6 @@ import ies.retry.spi.hazelcast.remote.RemoteManagerRPC;
 import ies.retry.spi.hazelcast.remote.RemoteRPC;
 import ies.retry.spi.hazelcast.remote.RemoteXmlConfig;
 import ies.retry.spi.hazelcast.remote.Remoteable;
-import provision.services.logging.Logger;
 
 /**
  * Handles connections back to calling hz cluster.
@@ -22,7 +23,7 @@ import provision.services.logging.Logger;
 public class CallbackRemoteProxy extends Remoteable implements RetryCallback,LifecycleListener {
 
 	private RemoteXmlConfig remoteClusterConfig;
-	
+	private static Logger logger = org.slf4j.LoggerFactory.getLogger(CallbackRemoteProxy.class);
 		
 	public CallbackRemoteProxy(RemoteXmlConfig config) {
 		
@@ -42,7 +43,7 @@ public class CallbackRemoteProxy extends Remoteable implements RetryCallback,Lif
 	@Override
 	public void stateChanged(LifecycleEvent event) {
 		if (event.getState() == LifecycleState.CLIENT_CONNECTION_LOST) {
-			Logger.warn(CallbackRemoteProxy.class.getName(), "remote_cluster_connection_lost","",event.getState());
+			logger.warn("remote_cluster_connection_lost: state={}",event.getState());
 			//TODO: eventually Hz will give up if gone for too long.
 			//perhaps we need to fill the void here
 		}

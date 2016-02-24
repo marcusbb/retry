@@ -25,7 +25,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import javax.xml.bind.JAXBException;
 
-import provision.services.logging.Logger;
 
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.IMap;
@@ -36,7 +35,8 @@ import com.hazelcast.core.MessageListener;
 
 public class RetryManagement implements RetryManagementMBean,MessageListener<ConfigBroadcast> {
 
-	private static String CALLER = RetryManagement.class.toString();
+	private static org.slf4j.Logger logger =  org.slf4j.LoggerFactory.getLogger(RetryManagement.class);
+	
 	private HazelcastRetryImpl coordinator;
 	
 	
@@ -101,14 +101,14 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 		
 	}
 	public void suspend(String type) throws IllegalStateException {
-		Logger.info(CALLER, "Suspend_Retries_By_Type", "Suspending retry type=" + type);
+		logger.info( "Suspend_Retries_By_Type: type={}" + type);
 		coordinator.getStateMgr().suspend(type);
 		
 	}
 
 	
 	public void resume(String type) throws IllegalStateException {
-		Logger.info(CALLER, "Resume_Retries_By_Type", "Resuming retry type=" + type);
+		logger.info( "Resume_Retries_By_Type: type={}",  type);
 		coordinator.getStateMgr().resume(type);
 		
 	}
@@ -266,7 +266,7 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 		XMLRetryConfigMgr configMgr = ((XMLRetryConfigMgr)coordinator.getConfigManager());
 		ArrayList<String> typeList = new ArrayList<String>();
 		for (RetryConfiguration config:configMgr.getConfigMap().values()) {
-			Logger.info(CALLER, "Loading from DB: " + config.getType());
+			logger.info( "Loading from DB: Type={} " , config.getType());
 			typeList.add(config.getType());
 		}
 		coordinator.getStateMgr().loadDataAsync(typeList);
