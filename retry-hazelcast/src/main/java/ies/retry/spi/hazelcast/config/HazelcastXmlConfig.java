@@ -37,7 +37,10 @@ public class HazelcastXmlConfig extends XmlRetryConfig {
 	private int defaultLocalQueueSize = 64000;
 	
 	private boolean throwOnAddException = true;
+	
+	private String localQueueLogDir = "/var/log/retry";
 			
+	
 	public PersistenceConfig getPersistenceConfig() {
 		return persistenceConfig;
 	}
@@ -125,6 +128,16 @@ public class HazelcastXmlConfig extends XmlRetryConfig {
 
 	public void setThrowOnAddException(boolean throwOnAddException) {
 		this.throwOnAddException = throwOnAddException;
+	}
+
+
+	public String getLocalQueueLogDir() {
+		return localQueueLogDir;
+	}
+
+
+	public void setLocalQueueLogDir(String localQueueLogDir) {
+		this.localQueueLogDir = localQueueLogDir;
 	}
 	
 	

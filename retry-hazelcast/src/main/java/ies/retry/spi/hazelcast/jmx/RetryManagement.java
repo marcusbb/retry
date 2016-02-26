@@ -373,12 +373,12 @@ public class RetryManagement implements RetryManagementMBean,MessageListener<Con
 	
 	@Override
 	public boolean isPersistenceOn() {
-		return ((HazelcastConfigManager)coordinator.getConfigManager()).getHzConfig().getPersistenceConfig().isON();
+		return ((HazelcastConfigManager)coordinator.getConfigManager()).getRetryHzConfig().getPersistenceConfig().isON();
 		
 	}
 	@Override
 	public void setPersistenceOn(boolean on) {
-		((HazelcastConfigManager)coordinator.getConfigManager()).getHzConfig().getPersistenceConfig().setON(on);
+		((HazelcastConfigManager)coordinator.getConfigManager()).getRetryHzConfig().getPersistenceConfig().setON(on);
 		broadcastCurrentConfig();
 		
 	}

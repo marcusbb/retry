@@ -47,6 +47,7 @@ import com.hazelcast.core.MultiTask;
  * 
  * Manages cluster master detection and state.
  * 
+ * TODO: split off the persistence loading features
  * 
  * @author msimonsen
  *
@@ -223,7 +224,7 @@ public class StateManager implements  MembershipListener{
 							Logger.info(CALLER, "Load_Data_Async", "Update loading State -> LOADING", "Type", config.getType());
 							
 							//scrolling or paging loading?
-							if (configMgr.getHzConfig().getPersistenceConfig().isPagedLoading())
+							if (configMgr.getRetryHzConfig().getPersistenceConfig().isPagedLoading())
 								loadData(config.getType(), config);
 							else
 								loadData(config.getType(),config,true);
@@ -243,34 +244,6 @@ public class StateManager implements  MembershipListener{
 				}
 			}
 		});
-	}
-	private void loadData(String type) {
-		RetryConfiguration config = configMgr.getConfiguration(type);
-		// initialize loading state null -> loading
-		loadingStateMap.put(config.getType(), LoadingState.LOADING);
-		Logger.info(CALLER, "Load_Data_Async", "Update loading State -> LOADING", "Type", config.getType());
-		loadData(config.getType(),config,true);
-		
-		
-		if(loadingStateMap.tryLock(config.getType())) {
-			if(loadingStateMap.get(config.getType()) == null) {
-				// initialize loading state null -> loading
-				loadingStateMap.put(config.getType(), LoadingState.LOADING);
-				Logger.info(CALLER, "Load_Data_Async", "Update loading State -> LOADING", "Type", config.getType());
-				
-				//scrolling or paging loading?
-				if (configMgr.getHzConfig().getPersistenceConfig().isPagedLoading())
-					loadData(config.getType(), config);
-				else
-					loadData(config.getType(),config,true);
-				
-				loadingStateMap.put(config.getType(), LoadingState.READY);
-				Logger.info(CALLER, "Load_Data_Async", "Update loading State -> READY", "Type", config.getType());
-			}
-			loadingStateMap.put(config.getType(), LoadingState.READY);
-			Logger.info(CALLER, "Load_Data_Async", "Update loading State -> READY", "Type", config.getType());
-			
-		}
 	}
 	
 	
@@ -334,7 +307,7 @@ public class StateManager implements  MembershipListener{
 			Logger.info(CALLER, "I_Am_Master", "I am the master: "+ masterMember);
 			master = true;
 			//
-			long queueCheckPeriod = configMgr.getHzConfig().getQueueCheckPeriod();
+			long queueCheckPeriod = configMgr.getRetryHzConfig().getQueueCheckPeriod();
 			stpe.scheduleAtFixedRate(
 					new SyncGridStorageTask(this), 
 					queueCheckPeriod, queueCheckPeriod, TimeUnit.MILLISECONDS);
@@ -409,7 +382,7 @@ public class StateManager implements  MembershipListener{
 	
 	/**
 	 * Local event, called from callback (or de-queue) event
-	 * Will also inform transition listeners of this  
+	 * Will also inform transition listeners of this retry type 
 	 * 
 	 * @param type
 	 * @return if storage had items that grid did not
@@ -424,29 +397,40 @@ public class StateManager implements  MembershipListener{
 		//that the cluster + storage is drained - let's make sure
 		boolean storedRetry = false;
 		
-		//first check we're QUEUED
-		//then that the grid is empty
-		//finally synchronize with DB
-		//if (t == RetryState.QUEUED) {
-			Logger.debug(CALLER, "SYNC_GRID_QUEUED","","TYPE",type);
-			if (gridEmpty(type)) {
+		
+		Logger.debug(CALLER, "SYNC_GRID_QUEUED","","TYPE",type);
+		int storeCount = ((RetryMapStore)RetryMapStoreFactory.getInstance().newMapStore(type)).count();
+		int gridCount = h1.getMap(type).size();
+		int maxSize = configMgr.getHzConfiguration().getMapConfig(type).getMaxSizeConfig().getSize();
+		int avgSizePerNode = gridCount / h1.getCluster().getMembers().size();
+		
+		//define over capacity as this average node map size exceeding the max size
+		//we don't want to trigger a load if cache has evicted
+		boolean overCapacity = avgSizePerNode >= maxSize;
+		
+		//we've lost some items in the grid OR the grid has evicted from cache
+		//in a split situation we probably do not want this - but not much choice
+		//there is a couple of more checks that can go in here
+		//1. That there is no storedQueueCount - meaning the DB is behind in writes
+		// 
+		if ( (gridCount < storeCount) && !overCapacity && master) {
 			
-			storedRetry =storedRetry(type);
-			if ( !storedRetry ) {
-				publish(new RetryTransitionEvent(t, RetryState.DRAINED,type));
-					Logger.info(CALLER, "SYNC_GRID_DB_SYNCED","","TYPE",type);
-				//finally flip the member lost event off,
-				//as we're  synchronized persistence
-				memberLostEvent = false;
-			} else if(master) {
-				//actively load
-					//as for some reason the 
-					//DB has records that the grid does not
-					Logger.warn(CALLER, "SYNC_GRID_DB_ERROR", "Found retries in store, loading...", "Type", type);
-					loadData(type, configMgr.getConfiguration(type),false);
-			}
+			Logger.warn(CALLER, "SYNC_DB_GRID_ISSUE","","gridCount",gridCount,"storeCount",storeCount);			
+			//actively load
+			//as for some reason the 
+			//DB has records that the grid does not
+			Logger.warn(CALLER, "SYNC_GRID_DB_ERROR", "Found retries in store, loading...", "Type", type);
+			loadData(type, configMgr.getConfiguration(type),false);
+			
 		} 
-		//} 
+		if ( storeCount == 0 && gridCount ==0 ) {
+			Logger.info(CALLER, "SYNC_GRID_DB_ZERO","","TYPE",type);
+			publish(new RetryTransitionEvent(t, RetryState.DRAINED,type));
+			//finally flip the member lost event off,
+			//as we're  synchronized persistence
+			memberLostEvent = false;
+		}
+		
 		return storedRetry;
 	}
 	
@@ -457,6 +441,7 @@ public class StateManager implements  MembershipListener{
 		return true;
 	}
 	
+	//This method may be completely redundant to an IMap.size function: consider removing it.
 	private Collection<Integer> getLocalKeySetSizes(String type) {
 		HazelcastInstance h1 = ((HazelcastRetryImpl)Retry.getRetryManager()).getH1();
 		
@@ -472,11 +457,7 @@ public class StateManager implements  MembershipListener{
 		
 	}
 	
-	private boolean storedRetry(String type) {
-		RetryMapStore store = (RetryMapStore)RetryMapStoreFactory.getInstance().newMapStore(type);
-		return store.count() > 0;
-		
-	}
+	
 	
 	public void notifyStateListeners(RetryState oldState, RetryTransitionEvent event) {
 		
@@ -645,18 +626,24 @@ class SyncGridStorageTask implements Runnable {
 	private StateManager stateMgr;
 	private static String CALLER = SyncGridStorageTask.class.getName();
 	
+	
 	public SyncGridStorageTask(StateManager stateMgr) {
 		this.stateMgr = stateMgr;
+		
 	}
 	
 	@Override
 	public void run() {
 		Logger.debug(CALLER,"Check_state_start");
+		IMap<String,StateManager.LoadingState> loadStateMap = stateMgr.getH1().getMap(StateManager.DB_LOADING_STATE);
+		
 		Map<String,RetryState> stateMap = stateMgr.getAllStates();
 		try {
 			for (String type:stateMap.keySet()) {
-						
-				stateMgr.syncGridAndStorage(type);
+				if (loadStateMap.get(type) == StateManager.LoadingState.READY)
+					stateMgr.syncGridAndStorage(type);
+				else
+					Logger.info(CALLER, "skip_sync_store_","skipped","type",type);
 				
 			}
 		}catch (Throwable e) {

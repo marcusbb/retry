@@ -1,7 +1,8 @@
 package ies.retry.spi.hazelcast;
 
 import javax.persistence.EntityManagerFactory;
-import hazelcast.TestCallback;
+import javax.persistence.Persistence;
+
 import ies.retry.Retry;
 import ies.retry.RetryHolder;
 import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
@@ -12,7 +13,6 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import test.util.PersistenceUtil;
 import org.junit.Assert;
 
 public class StackTraceCountTest {
@@ -24,7 +24,7 @@ public class StackTraceCountTest {
 	public static void beforeClass() throws Exception{
 		HzIntegrationTestUtil.beforeClass();
 		
-		emf = PersistenceUtil.getEMFactory("retryPool");
+		emf = Persistence.createEntityManagerFactory("retryPool");
 		
 		XMLRetryConfigMgr.setXML_FILE("retry_config.xml");
 		retryManager = new HazelcastRetryImpl();

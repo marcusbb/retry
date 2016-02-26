@@ -16,26 +16,24 @@
 			<property name="hibernate.cache.use_second_level_cache"
 				value="false" />
 			<property name="hibernate.cache.provider_class" value="org.hibernate.cache.NoCacheProvider" />
-			<property name="hibernate.show_sql" value="false" />
+			<property name="hibernate.show_sql" value="true" />
 			<property name="hibernate.format_sql" value="false" />
 			 <!-- <property name="hibernate.jdbc.batch_size" value="20" /> -->
 			 
-			<!-- <property name="hibernate.connection.url"
-				value="jdbc:oracle:thin:@//dbprv59yyz.labyyz.testnet.rim.net:1523/VOSTOK" />
-			<property name="hibernate.connection.username" value="AK_ICRS" />
-			<property name="hibernate.connection.password" value="wipeitclean" /> -->
-			 
-<!-- 
-			 <property name="hibernate.connection.driver_class" value="oracle.jdbc.driver.OracleDriver" />
-			 <property name="hibernate.connection.url" value="jdbc:oracle:thin:@(DESCRIPTION = (ADDRESS = (PROTOCOL = TCP)(HOST = dbprv59yyz.labyyz.testnet.rim.net)(PORT = 1523))(CONNECT_DATA =(SERVER = DEDICATED)(SERVICE_NAME = Vostok)))" />
-			 <property name="hibernate.connection.username" value="ms_icrs" />
-			 <property name="hibernate.connection.password" value="ms_icrs" />
+			<property name="hibernate.connection.url" value="jdbc:derby:memory:testDB"/>
+
+    		<property name="hibernate.connection.driver_class"    value="org.apache.derby.jdbc.EmbeddedDriver"/>
+    		<property name="hibernate.dialect" value="org.hibernate.dialect.DerbyDialect"/>
+
+         	
+
+       
 			 <property name="connection.provider_class" value="org.hibernate.connection.C3P0ConnectionProvider"></property>
 			 <property name="hibernate.c3p0.min_size" value="5"></property>
       		<property name="hibernate.c3p0.max_size" value="20"></property>
       		<property name="hibernate.c3p0.max_statements" value="200"></property>
       		<property name="hibernate.c3p0.timeout" value="100" />
- -->
+
 		</properties>
 	</persistence-unit>
 </persistence>

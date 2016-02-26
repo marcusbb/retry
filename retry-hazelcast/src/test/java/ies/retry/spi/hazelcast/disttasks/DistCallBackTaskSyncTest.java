@@ -25,6 +25,7 @@ import java.util.List;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -33,7 +34,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import provision.services.logging.Logger;
-import test.util.PersistenceUtil;
 
 import com.hazelcast.core.IMap;
 
@@ -66,7 +66,8 @@ public class DistCallBackTaskSyncTest {
 		ORIG_XML_FILE = XMLRetryConfigMgr.XML_FILE;
 		XMLRetryConfigMgr.XML_FILE = XML_CONFIG;
 		retryManager = Retry.getRetryManager();
-		emf = PersistenceUtil.getEMFactory("retryPool");
+		//emf = PersistenceUtil.getEMFactory("retryPool");
+		emf = Persistence.createEntityManagerFactory("retryPool");
 		HazelcastXmlConfig config = new HazelcastXmlConfig();
 		config.getPersistenceConfig().setON(true);
 

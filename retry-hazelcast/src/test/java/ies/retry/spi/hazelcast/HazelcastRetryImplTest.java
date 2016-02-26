@@ -23,13 +23,13 @@ import java.util.Map;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import test.util.PersistenceUtil;
 
 public class HazelcastRetryImplTest {
 	private static EntityManagerFactory emf;
@@ -58,7 +58,8 @@ public class HazelcastRetryImplTest {
 		assertFalse("ARCHIVE_OFF ", configMap.get(ARCHIVE_OFF_CONFIG)
 				.isArchiveExpired());
 
-		emf = PersistenceUtil.getEMFactory("retryPool");
+		//emf = PersistenceUtil.getEMFactory("retryPool");
+		emf = Persistence.createEntityManagerFactory("retryPool");
 		HazelcastXmlConfig config = new HazelcastXmlConfig();
 		config.getPersistenceConfig().setON(true);
 		

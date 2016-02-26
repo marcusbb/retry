@@ -1,0 +1,13 @@
+#maven related
+target/
+
+#eclipse related
+.project
+.settings/
+.classpath
+reports/
+
+#project related
+derby.log
+retry-api/config.xml
+retry-api/config_readwrite.xml

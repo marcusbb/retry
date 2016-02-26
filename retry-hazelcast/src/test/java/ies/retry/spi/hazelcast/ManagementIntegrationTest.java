@@ -1,7 +1,6 @@
 package ies.retry.spi.hazelcast;
 
 import static org.junit.Assert.fail;
-import hazelcast.SuccessCallback;
 import ies.retry.ConfigException;
 import ies.retry.Retry;
 import ies.retry.RetryConfiguration;

@@ -1,10 +1,10 @@
 package ies.retry.spi.hazelcast.persistence;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertNull;
+import static junit.framework.Assert.assertTrue;
 import ies.retry.Retry;
 import ies.retry.RetryCallback;
 import ies.retry.RetryConfigManager;
@@ -15,19 +15,19 @@ import ies.retry.spi.hazelcast.HzIntegrationTestUtil;
 import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
 import ies.retry.xml.XMLRetryConfigMgr;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 
-
-import static junit.framework.Assert.*;
-
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import test.util.PersistenceUtil;
 
 /* End2End Tests for RDBMS based implementation of RetryMapStore
  * @author akharchuk
@@ -62,7 +62,7 @@ public class RetryMapStoreTest {
 		assertFalse("ARCHIVE_OFF ", configMap.get(ARCHIVE_OFF_CONFIG)
 				.isArchiveExpired());
 
-		emf = PersistenceUtil.getEMFactory("retryPool");
+		emf = Persistence.createEntityManagerFactory("retryPool");
 		HazelcastXmlConfig config = new HazelcastXmlConfig();
 		config.getPersistenceConfig().setON(true);
 		

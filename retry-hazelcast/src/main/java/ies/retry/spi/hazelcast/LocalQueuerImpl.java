@@ -6,6 +6,9 @@ import ies.retry.spi.hazelcast.config.HazelcastConfigManager;
 import ies.retry.spi.hazelcast.config.HazelcastXmlConfig;
 import ies.retry.spi.hazelcast.disttasks.AddRetryCallable;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -48,17 +51,35 @@ public class LocalQueuerImpl implements LocalQueuer {
 	
 	static long awaitPollPeriod = 10; //seconds
 	
-	
+	private LocalQueueLog queueLog;
 	
 	public LocalQueuerImpl(HazelcastInstance inst,HazelcastConfigManager configMgr) {
 		this.hz = inst;
 		this.configMgr = configMgr;
-		this.config = configMgr.getHzConfig();
+		this.config = configMgr.getRetryHzConfig();
 		queueMap = new ConcurrentHashMap<String, Queue<RetryHolder>>();
 		queueExec = new HashMap<String, ExecutorService>();
 		pollQueueMap = new HashMap<String, PollQueue>();
+		//may end up putting this in another method
+		//so that it can be replayed
+		try {
+			queueLog = new LocalQueueLog(configMgr.getRetryHzConfig().getLocalQueueLogDir());
+			replayLogAndQueue();
+		}catch (IOException e) {
+			Logger.error(getClass().getName(), "LocalQueuerImpl_init","No_local_log","msg",e.getMessage(),e);
+		}
 	}
-	
+	protected void replayLogAndQueue() throws IOException {
+		Collection<RetryHolder> col = queueLog.replay();
+		
+		for (RetryHolder holder:col) {
+			Queue<RetryHolder> queue = getQueue(holder.getType());
+			queue.add(holder);
+			
+			pollQueueMap.get(holder.getType()).signal();
+		}
+		
+	}
 	private Queue<RetryHolder> getQueue(String key) {
 		
 		
@@ -83,7 +104,7 @@ public class LocalQueuerImpl implements LocalQueuer {
 		ExecutorService exec = new ThreadPoolExecutor(1,1,1L,TimeUnit.SECONDS,new SynchronousQueue<Runnable>());
 		queueExec.put(key, exec );
 		//polling queue implementation
-		PollQueue poller = new PollQueue( queue, configMgr.getConfiguration(key), hz,awaitPollPeriod);
+		PollQueue poller = new PollQueue( queue, configMgr.getConfiguration(key), hz,awaitPollPeriod,queueLog);
 		exec.submit(poller);
 		pollQueueMap.put(key, poller);
 		
@@ -113,7 +134,13 @@ public class LocalQueuerImpl implements LocalQueuer {
 
 		Queue<RetryHolder> queue = getQueue(retryHolder.getType());
 		boolean ret = queue.add(retryHolder);
-		
+		//persist to log
+		try {
+			if (queueLog != null)
+				queueLog.queue(retryHolder);
+		}catch (IOException e) {
+			e.printStackTrace();
+		}
 		pollQueueMap.get(retryHolder.getType()).signal();
 		
 		return ret;
@@ -132,14 +159,22 @@ public class LocalQueuerImpl implements LocalQueuer {
 		}
 		
 	}
+		
 
+	public LocalQueueLog getQueueLog() {
+		return queueLog;
+	}
 	
+
+
+
 
 	private static class PollQueue implements Runnable {
 
 		final Queue<RetryHolder> queue;
 		final RetryConfiguration config;
 		final HazelcastInstance hz;
+		final LocalQueueLog queueLog;
 		
 		//the synchronization could be smarter.
 		CountDownLatch latch = new CountDownLatch(1);
@@ -147,13 +182,14 @@ public class LocalQueuerImpl implements LocalQueuer {
 		//paranonia to make we don't wait for ever
 		long await;
 		
-		PollQueue(Queue<RetryHolder> queue,RetryConfiguration config,HazelcastInstance hz,long await) {
+		PollQueue(Queue<RetryHolder> queue,RetryConfiguration config,HazelcastInstance hz,long await,LocalQueueLog queueLog) {
 			
 			//this.condition = condition;
 			this.queue = queue;
 			this.config = config;
 			this.hz = hz;
 			this.await = await;
+			this.queueLog = queueLog;
 		}
 		
 		protected void signal() {
@@ -189,6 +225,9 @@ public class LocalQueuerImpl implements LocalQueuer {
 						//Don't remove if it failed/timedout.
 						queue.remove();
 						
+						if (queueLog != null)
+							queueLog.moveTakeMarker();
+						
 					} catch (TimeoutException e) {
 						Logger.warn(getClass().getName(), "TimeoutException","ex_msg",e.getMessage(),e);
 					}
@@ -197,6 +236,8 @@ public class LocalQueuerImpl implements LocalQueuer {
 					}catch (InterruptedException e) {
 						Logger.warn(getClass().getName(), "INTERUPTED_EX","ex_msg",e.getMessage(),e);
 						stop();
+					} catch (IOException e) {
+						Logger.warn(getClass().getName(), "IOException","ex_msg",e.getMessage(),e);
 					}
 					
 					

@@ -28,7 +28,7 @@ public class RetryJMXMain {
 			if (args[1] != null)
 				XMLRetryConfigMgr.XML_FILE = args[1];
 		}
-		
+		XMLRetryConfigMgr.setCONFIG_DIR(".");
 		
 		RetryManager retryManager = Retry.getRetryManager();
 		

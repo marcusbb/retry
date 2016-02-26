@@ -129,7 +129,7 @@ public interface RetryManagementMBean extends ies.retry.jmx.RetryManagementMBean
 	//public boolean startHz() throws IllegalStateException;
 	
 	//shuts down Hz in graceful state
-	//public void shutdownHz() throws IllegalStateException;
+	public void shutdownHz() throws IllegalStateException;
 	
 	//public void startup();
 	
