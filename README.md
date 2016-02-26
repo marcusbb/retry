@@ -6,7 +6,7 @@ www.hazelcast.com
 
 I originally built this framework at @Blackberry.  It's useful for garanteed (eventual) notification deliver, but could be purposed for other such similar use cases that require a dependable asynchronous batch oriented message processing.
 
-Store "retry" objects that will be later called based on a callback policy and configuration.  
+Users store retry objects, called RetryHolder objects that will be later called based on a callback policy and configuration.  
 Retries are distributed according to hazelcast policy (configuration) and optionally stored in relational DB or
 [Cassandra](http://cassandra.apache.org)
 
@@ -29,10 +29,11 @@ Retry is currently backed by Hazelcast distributed Map, so lacked the ordering p
 - Configurable per node throttling (per type) on success/failure algorithm
 
 
-### Retry as a service
+### Usage
+
 
 ```java
-//dynamic configuration
+//Both declarative and programmatic configuration is possible for retry configuration
 Retry.getRetryManager().getConfigManager().addConfiguration(new RetryConfiguration()); //set at will
 
 Retry.getRetryManager().registerCallback(new RetryCallback() {
@@ -51,12 +52,19 @@ Retry.getRetryManager().addRetry(new RetryHolder("my_uuid", "my_endpoint_type",n
 
 ```
 
-### Usage
+
+### Retry as a service
+
+Retry is intended as a library that is managed by the end's application JVM.  The main issue with this approach is that is necessarily couples the application lifecycle with that the the grid.  What can potentially be thousands or even (tens) of millions of retry objects in memory can then turn into a potential node management head-ache when nodes either need to be cycled OR restarted.  
+Restarting OR removing nodes in a busy system can be very expensive to re-distribute data.
 
 
 ### Requirements
 Please check pom for an egregious errors.  I have done my best to keep internal repositories and dependencies out of project.
 - jdk 1.7+
 - cql-util - It's not published to public maven repository but can be pulled and built [here](http://github.com/marcusbb/cql-util)
+
+### TODO
+- move to Hazelcast 3.x
 
 
