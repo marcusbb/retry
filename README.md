@@ -32,22 +32,22 @@ Retry is currently backed by Hazelcast distributed Map, so lacked the ordering p
 ### Retry as a service
 
 ```java
-		//dynamic configuration
-		Retry.getRetryManager().getConfigManager().addConfiguration(new RetryConfiguration()); //set at will
+//dynamic configuration
+Retry.getRetryManager().getConfigManager().addConfiguration(new RetryConfiguration()); //set at will
+
+Retry.getRetryManager().registerCallback(new RetryCallback() {
+	
+	@Override
+	public boolean onEvent(RetryHolder retry) throws Exception {
+		//process which can throw exception
 		
-		Retry.getRetryManager().registerCallback(new RetryCallback() {
-			
-			@Override
-			public boolean onEvent(RetryHolder retry) throws Exception {
-				//process which can throw exception
-				
-				return false;
-			}
-		}, "my_endpoint_type");
-		Retry.getRetryManager().addRetry(new RetryHolder("my_uuid", "my_endpoint_type",new Serializable() {
-			public String content;
-			public long id;
-		}));
+		return false;
+	}
+}, "my_endpoint_type");
+Retry.getRetryManager().addRetry(new RetryHolder("my_uuid", "my_endpoint_type",new Serializable() {
+	public String content;
+	public long id;
+}));
 
 ```
 
