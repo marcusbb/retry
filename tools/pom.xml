@@ -17,12 +17,12 @@
 		<version>2.2.0-SNAPSHOT</version>
 	</parent>
 	
-	<repositories>
+	<!-- <repositories>
 		 <repository>
      	 	<id>main</id>
 		<url>http://repo1.maven.org/maven2/</url>
 		</repository>
-	</repositories>
+	</repositories> -->
 	<dependencies>
 		
 		<dependency>
@@ -57,12 +57,12 @@
 		
 		</dependency> -->
 	
-		<dependency>
+		<!-- <dependency>
 			  <groupId>com.oracle</groupId>
 			  <artifactId>ojdbc14</artifactId>
 			  <version>10.2.0.4.0</version>
 			  
-		</dependency>
+		</dependency> -->
 		<dependency>
 			<groupId>org.hibernate</groupId>
 			<artifactId>hibernate-core</artifactId>
@@ -147,7 +147,7 @@
 	  	</plugins>
 	</reporting>
 	
-	<distributionManagement>
+	<!-- <distributionManagement>
 	    <repository>
 	      <id>staging</id>
 	      <name>Rim Internal Releases</name>
@@ -163,13 +163,9 @@
 	      <name>Rim Internal Site</name>
 	      <url>dav:http://upload-maven.rim.net/nexus/content/sites/rim-dev-site/ies</url>
 	    </site>
-	 </distributionManagement> 
+	 </distributionManagement>  -->
 	
-	<scm>
-	    <connection>scm:perforce:${env.P4_USERNAME}@perforce02:1668://depot/dev/cardhu/IES/retry/retry-hazelcast/</connection>
-	    <developerConnection>scm:perforce:${env.P4_USERNAME}@perforce02:1668://depot/dev/cardhu/IES/retry/retry-hazelcast/</developerConnection>
-	     <url>//depot/dev/cardhu/${env.P4_USERNAME}/IES/retry/retry-hazelcast/</url>
-	</scm>
+	
 	
 </project>
 
